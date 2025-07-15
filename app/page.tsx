@@ -73,6 +73,7 @@ export default function Home() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let accumulatedText = '';
+      let currentChunkTexts: { [key: number]: string } = {};
       
       while (true) {
         const { value, done } = await reader.read();
@@ -88,10 +89,34 @@ export default function Home() {
               try {
                 const data = JSON.parse(dataStr);
                 
-                if (data.type === 'chunk') {
-                  // Append the new chunk to the accumulated text
-                  accumulatedText += (data.chunkIndex > 0 ? '\n\n' : '') + data.content;
-                  // Update the UI with the accumulated text so far
+                if (data.type === 'stream' && data.isPartial) {
+                  // Handle streaming text within a chunk
+                  if (!currentChunkTexts[data.chunkIndex]) {
+                    currentChunkTexts[data.chunkIndex] = '';
+                  }
+                  currentChunkTexts[data.chunkIndex] += data.content;
+                  
+                  // Rebuild the full text from all chunks
+                  let fullText = '';
+                  for (let idx = 0; idx <= data.chunkIndex; idx++) {
+                    if (idx > 0) fullText += '\n\n';
+                    if (idx === data.chunkIndex) {
+                      fullText += currentChunkTexts[idx] || '';
+                    } else if (accumulatedText.split('\n\n')[idx]) {
+                      fullText += accumulatedText.split('\n\n')[idx];
+                    }
+                  }
+                  setFormattedTranscript(fullText);
+                } else if (data.type === 'chunk' && !data.isPartial) {
+                  // Final chunk complete
+                  currentChunkTexts[data.chunkIndex] = data.content;
+                  
+                  // Update accumulated text
+                  const chunks = [];
+                  for (let idx = 0; idx <= data.chunkIndex; idx++) {
+                    chunks.push(currentChunkTexts[idx] || '');
+                  }
+                  accumulatedText = chunks.join('\n\n');
                   setFormattedTranscript(accumulatedText);
                 } else if (data.type === 'progress') {
                   // Update progress in UI
@@ -232,10 +257,20 @@ export default function Home() {
             
             {formattedTranscript && (
               <div className="mt-6 p-6 bg-card rounded-lg border border-border">
-                <h3 className="text-lg font-semibold mb-4">Formatted Transcript</h3>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  Formatted Transcript
+                  {isFormatting && (
+                    <span className="text-xs text-muted-foreground animate-pulse">
+                      • Streaming...
+                    </span>
+                  )}
+                </h3>
                 <div className="prose prose-invert max-w-none">
                   <pre className="whitespace-pre-wrap text-sm text-card-foreground">
                     {formattedTranscript}
+                    {isFormatting && (
+                      <span className="animate-pulse">▊</span>
+                    )}
                   </pre>
                 </div>
                 <div className="mt-4 flex gap-2">

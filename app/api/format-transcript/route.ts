@@ -142,20 +142,35 @@ async function formatWithGeminiStream(
       const progress = Math.round((i / totalChunks) * 100);
       await writer.write(encoder.encode(`data: {"type": "progress", "message": "Processing chunk ${i + 1} of ${totalChunks}...", "progress": ${progress}}\n\n`));
       
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const formattedChunk = response.text();
+      // Use streaming for real-time output
+      const result = await model.generateContentStream(prompt);
       
-      // Send the formatted chunk
-      const chunkData = {
+      let chunkText = '';
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) {
+          chunkText += text;
+          // Stream each word/phrase as it comes
+          await writer.write(encoder.encode(`data: ${JSON.stringify({
+            type: 'stream',
+            content: text,
+            chunkIndex: i,
+            isPartial: true
+          })}\n\n`));
+        }
+      }
+      
+      // Send the complete chunk when done
+      const finalChunk = {
         type: 'chunk',
-        content: formattedChunk,
+        content: chunkText,
         chunkIndex: i,
-        totalChunks: totalChunks
+        totalChunks: totalChunks,
+        isPartial: false
       };
-      await writer.write(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`));
+      await writer.write(encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`));
       
-      processedText += (i > 0 ? '\n\n' : '') + formattedChunk;
+      processedText += (i > 0 ? '\n\n' : '') + chunkText;
       
       // Brief delay between chunks to avoid rate limits
       if (i < totalChunks - 1) {
