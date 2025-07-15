@@ -1,23 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(request: NextRequest) {
   try {
     const { transcript, options } = await request.json();
     
-    // Initialize the appropriate AI client based on provider
-    let formattedText = '';
+    // Create a TransformStream for streaming response
+    const encoder = new TextEncoder();
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
     
-    // For now, we'll use Gemini for all formatting
-    formattedText = await formatWithGemini(transcript, options);
+    // Process in background
+    formatWithGeminiStream(transcript, options, writer, encoder).finally(() => {
+      writer.close();
+    });
     
-    return NextResponse.json({ formattedText, success: true });
+    // Return streaming response
+    return new Response(stream.readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
     
   } catch (error) {
     console.error('[Format API] Error:', error);
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Failed to format transcript' 
-    }, { status: 500 });
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to format transcript' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
 
@@ -28,10 +40,16 @@ interface FormatOptions {
   aiProvider: string;
 }
 
-async function formatWithGemini(transcript: any[], options: FormatOptions): Promise<string> {
+async function formatWithGeminiStream(
+  transcript: any[], 
+  options: FormatOptions,
+  writer: WritableStreamDefaultWriter,
+  encoder: TextEncoder
+): Promise<void> {
   const geminiApiKey = process.env.GEMINI_API_KEY;
   
   if (!geminiApiKey) {
+    await writer.write(encoder.encode(`data: {"error": "GEMINI_API_KEY not configured"}\n\n`));
     throw new Error('GEMINI_API_KEY not configured');
   }
   
@@ -39,13 +57,6 @@ async function formatWithGemini(transcript: any[], options: FormatOptions): Prom
   const model = genAI.getGenerativeModel({ 
     model: "gemini-1.5-flash-latest", // Fast and cheap, with 1M token context
   });
-  
-  // Prepare the transcript text
-  const transcriptText = transcript.map(segment => 
-    options.includeTimestamps 
-      ? `[${segment.timestamp}] ${segment.text}`
-      : segment.text
-  ).join('\n');
   
   // Build the system prompt based on formatting style
   const systemPrompts: Record<string, string> = {
@@ -89,56 +100,81 @@ async function formatWithGemini(transcript: any[], options: FormatOptions): Prom
   
   const systemPrompt = `${systemPrompts[options.style]}\n\n${paragraphInstructions[options.paragraphLength]}`;
   
-  // Gemini has a 1M token context, so we can handle much larger chunks
-  const MAX_CHARS = 800000; // Conservative limit for 1M tokens
+  // Process transcript in chunks for streaming
+  const CHUNK_SIZE = 1000; // Process 1000 words at a time for streaming
+  const words = transcript.map(segment => 
+    options.includeTimestamps 
+      ? `[${segment.timestamp}] ${segment.text}`
+      : segment.text
+  ).join(' ').split(' ');
   
-  // Check if we need to chunk at all
-  if (transcriptText.length <= MAX_CHARS) {
-    // Process entire transcript at once - Gemini can handle it!
-    const prompt = `${systemPrompt}\n\nPlease format the following transcript:\n\n${transcriptText}`;
+  const totalChunks = Math.ceil(words.length / CHUNK_SIZE);
+  
+  // Send initial progress
+  await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting formatting...", "progress": 0}\n\n`));
+  
+  let processedText = '';
+  
+  for (let i = 0; i < totalChunks; i++) {
+    const startIdx = i * CHUNK_SIZE;
+    const endIdx = Math.min((i + 1) * CHUNK_SIZE, words.length);
+    const chunkWords = words.slice(startIdx, endIdx);
+    const chunkText = chunkWords.join(' ');
     
-    try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
-    } catch (error) {
-      console.error('[Gemini] Generation error:', error);
-      throw new Error('Failed to format transcript with Gemini');
-    }
-  }
-  
-  // For extremely long transcripts (3+ hours), we still chunk
-  const chunks = chunkTranscript(transcriptText, MAX_CHARS);
-  let formattedChunks: string[] = [];
-  
-  for (let i = 0; i < chunks.length; i++) {
     const isFirst = i === 0;
-    const isLast = i === chunks.length - 1;
+    const isLast = i === totalChunks - 1;
     
-    const chunkContext = chunks.length > 1
-      ? `\n\nIMPORTANT: This is part ${i + 1} of ${chunks.length} of a long transcript. ${isFirst ? 'Start with an introduction.' : 'Continue from the previous part.'} ${isLast ? 'End with a conclusion.' : ''}`
-      : '';
+    let promptContext = '';
+    if (totalChunks > 1) {
+      if (isFirst) {
+        promptContext = '\n\nThis is the beginning of the transcript. Start appropriately.';
+      } else if (isLast) {
+        promptContext = '\n\nThis is the final part of the transcript. Conclude appropriately.';
+      } else {
+        promptContext = '\n\nThis is a continuation of the transcript.';
+      }
+    }
     
-    const prompt = `${systemPrompt}${chunkContext}\n\nPlease format the following transcript section:\n\n${chunks[i]}`;
+    const prompt = `${systemPrompt}${promptContext}\n\nPlease format the following transcript section:\n\n${chunkText}`;
     
     try {
+      // Send progress update
+      const progress = Math.round((i / totalChunks) * 100);
+      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Processing chunk ${i + 1} of ${totalChunks}...", "progress": ${progress}}\n\n`));
+      
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const formattedChunk = response.text();
-      formattedChunks.push(formattedChunk);
+      
+      // Send the formatted chunk
+      const chunkData = {
+        type: 'chunk',
+        content: formattedChunk,
+        chunkIndex: i,
+        totalChunks: totalChunks
+      };
+      await writer.write(encoder.encode(`data: ${JSON.stringify(chunkData)}\n\n`));
+      
+      processedText += (i > 0 ? '\n\n' : '') + formattedChunk;
       
       // Brief delay between chunks to avoid rate limits
-      if (i < chunks.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (i < totalChunks - 1) {
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     } catch (error) {
       console.error(`[Gemini] Error processing chunk ${i + 1}:`, error);
-      throw new Error(`Failed to format chunk ${i + 1}`);
+      const errorData = {
+        type: 'error',
+        message: `Failed to format chunk ${i + 1}`,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+      await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
+      throw error;
     }
   }
   
-  // Combine chunks
-  return formattedChunks.join('\n\n---\n\n');
+  // Send completion message
+  await writer.write(encoder.encode(`data: {"type": "complete", "message": "Formatting complete!"}\n\n`));
 }
 
 function chunkTranscript(text: string, maxChars: number): string[] {

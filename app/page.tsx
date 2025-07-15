@@ -16,6 +16,7 @@ export default function Home() {
   const [transcriptOrigin, setTranscriptOrigin] = useState<'auto_generated' | 'uploader_provided'>('auto_generated');
   const [formattedTranscript, setFormattedTranscript] = useState<string>('');
   const [isFormatting, setIsFormatting] = useState(false);
+  const [formattingProgress, setFormattingProgress] = useState<{ message: string; progress: number } | null>(null);
   
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +52,7 @@ export default function Home() {
     setIsFormatting(true);
     setFormattedTranscript('');
     setError('');
+    setFormattingProgress(null);
     
     try {
       const response = await fetch('/api/format-transcript', {
@@ -59,22 +61,57 @@ export default function Home() {
         body: JSON.stringify({ transcript, options })
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to format transcript');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to format transcript');
       }
       
-      if (data.success && data.formattedText) {
-        setFormattedTranscript(data.formattedText);
-      } else {
-        throw new Error('Invalid response from formatting API');
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = '';
+      
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        const text = decoder.decode(value);
+        const lines = text.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6);
+            if (dataStr.trim()) {
+              try {
+                const data = JSON.parse(dataStr);
+                
+                if (data.type === 'chunk') {
+                  // Append the new chunk to the accumulated text
+                  accumulatedText += (data.chunkIndex > 0 ? '\n\n' : '') + data.content;
+                  // Update the UI with the accumulated text so far
+                  setFormattedTranscript(accumulatedText);
+                } else if (data.type === 'progress') {
+                  // Update progress in UI
+                  setFormattingProgress({ message: data.message, progress: data.progress });
+                } else if (data.type === 'error') {
+                  throw new Error(data.message);
+                }
+              } catch (e) {
+                console.error('Failed to parse streaming data:', e);
+              }
+            }
+          }
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to format transcript');
       console.error('Formatting error:', err);
     } finally {
       setIsFormatting(false);
+      setFormattingProgress(null);
     }
   };
   
@@ -177,6 +214,21 @@ export default function Home() {
               onFormat={handleFormat}
               isFormatting={isFormatting}
             />
+            
+            {formattingProgress && (
+              <div className="mt-4 p-4 bg-secondary/50 rounded-lg border border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">{formattingProgress.message}</span>
+                  <span className="text-sm text-muted-foreground">{formattingProgress.progress}%</span>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-2">
+                  <div 
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${formattingProgress.progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
             
             {formattedTranscript && (
               <div className="mt-6 p-6 bg-card rounded-lg border border-border">
