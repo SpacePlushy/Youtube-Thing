@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { extractVideoId, extractTranscript } from '@/lib/youtube';
 import { TranscriptViewer } from '@/components/transcript-viewer';
+import { FormatOptions } from '@/components/format-options';
 import { Loader2 } from 'lucide-react';
 
 export default function Home() {
@@ -13,6 +14,8 @@ export default function Home() {
   const [transcriptMetadata, setTranscriptMetadata] = useState<any>(null);
   const [language, setLanguage] = useState('en');
   const [transcriptOrigin, setTranscriptOrigin] = useState<'auto_generated' | 'uploader_provided'>('auto_generated');
+  const [formattedTranscript, setFormattedTranscript] = useState<string>('');
+  const [isFormatting, setIsFormatting] = useState(false);
   
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +44,37 @@ export default function Home() {
       setError(err instanceof Error ? err.message : 'Failed to extract transcript');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleFormat = async (options: any) => {
+    setIsFormatting(true);
+    setFormattedTranscript('');
+    setError('');
+    
+    try {
+      const response = await fetch('/api/format-transcript', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript, options })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to format transcript');
+      }
+      
+      if (data.success && data.formattedText) {
+        setFormattedTranscript(data.formattedText);
+      } else {
+        throw new Error('Invalid response from formatting API');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to format transcript');
+      console.error('Formatting error:', err);
+    } finally {
+      setIsFormatting(false);
     }
   };
   
@@ -134,7 +168,50 @@ export default function Home() {
           </div>
         )}
         
-        {transcript.length > 0 && <TranscriptViewer transcript={transcript} />}
+        {transcript.length > 0 && (
+          <>
+            <TranscriptViewer transcript={transcript} />
+            
+            <FormatOptions 
+              transcriptLength={transcript.length}
+              onFormat={handleFormat}
+              isFormatting={isFormatting}
+            />
+            
+            {formattedTranscript && (
+              <div className="mt-6 p-6 bg-card rounded-lg border border-border">
+                <h3 className="text-lg font-semibold mb-4">Formatted Transcript</h3>
+                <div className="prose prose-invert max-w-none">
+                  <pre className="whitespace-pre-wrap text-sm text-card-foreground">
+                    {formattedTranscript}
+                  </pre>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(formattedTranscript)}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90"
+                  >
+                    Copy Formatted
+                  </button>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([formattedTranscript], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'formatted-transcript.txt';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:opacity-90"
+                  >
+                    Download Formatted
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
