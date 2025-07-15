@@ -72,8 +72,9 @@ export default function Home() {
       
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let accumulatedText = '';
-      let currentChunkTexts: { [key: number]: string } = {};
+      let completedChunks: string[] = [];
+      let currentChunkText = '';
+      let currentChunkIndex = -1;
       
       while (true) {
         const { value, done } = await reader.read();
@@ -91,33 +92,42 @@ export default function Home() {
                 
                 if (data.type === 'stream' && data.isPartial) {
                   // Handle streaming text within a chunk
-                  if (!currentChunkTexts[data.chunkIndex]) {
-                    currentChunkTexts[data.chunkIndex] = '';
+                  if (data.chunkIndex !== currentChunkIndex) {
+                    // New chunk started
+                    if (currentChunkIndex >= 0 && currentChunkText) {
+                      // Save the previous chunk
+                      completedChunks[currentChunkIndex] = currentChunkText;
+                    }
+                    currentChunkIndex = data.chunkIndex;
+                    currentChunkText = '';
                   }
-                  currentChunkTexts[data.chunkIndex] += data.content;
                   
-                  // Rebuild the full text from all chunks
-                  let fullText = '';
-                  for (let idx = 0; idx <= data.chunkIndex; idx++) {
-                    if (idx > 0) fullText += '\n\n';
-                    if (idx === data.chunkIndex) {
-                      fullText += currentChunkTexts[idx] || '';
-                    } else if (accumulatedText.split('\n\n')[idx]) {
-                      fullText += accumulatedText.split('\n\n')[idx];
+                  // Append new content to current chunk
+                  currentChunkText += data.content;
+                  
+                  // Build the full text from completed chunks + current streaming chunk
+                  let fullText = completedChunks.filter(chunk => chunk).join('\n\n');
+                  if (fullText && currentChunkText) {
+                    // Only add spacing if needed
+                    if (!fullText.endsWith('\n')) {
+                      fullText += '\n\n';
+                    } else if (!fullText.endsWith('\n\n')) {
+                      fullText += '\n';
                     }
                   }
+                  fullText += currentChunkText;
                   setFormattedTranscript(fullText);
+                  
                 } else if (data.type === 'chunk' && !data.isPartial) {
                   // Final chunk complete
-                  currentChunkTexts[data.chunkIndex] = data.content;
+                  completedChunks[data.chunkIndex] = data.content;
+                  currentChunkText = '';
+                  currentChunkIndex = data.chunkIndex;
                   
-                  // Update accumulated text
-                  const chunks = [];
-                  for (let idx = 0; idx <= data.chunkIndex; idx++) {
-                    chunks.push(currentChunkTexts[idx] || '');
-                  }
-                  accumulatedText = chunks.join('\n\n');
-                  setFormattedTranscript(accumulatedText);
+                  // Update with all completed chunks, filtering empty ones
+                  const cleanedChunks = completedChunks.filter(chunk => chunk && chunk.trim());
+                  setFormattedTranscript(cleanedChunks.join('\n\n'));
+                  
                 } else if (data.type === 'progress') {
                   // Update progress in UI
                   setFormattingProgress({ message: data.message, progress: data.progress });

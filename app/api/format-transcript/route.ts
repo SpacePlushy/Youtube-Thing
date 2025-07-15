@@ -129,9 +129,9 @@ async function formatWithGeminiStream(
       if (isFirst) {
         promptContext = '\n\nThis is the beginning of the transcript. Start appropriately.';
       } else if (isLast) {
-        promptContext = '\n\nThis is the final part of the transcript. Conclude appropriately.';
+        promptContext = '\n\nThis is the final part of the transcript. Conclude appropriately if needed, but do not add extra line breaks at the end.';
       } else {
-        promptContext = '\n\nThis is a continuation of the transcript.';
+        promptContext = '\n\nThis is a continuation of the transcript. Start immediately without extra line breaks.';
       }
     }
     
@@ -170,7 +170,11 @@ async function formatWithGeminiStream(
       };
       await writer.write(encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`));
       
-      processedText += (i > 0 ? '\n\n' : '') + chunkText;
+      // Only add spacing if the previous chunk doesn't end with newlines
+      if (i > 0 && processedText && !processedText.endsWith('\n\n')) {
+        processedText += '\n\n';
+      }
+      processedText += chunkText;
       
       // Brief delay between chunks to avoid rate limits
       if (i < totalChunks - 1) {
