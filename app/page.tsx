@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { extractVideoId, extractTranscript } from '@/lib/youtube';
 import { TranscriptViewer } from '@/components/transcript-viewer';
 import { FormatOptions } from '@/components/format-options';
-import { Loader2 } from 'lucide-react';
+import { TranscriptCache } from '@/lib/transcript-cache';
+import { Loader2, Trash2 } from 'lucide-react';
 
 export default function Home() {
   const [url, setUrl] = useState('');
@@ -17,6 +18,7 @@ export default function Home() {
   const [formattedTranscript, setFormattedTranscript] = useState<string>('');
   const [isFormatting, setIsFormatting] = useState(false);
   const [formattingProgress, setFormattingProgress] = useState<{ message: string; progress: number } | null>(null);
+  const [usingCache, setUsingCache] = useState(false);
   
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,11 +38,38 @@ export default function Home() {
     setError('');
     setTranscript([]);
     setTranscriptMetadata(null);
+    setFormattedTranscript('');
+    setFormattingProgress(null);
+    setUsingCache(false);
     
     try {
-      const result = await extractTranscript(videoId, 'oxylabs', { language, transcriptOrigin });
-      setTranscript(result.transcript || []);
-      setTranscriptMetadata(result.metadata || null);
+      // Check cache first
+      const cached = TranscriptCache.get(videoId, language, transcriptOrigin);
+      
+      if (cached) {
+        console.log('[Cache] Using cached transcript for:', videoId);
+        setTranscript(cached.transcript);
+        setTranscriptMetadata(cached.metadata);
+        setUsingCache(true);
+      } else {
+        console.log('[Cache] No cached transcript, fetching from API...');
+        const result = await extractTranscript(videoId, 'oxylabs', { language, transcriptOrigin });
+        
+        // Cache the result
+        if (result.transcript && result.transcript.length > 0) {
+          TranscriptCache.set(
+            videoId,
+            language,
+            transcriptOrigin,
+            result.transcript,
+            result.metadata
+          );
+          console.log('[Cache] Cached transcript for future use');
+        }
+        
+        setTranscript(result.transcript || []);
+        setTranscriptMetadata(result.metadata || null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to extract transcript');
     } finally {
@@ -242,6 +271,23 @@ export default function Home() {
         
         {transcript.length > 0 && (
           <>
+            {usingCache && (
+              <div className="mt-4 p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm flex items-center justify-between">
+                <span>Using cached transcript • Loaded instantly from browser storage</span>
+                <button
+                  onClick={() => {
+                    TranscriptCache.clearAll();
+                    setUsingCache(false);
+                    alert('Cache cleared! Next extraction will fetch fresh data.');
+                  }}
+                  className="text-green-400 hover:text-green-300 transition-colors"
+                  title="Clear all cached transcripts"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            
             <TranscriptViewer transcript={transcript} />
             
             <FormatOptions 
