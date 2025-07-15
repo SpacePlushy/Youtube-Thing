@@ -104,7 +104,7 @@ export default function Home() {
                 className="w-full px-4 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent"
                 disabled={loading}
               >
-                <option value="auto_generated">Auto-generated (Default)</option>
+                <option value="auto_generated">Auto-generated</option>
                 <option value="uploader_provided">Uploader Provided</option>
               </select>
             </div>
