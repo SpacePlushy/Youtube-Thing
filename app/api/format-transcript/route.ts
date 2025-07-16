@@ -66,35 +66,36 @@ async function formatWithGeminiStream(
 - Organizing into clear paragraphs
 - Maintaining the speaker's voice and meaning
 - Making it easy to read while preserving accuracy
-${options.includeTimestamps ? '- IMPORTANT: Preserve all timestamps in square brackets [HH:MM:SS] or [MM:SS] exactly as they appear' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Each timestamp [HH:MM:SS] or [MM:SS] must start on a new line, text flows continuously until next timestamp' : ''}`,
     
     summary: `You are a transcript summarizer. Create a concise summary that:
 - Captures all main points and key insights
 - Organizes information logically
 - Uses clear, professional language
 - Maintains accuracy to the original content
-${options.includeTimestamps ? '- IMPORTANT: Include relevant timestamps [HH:MM:SS] or [MM:SS] for key points' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM:SS] for key points, each on a new line with text flowing after' : ''}`,
     
     chapters: `You are a transcript organizer. Structure this transcript into chapters by:
 - Identifying major topic shifts
 - Creating descriptive chapter titles
 - Organizing content under each chapter
 - Adding brief introductions to each section
-${options.includeTimestamps ? '- IMPORTANT: Include the starting timestamp for each chapter' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Each chapter should start with its timestamp on a new line, content flows continuously' : ''}`,
     
     bullets: `You are a transcript analyzer. Convert this transcript into bullet points that:
 - Highlight key information and insights
 - Group related points together
 - Use clear, concise language
 - Maintain logical flow
-${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM:SS] for each bullet point' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM:SS] at the start of relevant bullet points' : ''}`,
     
     timestamps: `You are a transcript formatter. Format this transcript while:
 - IMPORTANT: Keep all timestamps exactly as they appear in square brackets [HH:MM:SS] or [MM:SS]
-- Do NOT remove or modify any timestamp
-- Organize content chronologically with timestamps intact
-- Create clear paragraph breaks between different topics
-- Maintain readability while preserving all timing information`
+- Each timestamp MUST start on a new line
+- Text should flow continuously without extra line breaks until the next timestamp
+- Format: [timestamp] text continues until next timestamp
+- Do NOT add paragraph breaks within timestamped sections
+- Maintain chronological order and readability`
   };
   
   const paragraphInstructions = {
@@ -106,15 +107,25 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   const systemPrompt = `${systemPrompts[options.style]}\n\n${paragraphInstructions[options.paragraphLength]}`;
   
   // Process transcript in chunks for streaming
-  const LINES_PER_CHUNK = 5; // Process 5 lines at a time for better formatting
-  const transcriptLines = transcript.map(segment => ({
-    text: options.includeTimestamps 
-      ? `[${segment.timestamp}] ${segment.text}`
-      : segment.text,
-    timestamp: segment.timestamp
-  }));
+  const LINES_PER_CHUNK = 5; // Process 5 transcript segments at a time
   
-  const totalChunks = Math.ceil(transcriptLines.length / LINES_PER_CHUNK);
+  // Format transcript for AI processing - timestamps on new lines, text flows
+  const formattedTranscript = transcript
+    .map((segment, index) => {
+      if (options.includeTimestamps) {
+        // Each timestamp starts a new line
+        const prefix = index === 0 ? '' : '\n';
+        return `${prefix}[${segment.timestamp}] ${segment.text}`;
+      }
+      return segment.text;
+    })
+    .join(options.includeTimestamps ? ' ' : ' ')
+    .replace(/\n /g, '\n'); // Clean up spaces after newlines
+    
+  // Split into chunks for processing
+  const transcriptSegments = transcript;
+  
+  const totalChunks = Math.ceil(transcriptSegments.length / LINES_PER_CHUNK);
   
   // Send initial progress
   await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting formatting...", "progress": 0}\n\n`));
@@ -123,9 +134,20 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   
   for (let i = 0; i < totalChunks; i++) {
     const startIdx = i * LINES_PER_CHUNK;
-    const endIdx = Math.min((i + 1) * LINES_PER_CHUNK, transcriptLines.length);
-    const chunkLines = transcriptLines.slice(startIdx, endIdx);
-    const chunkText = chunkLines.map(line => line.text).join('\n');
+    const endIdx = Math.min((i + 1) * LINES_PER_CHUNK, transcriptSegments.length);
+    const chunkSegments = transcriptSegments.slice(startIdx, endIdx);
+    
+    // Format chunk with timestamps on new lines
+    const chunkText = chunkSegments
+      .map((segment, index) => {
+        if (options.includeTimestamps) {
+          const prefix = (i === 0 && index === 0) ? '' : '\n';
+          return `${prefix}[${segment.timestamp}] ${segment.text}`;
+        }
+        return segment.text;
+      })
+      .join(options.includeTimestamps ? ' ' : ' ')
+      .replace(/\n /g, '\n');
     
     const isFirst = i === 0;
     const isLast = i === totalChunks - 1;
@@ -141,7 +163,7 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       }
     }
     
-    const prompt = `${systemPrompt}${promptContext}\n\n${options.includeTimestamps ? 'IMPORTANT: The transcript contains timestamps in square brackets like [0:23] or [1:45:30]. You MUST preserve these timestamps exactly as they appear. Do not remove or modify them.\n\n' : ''}Please format the following transcript section:\n\n${chunkText}`;
+    const prompt = `${systemPrompt}${promptContext}\n\n${options.includeTimestamps ? 'IMPORTANT: The transcript has timestamps in square brackets like [0:23] or [1:45:30]. Each timestamp should start on a new line, but the text should flow continuously without extra line breaks until the next timestamp. Keep the format: \n[timestamp] text text text\n[timestamp] more text text\n\n' : ''}Please format the following transcript section:\n\n${chunkText}`;
     
     try {
       // Send progress update

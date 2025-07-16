@@ -15,9 +15,15 @@ interface TranscriptViewerProps {
 
 export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
   const fullText = transcript.map(item => item.text).join(' ');
+  // Format with timestamps on new lines but text flowing continuously
   const fullTextWithTimestamps = transcript
-    .map(item => `[${item.timestamp}] ${item.text}`)
-    .join('\n');
+    .map((item, index) => {
+      // Start new line for each timestamp
+      const prefix = index === 0 ? '' : '\n';
+      return `${prefix}[${item.timestamp}] ${item.text}`;
+    })
+    .join(' ')
+    .replace(/\n /g, '\n'); // Remove space after newlines
   
   const copyToClipboard = async () => {
     try {
@@ -29,10 +35,8 @@ export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
   };
   
   const downloadTranscript = () => {
-    const content = transcript
-      .map(item => `[${item.timestamp}] ${item.text}`)
-      .join('\n');
-    const blob = new Blob([content], { type: 'text/plain' });
+    // Use the same formatting as copy - timestamps on new lines, text flows
+    const blob = new Blob([fullTextWithTimestamps], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
