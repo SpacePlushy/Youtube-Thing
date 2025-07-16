@@ -13,29 +13,9 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
   const [style, setStyle] = useState<'summary' | 'chapters' | 'clean' | 'bullets' | 'timestamps'>('clean');
   const [includeTimestamps, setIncludeTimestamps] = useState(true);
   const [paragraphLength, setParagraphLength] = useState<'short' | 'medium' | 'long'>('medium');
-  const [aiProvider, setAiProvider] = useState<'groq' | 'claude' | 'openai' | 'gemini'>('groq'); // Default to Groq for speed!
   
-  // Estimate processing time based on transcript length and provider
-  // Groq: Single request processing - much faster!
-  const estimatedMinutes = aiProvider === 'groq' 
-    ? 1 // Groq processes entire transcript in single request - under 1 minute
-    : Math.ceil(transcriptLength / 1000);
-  
-  // Cost estimates per provider (rough)
-  const costEstimates: Record<string, string> = {
-    groq: 'Free! 🚀', // Groq has generous free tier
-    claude: 'Coming soon',
-    openai: 'Coming soon',
-    gemini: `~$${(transcriptLength * 0.00002).toFixed(2)}`, // Very cheap!
-  };
-  
-  // Speed estimates
-  const speedInfo: Record<string, string> = {
-    groq: '⚡ Smart parallel processing (auto-scaled agents) with Llama 3.1 8B',
-    claude: 'Fast',
-    openai: 'Fast',
-    gemini: 'Good speed (470 tokens/sec)',
-  };
+  // Groq processing estimate - ultra-fast parallel processing
+  const estimatedMinutes = 1; // Under 1 minute with parallel agents
 
   return (
     <div className="mt-6 p-6 bg-card rounded-lg border border-border">
@@ -70,63 +50,19 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
           </p>
         </div>
 
-        {/* AI Provider Selection */}
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">
-            AI Provider
-          </label>
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <button
-              onClick={() => setAiProvider('groq')}
-              className={`p-3 rounded-lg border text-left transition-all ${
-                aiProvider === 'groq' 
-                  ? 'border-primary bg-primary/10 ring-2 ring-primary' 
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <div className="font-medium">Groq ⚡</div>
-              <div className="text-xs text-muted-foreground">Ultra-fast & Free</div>
-            </button>
-            <button
-              onClick={() => setAiProvider('gemini')}
-              className={`p-3 rounded-lg border text-left transition-all ${
-                aiProvider === 'gemini' 
-                  ? 'border-primary bg-primary/10 ring-2 ring-primary' 
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <div className="font-medium">Gemini</div>
-              <div className="text-xs text-muted-foreground">Reliable & Cheap</div>
-            </button>
-            <button
-              disabled
-              className="p-3 rounded-lg border border-border opacity-50 cursor-not-allowed text-left"
-            >
-              <div className="font-medium">Claude</div>
-              <div className="text-xs text-muted-foreground">Coming soon</div>
-            </button>
-            <button
-              disabled
-              className="p-3 rounded-lg border border-border opacity-50 cursor-not-allowed text-left"
-            >
-              <div className="font-medium">OpenAI</div>
-              <div className="text-xs text-muted-foreground">Coming soon</div>
-            </button>
-          </div>
-          
-          {/* Provider Info */}
-          <div className="p-4 bg-secondary rounded-lg border border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium">
-                  {aiProvider === 'groq' ? 'Powered by Groq LPU™' : 'Powered by Google Gemini'}
-                </h4>
-                <p className="text-sm text-muted-foreground">{speedInfo[aiProvider]}</p>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-semibold text-primary">{costEstimates[aiProvider]}</div>
-                <div className="text-xs text-muted-foreground">estimated cost</div>
-              </div>
+        {/* AI Provider Info (Fixed - No Selection) */}
+        <div className="p-4 bg-secondary rounded-lg border border-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Powered by Groq LPU™
+              </h4>
+              <p className="text-sm text-muted-foreground">⚡ Smart parallel processing with Llama 3.1 8B</p>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-semibold text-primary">Free! 🚀</div>
+              <div className="text-xs text-muted-foreground">ultra-fast AI</div>
             </div>
           </div>
         </div>
@@ -174,16 +110,16 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
             </div>
             <div className="flex items-center gap-1">
               <DollarSign className="w-4 h-4" />
-              <span>{costEstimates[aiProvider]}</span>
+              <span>Free! 🚀</span>
             </div>
           </div>
 
           <button
             onClick={() => {
-              console.log('[FormatOptions] Button clicked with options:', { style, includeTimestamps, paragraphLength, aiProvider });
+              console.log('[FormatOptions] Button clicked with options:', { style, includeTimestamps, paragraphLength, aiProvider: 'groq' });
               console.log('[FormatOptions] isFormatting:', isFormatting);
               console.log('[FormatOptions] transcriptLength:', transcriptLength);
-              onFormat({ style, includeTimestamps, paragraphLength, aiProvider });
+              onFormat({ style, includeTimestamps, paragraphLength, aiProvider: 'groq' });
             }}
             disabled={isFormatting}
             className="px-6 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"

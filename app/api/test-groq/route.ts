@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Groq from 'groq-sdk';
+import { generateText } from 'ai';
+import { groq } from '@ai-sdk/groq';
 
 export async function GET(request: NextRequest) {
   const groqApiKey = process.env.GROQ_API_KEY;
@@ -15,28 +16,21 @@ export async function GET(request: NextRequest) {
   console.log('[Groq Test] API Key present, first 10 chars:', groqApiKey.substring(0, 10) + '...');
   
   try {
-    // Initialize Groq client
-    const groq = new Groq({
-      apiKey: groqApiKey,
-    });
-    
-    // Test with a simple prompt
-    const chatCompletion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
-      messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: 'Say "Groq is working!" in 5 words or less.' }
-      ],
+    // Test with a simple prompt using AI SDK
+    const result = await generateText({
+      model: groq('llama-3.1-8b-instant'),
+      system: 'You are a helpful assistant.',
+      prompt: 'Say "Groq is working!" in 5 words or less.',
       temperature: 0.1,
-      max_tokens: 50,
+      maxTokens: 50,
     });
     
     return NextResponse.json({
       success: true,
-      message: 'Groq API is working!',
-      response: chatCompletion.choices[0].message.content,
-      model: chatCompletion.model,
-      usage: chatCompletion.usage
+      message: 'Groq AI SDK is working!',
+      response: result.text,
+      model: result.response.modelId,
+      usage: result.usage
     });
     
   } catch (error) {

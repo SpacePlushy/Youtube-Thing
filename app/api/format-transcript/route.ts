@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
 import { groq } from '@ai-sdk/groq';
 
 // Allow streaming responses up to 30 seconds
@@ -10,7 +9,7 @@ interface FormatOptions {
   style: 'summary' | 'chapters' | 'clean' | 'bullets' | 'timestamps';
   includeTimestamps: boolean;
   paragraphLength: 'short' | 'medium' | 'long';
-  aiProvider: string;
+  aiProvider: string; // Always 'groq' but keeping for compatibility
 }
 
 export async function POST(request: NextRequest) {
@@ -19,12 +18,8 @@ export async function POST(request: NextRequest) {
     const { transcript, options } = await request.json();
     console.log('[Format API] Request parsed - transcript length:', transcript?.length, 'options:', options);
     
-    // Route to appropriate AI provider with streamText
-    if (options.aiProvider === 'groq') {
-      return formatWithGroqStreamText(transcript, options);
-    } else {
-      return formatWithGeminiStreamText(transcript, options);
-    }
+    // Always use Groq for ultra-fast parallel processing
+    return formatWithGroqStreamText(transcript, options);
     
   } catch (error) {
     console.error('[Format API] Error:', error);
@@ -153,49 +148,6 @@ async function formatWithGroqStreamText(transcript: any[], options: FormatOption
   });
 }
 
-async function formatWithGeminiStreamText(transcript: any[], options: FormatOptions) {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  
-  if (!geminiApiKey) {
-    throw new Error('GEMINI_API_KEY not configured');
-  }
-  
-  console.log('[Gemini] Starting format with Gemini 1.5 Flash');
-  
-  const systemPrompt = buildSystemPrompt(options);
-  
-  // For long transcripts, use parallel processing
-  const CHUNK_SIZE = 150; // segments per chunk (Gemini has higher context)
-  const estimatedTokens = transcript.length * 20;
-  
-  if (estimatedTokens > 8000 || transcript.length > CHUNK_SIZE) {
-    console.log(`[Gemini] Large transcript detected (${transcript.length} segments, ~${estimatedTokens} tokens). Using parallel processing.`);
-    return formatWithGeminiParallel(transcript, options, systemPrompt);
-  }
-  
-  // For smaller transcripts, use single request
-  const formattedTranscript = formatTranscriptForAI(transcript, options);
-  const userPrompt = `${options.includeTimestamps ? 'IMPORTANT: Format timestamps exactly as shown in the input - each timestamp on its own line followed by text. Maintain this format:\\n[timestamp]\\ntext content here\\n[timestamp]\\nmore text content\\n\\n' : ''}Format this transcript:\\n\\n${formattedTranscript}`;
-  
-  console.log(`[Gemini] Processing ${transcript.length} segments with single streamText`);
-  
-  const result = streamText({
-    model: google('gemini-1.5-flash-latest'),
-    system: systemPrompt,
-    prompt: userPrompt,
-    temperature: 0.3,
-    maxTokens: 12000, // Increased for longer content
-  });
-  
-  return result.toTextStreamResponse({
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Transfer-Encoding': 'chunked',
-      'Connection': 'keep-alive'
-    }
-  });
-}
-
 // Parallel processing for long Groq transcripts
 async function formatWithGroqParallel(transcript: any[], options: FormatOptions, systemPrompt: string) {
   const CHUNK_SIZE = 100; // segments per chunk
@@ -231,82 +183,6 @@ async function formatWithGroqParallel(transcript: any[], options: FormatOptions,
       prompt: userPrompt,
       temperature: 0.3,
       maxTokens: 3000,
-    });
-    
-    // Convert stream to text for parallel processing
-    let text = '';
-    for await (const textPart of result.textStream) {
-      text += textPart;
-    }
-    
-    return {
-      index: chunk.index,
-      content: text
-    };
-  };
-  
-  // Execute all chunks in parallel
-  const chunkResults = await Promise.all(chunks.map(processChunk));
-  
-  // Sort and merge results
-  chunkResults.sort((a, b) => a.index - b.index);
-  const mergedContent = chunkResults
-    .map(result => result.content)
-    .join(options.includeTimestamps ? '\\n' : '\\n\\n');
-  
-  // Return as text stream response
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(mergedContent));
-      controller.close();
-    }
-  });
-  
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Transfer-Encoding': 'chunked',
-      'Connection': 'keep-alive'
-    }
-  });
-}
-
-// Parallel processing for long Gemini transcripts
-async function formatWithGeminiParallel(transcript: any[], options: FormatOptions, systemPrompt: string) {
-  const CHUNK_SIZE = 150; // segments per chunk (Gemini has higher context)
-  const chunks = [];
-  
-  // Split transcript into chunks
-  for (let i = 0; i < transcript.length; i += CHUNK_SIZE) {
-    const chunkSegments = transcript.slice(i, i + CHUNK_SIZE);
-    const chunkContent = formatTranscriptForAI(chunkSegments, options);
-    
-    chunks.push({
-      index: i / CHUNK_SIZE,
-      content: chunkContent,
-      segments: chunkSegments.length
-    });
-  }
-  
-  console.log(`[Gemini] Processing ${transcript.length} segments in ${chunks.length} parallel chunks`);
-  
-  // Process chunks in parallel using Promise.all pattern from Context7
-  const processChunk = async (chunk: any) => {
-    const chunkSystemPrompt = systemPrompt + `\\n\\nIMPORTANT: This is part ${chunk.index + 1} of ${chunks.length} of a transcript. ${
-      chunk.index === 0 ? 'Start naturally without introduction.' :
-      chunk.index === chunks.length - 1 ? 'End naturally without conclusion.' :
-      'Continue the content seamlessly - no introduction or conclusion needed.'
-    }`;
-    
-    const userPrompt = `${options.includeTimestamps ? 'IMPORTANT: Format timestamps exactly as shown in the input - each timestamp on its own line followed by text.\\n\\n' : ''}Format this transcript section:\\n\\n${chunk.content}`;
-    
-    const result = await streamText({
-      model: google('gemini-1.5-flash-latest'),
-      system: chunkSystemPrompt,
-      prompt: userPrompt,
-      temperature: 0.3,
-      maxTokens: 4000,
     });
     
     // Convert stream to text for parallel processing
