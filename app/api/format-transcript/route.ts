@@ -106,14 +106,15 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   const systemPrompt = `${systemPrompts[options.style]}\n\n${paragraphInstructions[options.paragraphLength]}`;
   
   // Process transcript in chunks for streaming
-  const CHUNK_SIZE = 1000; // Process 1000 words at a time for streaming
-  const words = transcript.map(segment => 
-    options.includeTimestamps 
+  const LINES_PER_CHUNK = 5; // Process 5 lines at a time for better formatting
+  const transcriptLines = transcript.map(segment => ({
+    text: options.includeTimestamps 
       ? `[${segment.timestamp}] ${segment.text}`
-      : segment.text
-  ).join(' ').split(' ');
+      : segment.text,
+    timestamp: segment.timestamp
+  }));
   
-  const totalChunks = Math.ceil(words.length / CHUNK_SIZE);
+  const totalChunks = Math.ceil(transcriptLines.length / LINES_PER_CHUNK);
   
   // Send initial progress
   await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting formatting...", "progress": 0}\n\n`));
@@ -121,10 +122,10 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   let processedText = '';
   
   for (let i = 0; i < totalChunks; i++) {
-    const startIdx = i * CHUNK_SIZE;
-    const endIdx = Math.min((i + 1) * CHUNK_SIZE, words.length);
-    const chunkWords = words.slice(startIdx, endIdx);
-    const chunkText = chunkWords.join(' ');
+    const startIdx = i * LINES_PER_CHUNK;
+    const endIdx = Math.min((i + 1) * LINES_PER_CHUNK, transcriptLines.length);
+    const chunkLines = transcriptLines.slice(startIdx, endIdx);
+    const chunkText = chunkLines.map(line => line.text).join('\n');
     
     const isFirst = i === 0;
     const isLast = i === totalChunks - 1;

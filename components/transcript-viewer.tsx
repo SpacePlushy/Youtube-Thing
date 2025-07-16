@@ -15,10 +15,13 @@ interface TranscriptViewerProps {
 
 export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
   const fullText = transcript.map(item => item.text).join(' ');
+  const fullTextWithTimestamps = transcript
+    .map(item => `[${item.timestamp}] ${item.text}`)
+    .join('\n');
   
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(fullText);
+      await navigator.clipboard.writeText(fullTextWithTimestamps);
       alert('Copied to clipboard!');
     } catch (err) {
       alert('Failed to copy');
