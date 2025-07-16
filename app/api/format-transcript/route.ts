@@ -4,8 +4,8 @@ import { groq } from '@ai-sdk/groq';
 import { buildPrompt, getChunkConfig, buildChunkPrompt } from '@/lib/ai-prompts';
 import { envConfig } from '@/lib/env-config';
 
-// Allow streaming responses
-export const maxDuration = envConfig.maxDuration;
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
