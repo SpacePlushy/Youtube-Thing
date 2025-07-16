@@ -336,9 +336,25 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   
   const systemPrompt = `${systemPrompts[options.style]}\n\n${paragraphInstructions[options.paragraphLength]}`;
   
-  // Split transcript into 5 chunks for parallel processing
-  const PARALLEL_CHUNKS = 5;
+  // Calculate optimal number of workers based on token limits
+  const TPM_LIMIT = 6000; // Tokens per minute limit
+  const MAX_TOKENS_PER_WORKER = 4000; // Conservative max tokens per worker request
+  const ESTIMATED_CHARS_PER_TOKEN = 4; // Rough estimate: 4 characters per token
+  
+  // Estimate total tokens needed for the transcript
+  const totalTranscriptChars = transcript.reduce((sum, segment) => sum + segment.text.length, 0);
+  const systemPromptChars = systemPrompt.length;
+  const estimatedTotalTokens = (totalTranscriptChars + systemPromptChars * 2) / ESTIMATED_CHARS_PER_TOKEN; // Include output tokens
+  
+  // Calculate optimal number of workers to stay within TPM limits
+  const minWorkersForTokens = Math.ceil(estimatedTotalTokens / MAX_TOKENS_PER_WORKER);
+  const maxWorkersForTPM = Math.floor(TPM_LIMIT / MAX_TOKENS_PER_WORKER);
+  
+  // Choose the number of workers (min 2, max based on TPM limit)
+  const PARALLEL_CHUNKS = Math.max(2, Math.min(minWorkersForTokens, maxWorkersForTPM, 10)); // Cap at 10 for sanity
   const chunkSize = Math.ceil(transcript.length / PARALLEL_CHUNKS);
+  
+  console.log(`[Groq] Optimizing for ${estimatedTotalTokens} estimated tokens: Using ${PARALLEL_CHUNKS} workers (TPM limit: ${TPM_LIMIT}, max per worker: ${MAX_TOKENS_PER_WORKER})`);
   const chunks = [];
   
   for (let i = 0; i < PARALLEL_CHUNKS; i++) {
@@ -367,8 +383,8 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   
   console.log(`[Groq] Processing ${transcript.length} segments in ${PARALLEL_CHUNKS} parallel chunks`);
   
-  // Send initial progress
-  await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting parallel processing with ${PARALLEL_CHUNKS} workers...", "progress": 10}\n\n`));
+  // Send initial progress with worker count
+  await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting parallel processing with ${PARALLEL_CHUNKS} workers (optimized for ${estimatedTotalTokens} tokens)...", "progress": 10}\n\n`));
   
   // Track progress across parallel workers
   const chunkProgress = new Array(PARALLEL_CHUNKS).fill(0);
@@ -401,7 +417,7 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       
       // Send progress update
       const currentProgress = updateOverallProgress();
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Worker ${chunkIndex + 1}/5 started...", "progress": ${currentProgress}}\n\n`));
+      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Worker ${chunkIndex + 1}/${PARALLEL_CHUNKS} started...", "progress": ${currentProgress}}\n\n`));
       
       const completion = await groq.chat.completions.create({
         model: 'llama-3.1-8b-instant',
@@ -410,7 +426,7 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
           { role: 'user', content: chunkPrompt }
         ],
         temperature: 0.3,
-        max_tokens: 4000,
+        max_tokens: MAX_TOKENS_PER_WORKER, // Dynamic limit based on worker count
         stream: false, // Use non-streaming for parallel processing
       });
       
@@ -420,7 +436,7 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       
       // Send completion update
       const finalProgress = updateOverallProgress();
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Worker ${chunkIndex + 1}/5 completed (${tokensPerSecond} tokens/sec)", "progress": ${finalProgress}}\n\n`));
+      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Worker ${chunkIndex + 1}/${PARALLEL_CHUNKS} completed (${tokensPerSecond} tokens/sec)", "progress": ${finalProgress}}\n\n`));
       
       return {
         index: chunkIndex,
@@ -434,13 +450,15 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       chunkProgress[chunkIndex] = 0; // Failed
       
       const errorProgress = updateOverallProgress();
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Worker ${chunkIndex + 1}/5 failed", "progress": ${errorProgress}}\n\n`));
+      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Worker ${chunkIndex + 1}/${PARALLEL_CHUNKS} failed - using original content", "progress": ${errorProgress}}\n\n`));
       
+      // Return original content instead of error message to preserve transcript
       return {
         index: chunkIndex,
-        content: `[Error processing chunk ${chunkIndex + 1}]`,
+        content: chunk.content, // Use original transcript content as fallback
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        fallback: true
       };
     }
   };
@@ -531,12 +549,12 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       : 0;
     
     const totalProcessingTime = Math.max(...results.map(r => r.processingTime || 0));
-    const parallelSpeedup = successfulResults.length > 0 ? `${successfulResults.length}x parallel speedup` : '';
+    const parallelEfficiency = Math.round((successfulChunks / PARALLEL_CHUNKS) * 100);
     
     // Update to 100% complete with performance stats
     const completionMessage = successfulChunks === PARALLEL_CHUNKS 
-      ? `Parallel processing complete! ⚡ (${avgTokensPerSecond} tokens/sec avg, ${parallelSpeedup})`
-      : `Parallel processing complete: ${successfulChunks}/${PARALLEL_CHUNKS} chunks (${avgTokensPerSecond} tokens/sec avg)`;
+      ? `${PARALLEL_CHUNKS} workers completed! ⚡ (${avgTokensPerSecond} tokens/sec avg, ${parallelEfficiency}% efficiency)`
+      : `${successfulChunks}/${PARALLEL_CHUNKS} workers completed (${avgTokensPerSecond} tokens/sec avg, ${parallelEfficiency}% efficiency)`;
     
     await writer.write(encoder.encode(`data: {"type": "progress", "message": "${completionMessage}", "progress": 100}\n\n`));
     
