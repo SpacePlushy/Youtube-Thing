@@ -11,7 +11,7 @@ interface FormatOptionsProps {
 
 export function FormatOptions({ transcriptLength, onFormat, isFormatting }: FormatOptionsProps) {
   const [style, setStyle] = useState<'summary' | 'chapters' | 'clean' | 'bullets' | 'timestamps'>('clean');
-  const [includeTimestamps, setIncludeTimestamps] = useState(false);
+  const [includeTimestamps, setIncludeTimestamps] = useState(true);
   const [paragraphLength, setParagraphLength] = useState<'short' | 'medium' | 'long'>('medium');
   const [aiProvider, setAiProvider] = useState<'groq' | 'claude' | 'openai' | 'gemini'>('gemini');
   

@@ -65,31 +65,36 @@ async function formatWithGeminiStream(
 - Fixing grammar and punctuation
 - Organizing into clear paragraphs
 - Maintaining the speaker's voice and meaning
-- Making it easy to read while preserving accuracy`,
+- Making it easy to read while preserving accuracy
+${options.includeTimestamps ? '- IMPORTANT: Preserve all timestamps in square brackets [HH:MM:SS] or [MM:SS] exactly as they appear' : ''}`,
     
     summary: `You are a transcript summarizer. Create a concise summary that:
 - Captures all main points and key insights
 - Organizes information logically
 - Uses clear, professional language
-- Maintains accuracy to the original content`,
+- Maintains accuracy to the original content
+${options.includeTimestamps ? '- IMPORTANT: Include relevant timestamps [HH:MM:SS] or [MM:SS] for key points' : ''}`,
     
     chapters: `You are a transcript organizer. Structure this transcript into chapters by:
 - Identifying major topic shifts
 - Creating descriptive chapter titles
 - Organizing content under each chapter
-- Adding brief introductions to each section`,
+- Adding brief introductions to each section
+${options.includeTimestamps ? '- IMPORTANT: Include the starting timestamp for each chapter' : ''}`,
     
     bullets: `You are a transcript analyzer. Convert this transcript into bullet points that:
 - Highlight key information and insights
 - Group related points together
 - Use clear, concise language
-- Maintain logical flow`,
+- Maintain logical flow
+${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM:SS] for each bullet point' : ''}`,
     
     timestamps: `You are a transcript formatter. Format this transcript while:
-- Preserving all timestamp information
-- Organizing content chronologically
-- Creating clear paragraph breaks
-- Maintaining readability`
+- IMPORTANT: Keep all timestamps exactly as they appear in square brackets [HH:MM:SS] or [MM:SS]
+- Do NOT remove or modify any timestamp
+- Organize content chronologically with timestamps intact
+- Create clear paragraph breaks between different topics
+- Maintain readability while preserving all timing information`
   };
   
   const paragraphInstructions = {
@@ -135,7 +140,7 @@ async function formatWithGeminiStream(
       }
     }
     
-    const prompt = `${systemPrompt}${promptContext}\n\nPlease format the following transcript section:\n\n${chunkText}`;
+    const prompt = `${systemPrompt}${promptContext}\n\n${options.includeTimestamps ? 'IMPORTANT: The transcript contains timestamps in square brackets like [0:23] or [1:45:30]. You MUST preserve these timestamps exactly as they appear. Do not remove or modify them.\n\n' : ''}Please format the following transcript section:\n\n${chunkText}`;
     
     try {
       // Send progress update
