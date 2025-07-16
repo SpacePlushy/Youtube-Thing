@@ -37,3 +37,9 @@ next-env.d.ts
 # Environment variables
 .env.local
 .env
+
+# AI Assistant files
+CLAUDE.md
+MCP-ASSISTANT-RULES.md
+.claude/
+/docs/ai-context/
