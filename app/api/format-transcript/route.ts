@@ -265,9 +265,12 @@ async function formatWithGroqStream(
   const groqApiKey = process.env.GROQ_API_KEY;
   
   if (!groqApiKey) {
+    console.error('[Groq] GROQ_API_KEY not found in environment variables');
     await writer.write(encoder.encode(`data: {"error": "GROQ_API_KEY not configured"}\n\n`));
     throw new Error('GROQ_API_KEY not configured');
   }
+  
+  console.log('[Groq] Starting format with Llama 3.2 3B model');
   
   // System prompts (same as Gemini)
   const systemPrompts: Record<string, string> = {
@@ -378,6 +381,8 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       const progress = Math.round((i / totalChunks) * 100);
       await writer.write(encoder.encode(`data: {"type": "progress", "message": "Groq processing chunk ${i + 1} of ${totalChunks}...", "progress": ${progress}}\n\n`));
       
+      console.log(`[Groq] Processing chunk ${i + 1}/${totalChunks}, ${chunkSegments.length} lines`);
+      
       // Call Groq API
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -386,7 +391,7 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'llama-3.2-3b-preview', // One of the fastest on Groq with good quality balance
+          model: 'llama3-8b-8192', // Using stable Llama 3 8B model
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: chunkText }
@@ -398,7 +403,9 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       });
       
       if (!response.ok) {
-        throw new Error(`Groq API error: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('[Groq] API Error Response:', errorText);
+        throw new Error(`Groq API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
       // Handle streaming response
@@ -462,10 +469,16 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       }
     } catch (error) {
       console.error(`[Groq] Error processing chunk ${i + 1}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const errorData = {
         type: 'error',
-        message: `Failed to format chunk ${i + 1}`,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: `Failed to format chunk ${i + 1}: ${errorMessage}`,
+        error: errorMessage,
+        details: {
+          chunk: i + 1,
+          totalChunks,
+          model: 'llama3-8b-8192'
+        }
       };
       await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
       throw error;
