@@ -2,6 +2,38 @@ import { NextRequest } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
 
+// Utility function to safely send JSON data in streaming response
+const safeStreamWrite = async (writer: WritableStreamDefaultWriter, encoder: TextEncoder, data: any) => {
+  try {
+    // Deep clone and sanitize the data
+    const sanitizedData = JSON.parse(JSON.stringify(data, (key, value) => {
+      if (typeof value === 'string') {
+        // Replace problematic characters that can break JSON
+        return value
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t')
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Remove control characters
+      }
+      return value;
+    }));
+    
+    const jsonString = JSON.stringify(sanitizedData);
+    await writer.write(encoder.encode(`data: ${jsonString}\n\n`));
+  } catch (error) {
+    console.error('[Groq] JSON serialization error:', error);
+    // Send minimal safe fallback
+    const safeData = {
+      type: data.type || 'message',
+      content: '[Content processed]',
+      isPartial: false
+    };
+    await writer.write(encoder.encode(`data: ${JSON.stringify(safeData)}\n\n`));
+  }
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { transcript, options } = await request.json();
@@ -512,18 +544,13 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
         
         mergedContent += chunkContent;
         
-        // Stream the merged content as we process it
-        try {
-          const streamData = {
-            type: 'stream',
-            content: chunkContent,
-            chunkIndex: i,
-            isPartial: true
-          };
-          await writer.write(encoder.encode(`data: ${JSON.stringify(streamData)}\n\n`));
-        } catch (jsonError) {
-          console.error('[Groq] JSON serialization error:', jsonError);
-        }
+        // Stream the merged content as we process it with safe JSON handling
+        await safeStreamWrite(writer, encoder, {
+          type: 'stream',
+          content: chunkContent,
+          chunkIndex: i,
+          isPartial: true
+        });
       } else {
         console.error(`[Groq] Failed to process chunk ${i + 1}: ${result.error}`);
       }
@@ -582,20 +609,14 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       }
     }
     
-    // Send the complete result
-    try {
-      const finalChunk = {
-        type: 'chunk',
-        content: mergedContent,
-        chunkIndex: 0,
-        totalChunks: 1,
-        isPartial: false
-      };
-      await writer.write(encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`));
-    } catch (jsonError) {
-      console.error('[Groq] Final chunk JSON error:', jsonError);
-      await writer.write(encoder.encode(`data: {"type": "chunk", "content": "Processing completed - check formatted output above", "chunkIndex": 0, "totalChunks": 1, "isPartial": false}\n\n`));
-    }
+    // Send the complete result with safe JSON handling
+    await safeStreamWrite(writer, encoder, {
+      type: 'chunk',
+      content: mergedContent,
+      chunkIndex: 0,
+      totalChunks: 1,
+      isPartial: false
+    });
     
     // Calculate aggregate performance statistics
     const successfulResults = results.filter(r => r.success && r.tokensPerSecond);
