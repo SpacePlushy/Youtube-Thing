@@ -59,7 +59,21 @@ function selectOptimalProvider(): string {
 async function handleOxylabsExtraction(videoId: string, language: string, origin: string) {
   // Implementation hidden in separate module
   const module = await import('../transcript-oxylabs/route');
-  return module.POST(new NextRequest(/* ... */));
+  
+  // Create synthetic request for internal routing
+  const syntheticRequest = new NextRequest(
+    new URL('http://internal'),
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        videoId,
+        language,
+        transcriptOrigin: origin
+      })
+    }
+  );
+  
+  return module.POST(syntheticRequest);
 }
 
 async function handleFallbackExtraction(videoId: string, language: string, origin: string) {

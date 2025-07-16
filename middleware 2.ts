@@ -44,7 +44,7 @@ export function middleware(request: NextRequest) {
   });
 
   // Rate limiting check (basic implementation)
-  const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
+  const ip = request.ip ?? request.headers.get('x-forwarded-for') ?? 'unknown';
   const rateKey = `rate-limit:${ip}`;
   
   // Create response with security headers

@@ -46,7 +46,7 @@ const requestSchema = z.discriminatedUnion('action', [
 // Enhanced API route with all security features
 export async function POST(request: NextRequest) {
   // Rate limiting
-  const ip = request.ip ?? request.headers.get('x-forwarded-for') ?? 'anonymous';
+  const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'anonymous';
   const requestCount = rateLimitCache.get(ip) ?? 0;
   
   if (requestCount > 10) {
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     if (data.action === 'extract') {
       return await handleSecureExtraction(data.url, data.options, requestId);
     } else {
-      return await handleSecureFormatting(data.data, data.options, requestId);
+      return await handleSecureFormatting(data.data, data.options, requestId, request);
     }
   } catch (error) {
     // Log error internally without exposing details
@@ -148,7 +148,8 @@ async function handleSecureExtraction(
 async function handleSecureFormatting(
   data: any, 
   options: any,
-  requestId: string
+  requestId: string,
+  request: NextRequest
 ): Promise<NextResponse> {
   // Pass through to Gemini (visible as requested)
   const formattingEndpoint = new URL('/api/format-transcript', request.url);
