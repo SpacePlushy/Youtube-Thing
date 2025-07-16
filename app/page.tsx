@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { extractVideoId, extractTranscript } from '@/lib/youtube';
-import { TranscriptViewer } from '@/components/transcript-viewer';
 import { FormatOptions } from '@/components/format-options';
 import { TranscriptCache } from '@/lib/transcript-cache';
-import { Loader2, Trash2 } from 'lucide-react';
+import { analytics } from '@/lib/analytics';
+import { Loader2, Trash2, Copy, Download } from 'lucide-react';
 
 export default function Home() {
   const [url, setUrl] = useState('');
@@ -20,8 +20,6 @@ export default function Home() {
   const [formattingProgress, setFormattingProgress] = useState<{ message: string; progress: number } | null>(null);
   const [usingCache, setUsingCache] = useState(false);
 
-  // Clean text streaming with AI SDK - no complex parsing needed
-  
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -44,6 +42,8 @@ export default function Home() {
     setFormattingProgress(null);
     setUsingCache(false);
     
+    const startTime = Date.now();
+    
     try {
       // Check cache first
       const cached = TranscriptCache.get(videoId, language, transcriptOrigin);
@@ -52,6 +52,16 @@ export default function Home() {
         setTranscript(cached.transcript);
         setTranscriptMetadata(cached.metadata);
         setUsingCache(true);
+        
+        // Track cache hit
+        analytics.trackExtraction({
+          videoId,
+          language,
+          transcriptType: transcriptOrigin,
+          cached: true,
+          duration: Date.now() - startTime
+        });
+        analytics.trackCacheAction('hit');
       } else {
         const result = await extractTranscript(videoId, 'oxylabs', { language, transcriptOrigin });
         
@@ -68,9 +78,27 @@ export default function Home() {
         
         setTranscript(result.transcript || []);
         setTranscriptMetadata(result.metadata || null);
+        
+        // Track successful extraction
+        analytics.trackExtraction({
+          videoId,
+          language,
+          transcriptType: transcriptOrigin,
+          cached: false,
+          duration: Date.now() - startTime
+        });
+        analytics.trackCacheAction('miss');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to extract transcript');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to extract transcript';
+      setError(errorMessage);
+      
+      // Track extraction error
+      analytics.trackError({
+        type: 'extraction',
+        error: errorMessage,
+        context: { videoId, language, transcriptOrigin }
+      });
     } finally {
       setLoading(false);
     }
@@ -81,6 +109,8 @@ export default function Home() {
     setFormattedTranscript('');
     setError('');
     setFormattingProgress({ message: 'Starting AI formatting...', progress: 10 });
+    
+    const startTime = Date.now();
     
     try {
       const response = await fetch('/api/format-transcript', {
@@ -130,8 +160,35 @@ export default function Home() {
       setFormattingProgress({ message: 'Complete!', progress: 100 });
       setTimeout(() => setFormattingProgress(null), 1000);
       
+      // Track successful formatting
+      analytics.trackFormatting({
+        style: options.style,
+        transcriptLength: transcript.length,
+        includeTimestamps: options.includeTimestamps,
+        paragraphLength: options.paragraphLength,
+        duration: Date.now() - startTime,
+        error: false
+      });
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to format transcript');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to format transcript';
+      setError(errorMessage);
+      
+      // Track formatting error
+      analytics.trackError({
+        type: 'formatting',
+        error: errorMessage,
+        context: { style: options.style, transcriptLength: transcript.length }
+      });
+      
+      analytics.trackFormatting({
+        style: options.style,
+        transcriptLength: transcript.length,
+        includeTimestamps: options.includeTimestamps,
+        paragraphLength: options.paragraphLength,
+        duration: Date.now() - startTime,
+        error: true
+      });
     } finally {
       setIsFormatting(false);
     }
@@ -139,206 +196,233 @@ export default function Home() {
   
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="max-w-4xl mx-auto px-4 py-4 lg:py-16 w-full flex-1 flex flex-col">
-        <div className="text-center mb-4 lg:mb-12">
-          <h1 className="text-2xl lg:text-4xl font-bold mb-2 lg:mb-4 text-foreground">
+      <div className="w-full mx-auto px-4 py-4 lg:py-8 flex-1 flex flex-col max-w-[1600px]">
+        <div className="text-center mb-4 lg:mb-6">
+          <h1 className="text-2xl lg:text-4xl font-bold text-foreground">
             YouTube Thing
           </h1>
-          <p className="text-sm lg:text-base text-muted-foreground">
-            Extract transcripts from any YouTube video with captions
-          </p>
         </div>
         
-        <form onSubmit={handleExtract} className="space-y-2 lg:space-y-4">
-          <div>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter YouTube URL (e.g., https://youtube.com/watch?v=...)"
-              className="w-full px-4 py-3 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground"
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                Language
-              </label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full px-4 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent"
+        {/* Main content grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 flex-1">
+          {/* Left Panel - Input Controls and Raw Transcript */}
+          <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col">
+            <form onSubmit={handleExtract} className="space-y-3 mb-4">
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+                className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-sm"
                 disabled={loading}
+              />
+              
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                  disabled={loading}
+                >
+                  <option value="en">English</option>
+                  <option value="es">Spanish</option>
+                  <option value="fr">French</option>
+                  <option value="de">German</option>
+                  <option value="it">Italian</option>
+                  <option value="pt">Portuguese</option>
+                  <option value="ru">Russian</option>
+                  <option value="ja">Japanese</option>
+                  <option value="ko">Korean</option>
+                  <option value="zh">Chinese</option>
+                  <option value="ar">Arabic</option>
+                  <option value="hi">Hindi</option>
+                </select>
+                
+                <select
+                  value={transcriptOrigin}
+                  onChange={(e) => setTranscriptOrigin(e.target.value as 'auto_generated' | 'uploader_provided')}
+                  className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                  disabled={loading}
+                >
+                  <option value="auto_generated">Auto-generated</option>
+                  <option value="uploader_provided">Uploader Provided</option>
+                </select>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="fr">French</option>
-                <option value="de">German</option>
-                <option value="it">Italian</option>
-                <option value="pt">Portuguese</option>
-                <option value="ru">Russian</option>
-                <option value="ja">Japanese</option>
-                <option value="ko">Korean</option>
-                <option value="zh">Chinese</option>
-                <option value="ar">Arabic</option>
-                <option value="hi">Hindi</option>
-              </select>
-            </div>
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>{loading ? 'Extracting...' : 'Extract Script'}</span>
+              </button>
+            </form>
             
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                Transcript Type
-              </label>
-              <select
-                value={transcriptOrigin}
-                onChange={(e) => setTranscriptOrigin(e.target.value as 'auto_generated' | 'uploader_provided')}
-                className="w-full px-4 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent"
-                disabled={loading}
-              >
-                <option value="auto_generated">Auto-generated</option>
-                <option value="uploader_provided">Uploader Provided</option>
-              </select>
-            </div>
-          </div>
-          
-          {error && (
-            <div className="p-4 bg-red-950/20 border border-red-900/30 text-red-400 rounded">
-              {error}
-            </div>
-          )}
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-            <span className="hidden sm:inline">{loading ? 'Extracting...' : 'Extract Transcript'}</span>
-            <span className="sm:hidden">{loading ? 'Loading...' : 'Extract'}</span>
-          </button>
-        </form>
-        
-        {transcriptMetadata?.hadToFallback && (
-          <div className="mt-4 p-3 bg-yellow-950/20 border border-yellow-900/30 text-yellow-400 rounded text-sm">
-            Note: The requested transcript wasn&apos;t available. 
-            Showing {transcriptMetadata.actualOrigin === 'auto_generated' ? 'auto-generated' : 'uploader-provided'} transcript 
-            in {transcriptMetadata.actualLanguage === 'en' ? 'English' : transcriptMetadata.actualLanguage}.
-          </div>
-        )}
-        
-        {transcript.length > 0 && (
-          <div className="flex-1 flex flex-col min-h-0">
+            {error && (
+              <div className="p-3 bg-red-950/20 border border-red-900/30 text-red-400 rounded text-sm mb-4">
+                {error}
+              </div>
+            )}
+            
+            {transcriptMetadata?.hadToFallback && (
+              <div className="p-3 bg-yellow-950/20 border border-yellow-900/30 text-yellow-400 rounded text-sm mb-4">
+                Note: The requested transcript wasn&apos;t available. 
+                Showing {transcriptMetadata.actualOrigin === 'auto_generated' ? 'auto-generated' : 'uploader-provided'} transcript 
+                in {transcriptMetadata.actualLanguage === 'en' ? 'English' : transcriptMetadata.actualLanguage}.
+              </div>
+            )}
+            
             {usingCache && (
-              <div className="mt-4 p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm flex items-center justify-between">
-                <span>Using cached transcript • Loaded instantly from browser storage</span>
+              <div className="p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm mb-4 flex items-center justify-between">
+                <span>Using cached transcript</span>
                 <button
                   onClick={() => {
                     TranscriptCache.clearAll();
                     setUsingCache(false);
-                    alert('Cache cleared! Next extraction will fetch fresh data.');
+                    analytics.trackCacheAction('clear');
+                    alert('Cache cleared!');
                   }}
                   className="text-green-400 hover:text-green-300 transition-colors"
-                  title="Clear all cached transcripts"
+                  title="Clear cache"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             )}
             
-            {/* Responsive grid: stacked on mobile, side-by-side on desktop */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start flex-1 min-h-0">
-              <TranscriptViewer transcript={transcript} />
-              
+            {/* Transcript Display */}
+            {transcript.length > 0 && (
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-semibold">Transcript</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        const fullText = transcript.map(item => `[${item.timestamp}] ${item.text}`).join('\n');
+                        await navigator.clipboard.writeText(fullText);
+                        analytics.trackExport('copy', 'raw');
+                        alert('Copied to clipboard!');
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity text-sm"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>Copy</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const fullText = transcript.map(item => `[${item.timestamp}] ${item.text}`).join('\n');
+                        const blob = new Blob([fullText], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'transcript.txt';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        analytics.trackExport('download', 'raw');
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 bg-secondary text-secondary-foreground rounded hover:opacity-90 transition-opacity border border-border text-sm"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span>Download</span>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="bg-secondary/50 rounded p-4 flex-1 overflow-y-auto border border-border">
+                  <div className="space-y-2">
+                    {transcript.map((item, index) => (
+                      <div key={index} className="flex gap-3">
+                        <span className="text-sm text-muted-foreground min-w-[60px] font-mono">
+                          {item.timestamp}
+                        </span>
+                        <p className="text-sm text-card-foreground">{item.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Right Panel - AI Formatting Options and Formatted Transcript */}
+          {transcript.length > 0 && (
+            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col">
               <FormatOptions 
                 transcriptLength={transcript.length}
                 onFormat={handleFormat}
                 isFormatting={isFormatting}
               />
+              
+              {formattingProgress && (
+                <div className="mt-4 p-4 bg-secondary/50 rounded-lg border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">{formattingProgress.message}</span>
+                    <span className="text-sm text-muted-foreground">{formattingProgress.progress}%</span>
+                  </div>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${formattingProgress.progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {formattedTranscript && (
+                <div className="mt-4 flex-1 flex flex-col min-h-0">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      Formatted Transcript
+                      {isFormatting && (
+                        <span className="text-xs text-muted-foreground animate-pulse">
+                          • Streaming...
+                        </span>
+                      )}
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(formattedTranscript);
+                          analytics.trackExport('copy', 'formatted');
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity text-sm"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>Copy</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          const blob = new Blob([formattedTranscript], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'formatted-transcript.txt';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          analytics.trackExport('download', 'formatted');
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 bg-secondary text-secondary-foreground rounded hover:opacity-90 transition-opacity border border-border text-sm"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Download</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-secondary/50 rounded p-4 flex-1 overflow-y-auto border border-border">
+                    <pre className="whitespace-pre-wrap text-sm text-card-foreground">
+                      {formattedTranscript}
+                      {isFormatting && (
+                        <span className="animate-pulse">▊</span>
+                      )}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </div>
-            
-            {formattingProgress && (
-              <div className="mt-4 p-4 bg-secondary/50 rounded-lg border border-border">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">{formattingProgress.message}</span>
-                  <span className="text-sm text-muted-foreground">{formattingProgress.progress}%</span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-2">
-                  <div 
-                    className="bg-primary h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${formattingProgress.progress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-            
-            {formattedTranscript && (
-              <div className="mt-6 p-6 bg-card rounded-lg border border-border">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  Formatted Transcript
-                  {isFormatting && (
-                    <span className="text-xs text-muted-foreground animate-pulse">
-                      • Streaming...
-                    </span>
-                  )}
-                </h3>
-                <div className="mb-4 flex gap-2">
-                  <button
-                    onClick={() => navigator.clipboard.writeText(formattedTranscript)}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90"
-                  >
-                    Copy Formatted
-                  </button>
-                  <button
-                    onClick={() => {
-                      const blob = new Blob([formattedTranscript], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'formatted-transcript.txt';
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:opacity-90"
-                  >
-                    Download Formatted
-                  </button>
-                </div>
-                <div className="prose prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-card-foreground max-h-[300px] lg:max-h-[400px] overflow-y-auto">
-                    {formattedTranscript}
-                    {isFormatting && (
-                      <span className="animate-pulse">▊</span>
-                    )}
-                  </pre>
-                </div>
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => navigator.clipboard.writeText(formattedTranscript)}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90"
-                  >
-                    Copy Formatted
-                  </button>
-                  <button
-                    onClick={() => {
-                      const blob = new Blob([formattedTranscript], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'formatted-transcript.txt';
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:opacity-90"
-                  >
-                    Download Formatted
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

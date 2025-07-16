@@ -1,6 +1,7 @@
 'use client';
 
 import { Copy, Download } from 'lucide-react';
+import { analytics } from '@/lib/analytics';
 
 interface TranscriptItem {
   text: string;
@@ -28,6 +29,7 @@ export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(fullTextWithTimestamps);
+      analytics.trackExport('copy', 'raw');
       alert('Copied to clipboard!');
     } catch (err) {
       alert('Failed to copy');
@@ -43,6 +45,7 @@ export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
     a.download = 'transcript.txt';
     a.click();
     URL.revokeObjectURL(url);
+    analytics.trackExport('download', 'raw');
   };
   
   return (
