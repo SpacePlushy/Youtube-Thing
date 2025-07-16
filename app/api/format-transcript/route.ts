@@ -336,8 +336,10 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   
   const systemPrompt = `${systemPrompts[options.style]}\n\n${paragraphInstructions[options.paragraphLength]}`;
   
-  // Process transcript in smaller chunks to avoid issues
-  const LINES_PER_CHUNK = 5; // Same as Gemini for consistency
+  // Process transcript optimally for Groq rate limits
+  // With 30 req/min and 6000 tokens/min, we can do ~200 tokens per request
+  // Assuming ~15 tokens per line, we can do ~13 lines per chunk
+  const LINES_PER_CHUNK = 10; // Optimal for rate limits
   
   // Format transcript for AI processing
   const formattedTranscript = transcript
@@ -358,6 +360,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting ultra-fast Groq formatting...", "progress": 0}\n\n`));
   
   let processedText = '';
+  
+  // Rate limiting: Track request times to maximize throughput
+  const requestTimes: number[] = [];
+  const RATE_LIMIT_WINDOW = 60000; // 1 minute in ms
+  const MAX_REQUESTS_PER_MINUTE = 30;
   
   for (let i = 0; i < totalChunks; i++) {
     const startIdx = i * LINES_PER_CHUNK;
@@ -393,6 +400,27 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
     const prompt = `${systemPrompt}${promptContext}\n\n${options.includeTimestamps ? 'IMPORTANT: Each timestamp should start on a new line, text flows continuously.\n\n' : ''}Format:\n\n${chunkText}`;
     
     try {
+      // Rate limiting logic - ensure we don't exceed 30 requests per minute
+      const now = Date.now();
+      
+      // Remove requests older than 1 minute
+      while (requestTimes.length > 0 && requestTimes[0] < now - RATE_LIMIT_WINDOW) {
+        requestTimes.shift();
+      }
+      
+      // If we've made 30 requests in the last minute, wait
+      if (requestTimes.length >= MAX_REQUESTS_PER_MINUTE) {
+        const oldestRequest = requestTimes[0];
+        const waitTime = (oldestRequest + RATE_LIMIT_WINDOW) - now + 100; // Add 100ms buffer
+        if (waitTime > 0) {
+          console.log(`[Groq] Rate limit reached, waiting ${waitTime}ms`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
+      
+      // Record this request time
+      requestTimes.push(Date.now());
+      
       // Send progress update
       const progress = Math.round((i / totalChunks) * 100);
       await writer.write(encoder.encode(`data: {"type": "progress", "message": "Groq processing chunk ${i + 1} of ${totalChunks}...", "progress": ${progress}}\n\n`));
@@ -409,7 +437,7 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
             { role: 'user', content: chunkText }
           ],
           temperature: 0.3,
-          max_tokens: 1000, // Reduced to stay within token limits (6000/min)
+          max_tokens: 2000, // Optimal: with 30 req/min, we can use up to 200 tokens/req average
           stream: true,
         });
       } catch (apiError) {
@@ -471,10 +499,7 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       }
       processedText += chunkResult;
       
-      // Add delay between chunks to respect rate limits (30 requests/minute)
-      if (i < totalChunks - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay = 30 requests/minute max
-      }
+      // No fixed delay needed - rate limiting is handled above dynamically
     } catch (error) {
       console.error(`[Groq] Error processing chunk ${i + 1}:`, error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

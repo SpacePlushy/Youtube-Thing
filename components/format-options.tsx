@@ -16,8 +16,10 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
   const [aiProvider, setAiProvider] = useState<'groq' | 'claude' | 'openai' | 'gemini'>('groq'); // Default to Groq for speed!
   
   // Estimate processing time based on transcript length and provider
+  // Groq: 10 lines per chunk, 30 chunks per minute = 300 lines/minute
+  // Assuming ~10 words per line = 3000 words/minute
   const estimatedMinutes = aiProvider === 'groq' 
-    ? Math.ceil(transcriptLength / 5000) // Groq is 5x faster!
+    ? Math.max(1, Math.ceil(transcriptLength / 3000)) // Groq processes ~3000 words/min at rate limit
     : Math.ceil(transcriptLength / 1000);
   
   // Cost estimates per provider (rough)
@@ -30,7 +32,7 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
   
   // Speed estimates
   const speedInfo: Record<string, string> = {
-    groq: '⚡ Ultra-fast with Llama 3.1 8B Instant',
+    groq: '⚡ 30 chunks/min with Llama 3.1 8B Instant',
     claude: 'Fast',
     openai: 'Fast',
     gemini: 'Good speed (470 tokens/sec)',
