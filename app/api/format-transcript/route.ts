@@ -338,20 +338,24 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   
   // Calculate optimal number of workers based on token limits
   const TPM_LIMIT = 6000; // Tokens per minute limit
-  const MAX_TOKENS_PER_WORKER = 4000; // Conservative max tokens per worker request
+  const MAX_TOKENS_PER_WORKER = 2000; // More conservative limit for safety
   const ESTIMATED_CHARS_PER_TOKEN = 4; // Rough estimate: 4 characters per token
   
-  // Estimate total tokens needed for the transcript
+  // Estimate tokens more conservatively
   const totalTranscriptChars = transcript.reduce((sum, segment) => sum + segment.text.length, 0);
   const systemPromptChars = systemPrompt.length;
-  const estimatedTotalTokens = (totalTranscriptChars + systemPromptChars * 2) / ESTIMATED_CHARS_PER_TOKEN; // Include output tokens
   
-  // Calculate optimal number of workers to stay within TPM limits
-  const minWorkersForTokens = Math.ceil(estimatedTotalTokens / MAX_TOKENS_PER_WORKER);
+  // Conservative estimation: input + system prompt + generous output buffer
+  const estimatedInputTokens = (totalTranscriptChars + systemPromptChars) / ESTIMATED_CHARS_PER_TOKEN;
+  const estimatedOutputTokens = estimatedInputTokens * 1.5; // Output is usually 1.5x input for formatting
+  const estimatedTotalTokens = estimatedInputTokens + estimatedOutputTokens;
+  
+  // Calculate workers more conservatively
+  const minWorkersForContent = Math.ceil(estimatedInputTokens / (MAX_TOKENS_PER_WORKER * 0.5)); // Only 50% of limit for input
   const maxWorkersForTPM = Math.floor(TPM_LIMIT / MAX_TOKENS_PER_WORKER);
   
-  // Choose the number of workers (min 2, max based on TPM limit)
-  const PARALLEL_CHUNKS = Math.max(2, Math.min(minWorkersForTokens, maxWorkersForTPM, 10)); // Cap at 10 for sanity
+  // Choose the number of workers (min 3, max based on TPM limit)
+  const PARALLEL_CHUNKS = Math.max(3, Math.min(minWorkersForContent, maxWorkersForTPM, 8)); // Cap at 8 for safety
   const chunkSize = Math.ceil(transcript.length / PARALLEL_CHUNKS);
   
   console.log(`[Groq] Optimizing for ${estimatedTotalTokens} estimated tokens: Using ${PARALLEL_CHUNKS} workers (TPM limit: ${TPM_LIMIT}, max per worker: ${MAX_TOKENS_PER_WORKER})`);
@@ -406,10 +410,12 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
     
     const chunkPrompt = `${options.includeTimestamps ? 'IMPORTANT: Each timestamp should start on a new line, text flows continuously.\n\n' : ''}Format this transcript section:\n\n${chunk.content}`;
     
-    // Estimate tokens for this chunk (rough: 4 chars per token)
-    const estimatedInputTokens = (chunkSystemPrompt.length + chunkPrompt.length) / 4;
-    const estimatedOutputTokens = Math.min(4000, chunk.content.length * 1.2); // Formatted content is usually longer
+    // Estimate tokens for this chunk more carefully
+    const estimatedInputTokens = (chunkSystemPrompt.length + chunkPrompt.length) / ESTIMATED_CHARS_PER_TOKEN;
+    const estimatedOutputTokens = Math.min(MAX_TOKENS_PER_WORKER, chunk.content.length * 1.2 / ESTIMATED_CHARS_PER_TOKEN);
     const totalEstimatedTokens = estimatedInputTokens + estimatedOutputTokens;
+    
+    console.log(`[Groq] Worker ${chunkIndex + 1}: Input ~${Math.round(estimatedInputTokens)} tokens, Output ~${Math.round(estimatedOutputTokens)} tokens, Total ~${Math.round(totalEstimatedTokens)} tokens`);
     
     try {
       chunkStartTimes[chunkIndex] = Date.now();
@@ -523,8 +529,57 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       }
     }
     
+    // If all chunks failed, try a single large request as fallback
     if (successfulChunks === 0) {
-      throw new Error('All parallel processing chunks failed');
+      console.log('[Groq] All parallel chunks failed, attempting single request fallback...');
+      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Parallel processing failed, trying single request...", "progress": 50}\n\n`));
+      
+      try {
+        // Format entire transcript as single request with lower token limit
+        const fullTranscript = transcript
+          .map((segment, index) => {
+            if (options.includeTimestamps) {
+              const prefix = index === 0 ? '' : '\n';
+              return `${prefix}[${segment.timestamp}] ${segment.text}`;
+            }
+            return segment.text;
+          })
+          .join(options.includeTimestamps ? ' ' : ' ')
+          .replace(/\n /g, '\n');
+        
+        const fallbackCompletion = await groq.chat.completions.create({
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `${options.includeTimestamps ? 'IMPORTANT: Each timestamp should start on a new line, text flows continuously.\n\n' : ''}Format this transcript:\n\n${fullTranscript}` }
+          ],
+          temperature: 0.3,
+          max_tokens: 4000, // Conservative limit for fallback
+          stream: false,
+        });
+        
+        const fallbackContent = fallbackCompletion.choices[0].message.content || fullTranscript;
+        mergedContent = fallbackContent;
+        
+        await writer.write(encoder.encode(`data: {"type": "progress", "message": "Single request fallback successful!", "progress": 90}\n\n`));
+        
+      } catch (fallbackError) {
+        console.error('[Groq] Fallback request also failed:', fallbackError);
+        // Final fallback: return original transcript
+        const originalTranscript = transcript
+          .map((segment, index) => {
+            if (options.includeTimestamps) {
+              const prefix = index === 0 ? '' : '\n';
+              return `${prefix}[${segment.timestamp}] ${segment.text}`;
+            }
+            return segment.text;
+          })
+          .join(options.includeTimestamps ? ' ' : ' ')
+          .replace(/\n /g, '\n');
+        
+        mergedContent = originalTranscript;
+        await writer.write(encoder.encode(`data: {"type": "progress", "message": "Using original transcript (AI formatting unavailable)", "progress": 90}\n\n`));
+      }
     }
     
     // Send the complete result
