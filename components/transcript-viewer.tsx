@@ -46,9 +46,9 @@ export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
   };
   
   return (
-    <div className="mt-8 space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Transcript</h2>
+    <div className="p-6 bg-card rounded-lg border border-border">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">Transcript</h3>
         <div className="flex gap-2">
           <button
             onClick={copyToClipboard}
@@ -67,7 +67,7 @@ export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
         </div>
       </div>
       
-      <div className="bg-card rounded p-6 max-h-96 overflow-y-auto border border-border">
+      <div className="bg-secondary/50 rounded p-4 h-[400px] overflow-y-auto border border-border">
         <div className="space-y-2">
           {transcript.map((item, index) => (
             <div key={index} className="flex gap-3">

@@ -246,13 +246,16 @@ export default function Home() {
               </div>
             )}
             
-            <TranscriptViewer transcript={transcript} />
-            
-            <FormatOptions 
-              transcriptLength={transcript.length}
-              onFormat={handleFormat}
-              isFormatting={isFormatting}
-            />
+            {/* Responsive grid: stacked on mobile, side-by-side on desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <TranscriptViewer transcript={transcript} />
+              
+              <FormatOptions 
+                transcriptLength={transcript.length}
+                onFormat={handleFormat}
+                isFormatting={isFormatting}
+              />
+            </div>
             
             {formattingProgress && (
               <div className="mt-4 p-4 bg-secondary/50 rounded-lg border border-border">

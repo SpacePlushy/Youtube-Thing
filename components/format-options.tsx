@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, DollarSign, Clock } from 'lucide-react';
+import { Sparkles, Clock } from 'lucide-react';
 import { FORMAT_STYLES, PARAGRAPH_LENGTHS, type FormatStyle, type ParagraphLength } from '@/lib/constants';
 
 interface FormatOptionsProps {
@@ -19,7 +19,7 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
   const estimatedMinutes = 1;
 
   return (
-    <div className="mt-6 p-6 bg-card rounded-lg border border-border">
+    <div className="p-6 bg-card rounded-lg border border-border">
       <div className="flex items-center gap-2 mb-4">
         <Sparkles className="w-5 h-5 text-primary" />
         <h3 className="text-lg font-semibold">AI Formatting Options</h3>
@@ -62,8 +62,7 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
               <p className="text-sm text-muted-foreground">⚡ Fast processing with advanced AI</p>
             </div>
             <div className="text-right">
-              <div className="text-lg font-semibold text-primary">Free! 🚀</div>
-              <div className="text-xs text-muted-foreground">ultra-fast AI</div>
+              <div className="text-xs text-muted-foreground">Processing ready</div>
             </div>
           </div>
         </div>
@@ -108,10 +107,6 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
             <div className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
               <span>~{estimatedMinutes} min</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <DollarSign className="w-4 h-4" />
-              <span>Free! 🚀</span>
             </div>
           </div>
 
