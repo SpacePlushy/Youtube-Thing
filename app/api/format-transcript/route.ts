@@ -274,9 +274,16 @@ async function formatWithGroqStream(
   // Log API key info for debugging (first 10 chars only)
   console.log('[Groq] API Key present:', groqApiKey.substring(0, 10) + '...');
   
+  // Validate API key format
+  if (!groqApiKey.startsWith('gsk_')) {
+    console.error('[Groq] Invalid API key format - should start with gsk_');
+    await writer.write(encoder.encode(`data: {"error": "Invalid GROQ_API_KEY format - should start with gsk_"}\n\n`));
+    throw new Error('Invalid GROQ_API_KEY format');
+  }
+  
   // Initialize Groq client
   const groq = new Groq({
-    apiKey: groqApiKey,
+    apiKey: groqApiKey.trim(), // Ensure no whitespace
   });
   
   console.log('[Groq] Starting format with Llama 3 8B model');
@@ -329,8 +336,8 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   
   const systemPrompt = `${systemPrompts[options.style]}\n\n${paragraphInstructions[options.paragraphLength]}`;
   
-  // Process transcript in larger chunks for Groq (it's fast!)
-  const LINES_PER_CHUNK = 20; // Groq can handle more at once
+  // Process transcript in smaller chunks to avoid issues
+  const LINES_PER_CHUNK = 5; // Same as Gemini for consistency
   
   // Format transcript for AI processing
   const formattedTranscript = transcript
@@ -392,17 +399,26 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       
       console.log(`[Groq] Processing chunk ${i + 1}/${totalChunks}, ${chunkSegments.length} lines`);
       
-      // Use Groq SDK for streaming
-      const stream = await groq.chat.completions.create({
-        model: 'llama3-8b-8192',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: chunkText }
-        ],
-        temperature: 0.3,
-        max_tokens: 4000,
-        stream: true,
-      });
+      // Use Groq SDK for streaming with error handling
+      let stream;
+      try {
+        stream = await groq.chat.completions.create({
+          model: 'llama3-8b-8192',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: chunkText }
+          ],
+          temperature: 0.3,
+          max_tokens: 4000,
+          stream: true,
+        });
+      } catch (apiError) {
+        console.error(`[Groq] API Error on chunk ${i + 1}:`, apiError);
+        if (apiError instanceof Error && apiError.message.includes('401')) {
+          throw new Error(`Authentication failed on chunk ${i + 1}. API Key issue.`);
+        }
+        throw apiError;
+      }
       
       let chunkResult = '';
       
@@ -455,9 +471,9 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       }
       processedText += chunkResult;
       
-      // Very brief delay between chunks (Groq is fast, no need for long delays)
+      // Add delay between chunks to avoid rate limiting
       if (i < totalChunks - 1) {
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay to be safe
       }
     } catch (error) {
       console.error(`[Groq] Error processing chunk ${i + 1}:`, error);
