@@ -336,12 +336,7 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   
   const systemPrompt = `${systemPrompts[options.style]}\n\n${paragraphInstructions[options.paragraphLength]}`;
   
-  // Process transcript optimally for Groq rate limits
-  // With 30 req/min and 6000 tokens/min, we can do ~200 tokens per request
-  // Assuming ~15 tokens per line, we can do ~13 lines per chunk
-  const LINES_PER_CHUNK = 10; // Optimal for rate limits
-  
-  // Format transcript for AI processing
+  // Format entire transcript for single-request processing
   const formattedTranscript = transcript
     .map((segment, index) => {
       if (options.includeTimestamps) {
@@ -352,170 +347,110 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
     })
     .join(options.includeTimestamps ? ' ' : ' ')
     .replace(/\n /g, '\n');
-    
-  const transcriptSegments = transcript;
-  const totalChunks = Math.ceil(transcriptSegments.length / LINES_PER_CHUNK);
   
   // Send initial progress
-  await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting ultra-fast Groq formatting...", "progress": 0}\n\n`));
+  await writer.write(encoder.encode(`data: {"type": "progress", "message": "Processing entire transcript with Groq...", "progress": 10}\n\n`));
   
-  let processedText = '';
+  console.log(`[Groq] Processing entire transcript (${transcript.length} segments, ~${formattedTranscript.length} chars)`);
   
-  // Rate limiting: Track request times to maximize throughput
-  const requestTimes: number[] = [];
-  const RATE_LIMIT_WINDOW = 60000; // 1 minute in ms
-  const MAX_REQUESTS_PER_MINUTE = 30;
+  // Build the complete prompt
+  const fullPrompt = `${options.includeTimestamps ? 'IMPORTANT: Each timestamp should start on a new line, text flows continuously.\n\n' : ''}Please format the following complete transcript:\n\n${formattedTranscript}`;
   
-  for (let i = 0; i < totalChunks; i++) {
-    const startIdx = i * LINES_PER_CHUNK;
-    const endIdx = Math.min((i + 1) * LINES_PER_CHUNK, transcriptSegments.length);
-    const chunkSegments = transcriptSegments.slice(startIdx, endIdx);
+  try {
+    // Update progress
+    await writer.write(encoder.encode(`data: {"type": "progress", "message": "Sending transcript to Groq...", "progress": 20}\n\n`));
     
-    // Format chunk with timestamps on new lines
-    const chunkText = chunkSegments
-      .map((segment, index) => {
-        if (options.includeTimestamps) {
-          const prefix = (i === 0 && index === 0) ? '' : '\n';
-          return `${prefix}[${segment.timestamp}] ${segment.text}`;
-        }
-        return segment.text;
-      })
-      .join(options.includeTimestamps ? ' ' : ' ')
-      .replace(/\n /g, '\n');
-    
-    const isFirst = i === 0;
-    const isLast = i === totalChunks - 1;
-    
-    let promptContext = '';
-    if (totalChunks > 1) {
-      if (isFirst) {
-        promptContext = '\n\nThis is the beginning of the transcript. Start appropriately.';
-      } else if (isLast) {
-        promptContext = '\n\nThis is the final part of the transcript. Conclude appropriately if needed.';
-      } else {
-        promptContext = '\n\nThis is a continuation of the transcript.';
+    // Use Groq SDK for streaming the entire transcript
+    let stream;
+    try {
+      stream = await groq.chat.completions.create({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: fullPrompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 8192, // Maximum available for comprehensive processing
+        stream: true,
+      });
+    } catch (apiError) {
+      console.error('[Groq] API Error:', apiError);
+      if (apiError instanceof Error && apiError.message.includes('401')) {
+        throw new Error('Authentication failed. API Key issue.');
       }
+      throw apiError;
     }
     
-    const prompt = `${systemPrompt}${promptContext}\n\n${options.includeTimestamps ? 'IMPORTANT: Each timestamp should start on a new line, text flows continuously.\n\n' : ''}Format:\n\n${chunkText}`;
+    let processedText = '';
+    let charCount = 0;
     
     try {
-      // Rate limiting logic - ensure we don't exceed 30 requests per minute
-      const now = Date.now();
+      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Groq is processing your transcript...", "progress": 30}\n\n`));
       
-      // Remove requests older than 1 minute
-      while (requestTimes.length > 0 && requestTimes[0] < now - RATE_LIMIT_WINDOW) {
-        requestTimes.shift();
-      }
-      
-      // If we've made 30 requests in the last minute, wait
-      if (requestTimes.length >= MAX_REQUESTS_PER_MINUTE) {
-        const oldestRequest = requestTimes[0];
-        const waitTime = (oldestRequest + RATE_LIMIT_WINDOW) - now + 100; // Add 100ms buffer
-        if (waitTime > 0) {
-          console.log(`[Groq] Rate limit reached, waiting ${waitTime}ms`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-      }
-      
-      // Record this request time
-      requestTimes.push(Date.now());
-      
-      // Send progress update
-      const progress = Math.round((i / totalChunks) * 100);
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Groq processing chunk ${i + 1} of ${totalChunks}...", "progress": ${progress}}\n\n`));
-      
-      console.log(`[Groq] Processing chunk ${i + 1}/${totalChunks}, ${chunkSegments.length} lines`);
-      
-      // Use Groq SDK for streaming with error handling
-      let stream;
-      try {
-        stream = await groq.chat.completions.create({
-          model: 'llama-3.1-8b-instant', // Using the instant model for better performance
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: chunkText }
-          ],
-          temperature: 0.3,
-          max_tokens: 2000, // Optimal: with 30 req/min, we can use up to 200 tokens/req average
-          stream: true,
-        });
-      } catch (apiError) {
-        console.error(`[Groq] API Error on chunk ${i + 1}:`, apiError);
-        if (apiError instanceof Error && apiError.message.includes('401')) {
-          throw new Error(`Authentication failed on chunk ${i + 1}. API Key issue.`);
-        }
-        throw apiError;
-      }
-      
-      let chunkResult = '';
-      
-      try {
-        for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content || '';
-          if (content) {
-            chunkResult += content;
-            // Stream each piece as it comes
-            await writer.write(encoder.encode(`data: ${JSON.stringify({
-              type: 'stream',
-              content: content,
-              chunkIndex: i,
-              isPartial: true
-            })}\n\n`));
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          processedText += content;
+          charCount += content.length;
+          
+          // Stream each piece as it comes
+          await writer.write(encoder.encode(`data: ${JSON.stringify({
+            type: 'stream',
+            content: content,
+            chunkIndex: 0,
+            isPartial: true
+          })}\n\n`));
+          
+          // Update progress periodically based on output length
+          if (charCount % 1000 === 0) {
+            const estimatedProgress = Math.min(90, 30 + (charCount / 50)); // Rough estimate
+            await writer.write(encoder.encode(`data: {"type": "progress", "message": "Processing...", "progress": ${estimatedProgress}}\n\n`));
           }
         }
-      } catch (e) {
-        console.error('[Groq] Error during streaming:', e);
-        // Check if it's an authentication error
-        if (e instanceof Error && e.message.includes('401')) {
-          const errorData = {
-            type: 'error',
-            message: `Authentication failed. Please check your GROQ_API_KEY in Vercel environment variables.`,
-            error: 'Invalid API Key',
-            details: {
-              hint: 'Make sure GROQ_API_KEY is set correctly in Vercel dashboard',
-              chunk: i + 1,
-              totalChunks
-            }
-          };
-          await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
-        }
-        throw e;
       }
-      
-      // Send the complete chunk
-      const finalChunk = {
-        type: 'chunk',
-        content: chunkResult,
-        chunkIndex: i,
-        totalChunks: totalChunks,
-        isPartial: false
-      };
-      await writer.write(encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`));
-      
-      // Add to processed text
-      if (i > 0 && processedText && !processedText.endsWith('\n')) {
-        processedText += '\n';
+    } catch (e) {
+      console.error('[Groq] Error during streaming:', e);
+      if (e instanceof Error && e.message.includes('401')) {
+        const errorData = {
+          type: 'error',
+          message: 'Authentication failed. Please check your GROQ_API_KEY in Vercel environment variables.',
+          error: 'Invalid API Key',
+          details: {
+            hint: 'Make sure GROQ_API_KEY is set correctly in Vercel dashboard'
+          }
+        };
+        await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
       }
-      processedText += chunkResult;
-      
-      // No fixed delay needed - rate limiting is handled above dynamically
-    } catch (error) {
-      console.error(`[Groq] Error processing chunk ${i + 1}:`, error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorData = {
-        type: 'error',
-        message: `Failed to format chunk ${i + 1}: ${errorMessage}`,
-        error: errorMessage,
-        details: {
-          chunk: i + 1,
-          totalChunks,
-          model: 'llama3-8b-8192'
-        }
-      };
-      await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
-      throw error;
+      throw e;
     }
+    
+    // Send the complete result
+    const finalChunk = {
+      type: 'chunk',
+      content: processedText,
+      chunkIndex: 0,
+      totalChunks: 1,
+      isPartial: false
+    };
+    await writer.write(encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`));
+    
+    // Update to 100% complete
+    await writer.write(encoder.encode(`data: {"type": "progress", "message": "Formatting complete!", "progress": 100}\n\n`));
+    
+  } catch (error) {
+    console.error('[Groq] Error processing transcript:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorData = {
+      type: 'error',
+      message: `Failed to format transcript: ${errorMessage}`,
+      error: errorMessage,
+      details: {
+        model: 'llama-3.1-8b-instant',
+        transcriptLength: transcript.length
+      }
+    };
+    await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
+    throw error;
   }
   
   // Send completion message
