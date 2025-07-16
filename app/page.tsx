@@ -20,15 +20,7 @@ export default function Home() {
   const [formattingProgress, setFormattingProgress] = useState<{ message: string; progress: number } | null>(null);
   const [usingCache, setUsingCache] = useState(false);
 
-  // Helper function to properly unescape formatted content
-  const unescapeContent = (content: string): string => {
-    return content
-      .replace(/\\n/g, '\n')     // Convert \n to actual newlines
-      .replace(/\\r/g, '\r')     // Convert \r to carriage returns  
-      .replace(/\\t/g, '\t')     // Convert \t to actual tabs
-      .replace(/\\"/g, '"')      // Convert \" to actual quotes
-      .replace(/\\\\/g, '\\');   // Convert \\ to actual backslashes
-  };
+  // Clean text streaming with AI SDK - no complex parsing needed
   
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,12 +82,11 @@ export default function Home() {
   const handleFormat = async (options: any) => {
     console.log('[handleFormat] Function called with options:', options);
     console.log('[handleFormat] Current transcript length:', transcript.length);
-    console.log('[handleFormat] Current isFormatting state:', isFormatting);
     
     setIsFormatting(true);
     setFormattedTranscript('');
     setError('');
-    setFormattingProgress(null);
+    setFormattingProgress({ message: 'Starting AI formatting...', progress: 10 });
     
     try {
       console.log('[handleFormat] Making API call to /api/format-transcript');
@@ -107,138 +98,55 @@ export default function Home() {
       console.log('[handleFormat] API response status:', response.status, response.statusText);
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to format transcript');
+        const errorText = await response.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || 'Failed to format transcript';
+        } catch {
+          errorMessage = errorText || 'Failed to format transcript';
+        }
+        throw new Error(errorMessage);
       }
       
       if (!response.body) {
         throw new Error('No response body');
       }
       
+      setFormattingProgress({ message: 'Streaming AI response...', progress: 30 });
+      
+      // Simple text streaming following AI SDK patterns
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let completedChunks: string[] = [];
-      let currentChunkText = '';
-      let currentChunkIndex = -1;
-      let textBuffer = ''; // Buffer for incomplete JSON across chunks
+      let accumulatedText = '';
       
-      console.log('[handleFormat] Starting to read streaming response...');
+      console.log('[handleFormat] Starting to read text stream...');
       while (true) {
-        const { value, done } = await reader.read();
+        const { done, value } = await reader.read();
         if (done) {
-          console.log('[handleFormat] Streaming finished (done=true)');
+          console.log('[handleFormat] Streaming finished');
           break;
         }
         
-        const text = decoder.decode(value, { stream: true }); // Enable stream mode
-        console.log('[handleFormat] Received chunk:', text.length, 'characters');
-        console.log('[handleFormat] Chunk content:', text.substring(0, 200) + (text.length > 200 ? '...' : ''));
-        textBuffer += text;
+        const textChunk = decoder.decode(value, { stream: true });
+        console.log('[handleFormat] Received text chunk:', textChunk.length, 'characters');
+        accumulatedText += textChunk;
+        setFormattedTranscript(accumulatedText);
         
-        // Process complete lines from the buffer
-        const lines = textBuffer.split('\n');
-        textBuffer = lines.pop() || ''; // Keep the incomplete last line in buffer
-        console.log('[handleFormat] Processing', lines.length, 'lines from buffer');
-        
-        for (const line of lines) {
-          console.log('[handleFormat] Processing line:', line.substring(0, 100) + (line.length > 100 ? '...' : ''));
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6).trim();
-            console.log('[handleFormat] Found SSE data:', dataStr.substring(0, 100) + (dataStr.length > 100 ? '...' : ''));
-            if (dataStr) {
-              try {
-                const data = JSON.parse(dataStr);
-                console.log('[handleFormat] Parsed JSON data:', data.type, data);
-                
-                if (data.type === 'stream' && data.isPartial) {
-                  // Handle streaming text within a chunk
-                  if (data.chunkIndex !== currentChunkIndex) {
-                    // New chunk started
-                    if (currentChunkIndex >= 0 && currentChunkText) {
-                      // Save the previous chunk
-                      completedChunks[currentChunkIndex] = currentChunkText;
-                    }
-                    currentChunkIndex = data.chunkIndex;
-                    currentChunkText = '';
-                  }
-                  
-                  // Append new content to current chunk
-                  currentChunkText += data.content;
-                  
-                  // Build the full text from completed chunks + current streaming chunk
-                  let fullText = completedChunks.filter(chunk => chunk).join('\n\n');
-                  if (fullText && currentChunkText) {
-                    // Only add spacing if needed
-                    if (!fullText.endsWith('\n')) {
-                      fullText += '\n\n';
-                    } else if (!fullText.endsWith('\n\n')) {
-                      fullText += '\n';
-                    }
-                  }
-                  fullText += currentChunkText;
-                  setFormattedTranscript(unescapeContent(fullText));
-                  
-                } else if (data.type === 'chunk' && !data.isPartial) {
-                  // Final chunk complete
-                  completedChunks[data.chunkIndex] = data.content;
-                  currentChunkText = '';
-                  currentChunkIndex = data.chunkIndex;
-                  
-                  // Update with all completed chunks, filtering empty ones
-                  const cleanedChunks = completedChunks.filter(chunk => chunk && chunk.trim());
-                  setFormattedTranscript(unescapeContent(cleanedChunks.join('\n\n')));
-                  
-                } else if (data.type === 'progress') {
-                  console.log('[handleFormat] Progress update:', data.message, data.progress + '%');
-                  // Update progress in UI
-                  setFormattingProgress({ message: data.message, progress: data.progress });
-                } else if (data.type === 'complete') {
-                  console.log('[handleFormat] Complete message received');
-                  setFormattingProgress(null);
-                } else if (data.type === 'error') {
-                  console.error('[handleFormat] Error from server:', data);
-                  throw new Error(data.message);
-                } else {
-                  console.log('[handleFormat] Unknown data type:', data.type, data);
-                }
-              } catch (e) {
-                console.error('Failed to parse streaming data:', e);
-                console.error('Problematic data string:', dataStr);
-                console.error('Line context:', line);
-                // Continue processing other lines instead of breaking
-              }
-            }
-          }
-        }
+        // Update progress based on content length (simple heuristic)
+        const progress = Math.min(90, 30 + (accumulatedText.length / 50));
+        setFormattingProgress({ message: 'Formatting transcript...', progress });
       }
       
-      // Process any remaining buffer content
-      if (textBuffer.trim() && textBuffer.startsWith('data: ')) {
-        const dataStr = textBuffer.slice(6).trim();
-        if (dataStr) {
-          try {
-            const data = JSON.parse(dataStr);
-            // Handle the final data if it's complete
-            if (data.type === 'progress' || data.type === 'complete' || data.type === 'error') {
-              if (data.type === 'progress') {
-                setFormattingProgress({ message: data.message, progress: data.progress });
-              } else if (data.type === 'error') {
-                throw new Error(data.message);
-              }
-            }
-          } catch (e) {
-            console.error('Failed to parse final streaming data:', e);
-          }
-        }
-      }
+      setFormattingProgress({ message: 'Complete!', progress: 100 });
+      setTimeout(() => setFormattingProgress(null), 1000);
+      
     } catch (err) {
       console.error('[handleFormat] Error occurred:', err);
       setError(err instanceof Error ? err.message : 'Failed to format transcript');
-      console.error('Formatting error:', err);
     } finally {
-      console.log('[handleFormat] Formatting completed, setting isFormatting to false');
+      console.log('[handleFormat] Formatting completed');
       setIsFormatting(false);
-      setFormattingProgress(null);
     }
   };
   
