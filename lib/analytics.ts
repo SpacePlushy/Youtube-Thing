@@ -33,14 +33,29 @@ export const analytics = {
   // Track successful transcript extraction
   trackExtraction: (data: ExtractEventData) => {
     if (typeof window !== 'undefined') {
-      track('transcript_extracted', data);
+      // Convert to plain object for Vercel Analytics
+      track('transcript_extracted', {
+        videoId: data.videoId,
+        language: data.language,
+        transcriptType: data.transcriptType,
+        cached: data.cached,
+        ...(data.duration !== undefined && { duration: data.duration })
+      });
     }
   },
 
   // Track AI formatting
   trackFormatting: (data: FormatEventData) => {
     if (typeof window !== 'undefined') {
-      track('transcript_formatted', data);
+      // Convert to plain object for Vercel Analytics
+      track('transcript_formatted', {
+        style: data.style,
+        transcriptLength: data.transcriptLength,
+        includeTimestamps: data.includeTimestamps,
+        paragraphLength: data.paragraphLength,
+        ...(data.duration !== undefined && { duration: data.duration }),
+        ...(data.error !== undefined && { error: data.error })
+      });
     }
   },
 
@@ -61,7 +76,12 @@ export const analytics = {
   // Track errors for monitoring
   trackError: (data: ErrorEventData) => {
     if (typeof window !== 'undefined') {
-      track('error_occurred', data);
+      // Convert to plain object for Vercel Analytics
+      track('error_occurred', {
+        type: data.type,
+        error: data.error,
+        ...(data.context && { context: JSON.stringify(data.context) })
+      });
     }
   },
 
