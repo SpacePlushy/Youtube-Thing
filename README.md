@@ -52,9 +52,8 @@ cp .env.example .env.local
 OXYLABS_USERNAME=your_username
 OXYLABS_PASSWORD=your_password
 
-# AI Formatting (optional - choose one or both)
+# AI Formatting (required for AI features)
 GROQ_API_KEY=your_groq_api_key     # Get free at https://console.groq.com/keys
-GEMINI_API_KEY=your_gemini_api_key # Get at https://makersuite.google.com/app/apikey
 ```
 
 ### Development
@@ -96,6 +95,7 @@ The app will automatically fall back to available transcripts if your preferred 
 ## API Routes
 
 - `/api/transcript-oxylabs` - Main transcript extraction endpoint
+- `/api/format-transcript` - AI-powered transcript formatting endpoint
 
 ## Environment Variables
 
@@ -103,6 +103,7 @@ The app will automatically fall back to available transcripts if your preferred 
 |----------|-------------|----------|
 | `OXYLABS_USERNAME` | Your Oxylabs username | Yes |
 | `OXYLABS_PASSWORD` | Your Oxylabs password | Yes |
+| `GROQ_API_KEY` | Groq API key for AI formatting | For AI features |
 
 ## License
 

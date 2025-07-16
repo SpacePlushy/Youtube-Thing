@@ -15,10 +15,16 @@ Youtube-Thing is a modern web application for extracting and formatting YouTube 
 - **CSS Variables** - Dark theme support with semantic color tokens
 - **Lucide React** - Icon library for UI elements
 
+### AI & Processing
+- **ai 4.3.19** - Vercel AI SDK for streaming responses
+- **@ai-sdk/groq 1.2.9** - Groq provider for ultra-fast AI processing
+- **groq-sdk 0.27.0** - Direct Groq API integration
+
 ### API & External Services
 - **Oxylabs Web Scraper API** - Primary transcript extraction service
-- **Google Generative AI (Gemini)** - AI-powered transcript formatting
+- **Groq LPU™** - Primary AI-powered transcript formatting (ultra-fast)
 - **YouTube Transcript** - Fallback transcript extraction library
+- **Vercel AI SDK** - Unified streaming interface for AI providers
 
 ### Development Tools
 - **npm** - Package manager
@@ -32,7 +38,7 @@ youtube-thing/
 ├── app/                          # Next.js App Router directory
 │   ├── api/                      # API routes
 │   │   ├── format-transcript/
-│   │   │   └── route.ts          # AI formatting endpoint (Gemini)
+│   │   │   └── route.ts          # AI formatting endpoint (Groq via AI SDK)
 │   │   ├── transcript/
 │   │   │   └── route.ts          # YouTube transcript library endpoint
 │   │   └── transcript-oxylabs/
@@ -44,12 +50,20 @@ youtube-thing/
 │   ├── format-options.tsx        # Formatting controls UI
 │   └── transcript-viewer.tsx     # Transcript display component
 ├── docs/                         # Documentation
-│   └── ai-context/               # AI-optimized documentation
-│       ├── docs-overview.md      # Documentation registry
-│       └── project-structure.md  # This file
+│   ├── ai-context/               # AI-optimized documentation
+│   │   ├── docs-overview.md      # Documentation registry
+│   │   ├── handoff.md            # Task management & session continuity
+│   │   └── project-structure.md  # This file
+│   ├── ARCHITECTURE-DECISIONS.md # Architectural decision records
+│   └── SECURITY-BEST-PRACTICES.md # Security implementation guide
 ├── lib/                          # Utility libraries
 │   ├── ai-formatter.ts           # AI formatting utilities
+│   ├── ai-prompts.ts             # Proprietary prompt templates (server-only)
+│   ├── constants.ts              # Application-wide constants and types
+│   ├── env-config.ts             # Environment variable configuration
+│   ├── route-config.ts           # Route segment configuration docs
 │   ├── transcript-cache.ts       # Browser caching implementation
+│   ├── types.ts                  # Centralized type definitions
 │   └── youtube.ts                # YouTube URL parsing & API calls
 ├── public/                       # Static assets
 │   └── favicon.ico               # Site favicon
@@ -70,7 +84,20 @@ youtube-thing/
 ### Client-Server Architecture
 - **Client Components**: Interactive UI (`'use client'` directive)
 - **Server Components**: API routes for secure operations
-- **Streaming Responses**: Real-time AI formatting with SSE
+- **Streaming Responses**: Real-time AI formatting with Vercel AI SDK
+- **Security by Design**: Proprietary logic isolated server-side
+
+### Configuration Architecture
+- **Multi-tier System**: Constants → Environment → Runtime
+- **Type Safety**: All configuration values are typed
+- **No Magic Numbers**: All values defined in centralized locations
+- **Build-time vs Runtime**: Clear separation of concerns
+
+### Responsive Design
+- **Mobile-First**: Optimized for all screen sizes
+- **Grid Layouts**: `grid-cols-1 lg:grid-cols-2` for adaptive UI
+- **Viewport Optimization**: Single-page mobile experience
+- **Selective Scrolling**: Only transcript areas scroll on mobile
 
 ### API Route Organization
 - `/api/transcript-oxylabs` - Primary extraction endpoint
@@ -117,9 +144,9 @@ youtube-thing/
 
 ### Environment Variables
 ```env
-OXYLABS_USERNAME=       # Oxylabs API credentials
-OXYLABS_PASSWORD=       # Oxylabs API password
-GEMINI_API_KEY=         # Google Gemini API key
+OXYLABS_USERNAME=       # Oxylabs API credentials (required)
+OXYLABS_PASSWORD=       # Oxylabs API password (required)
+GROQ_API_KEY=           # Groq API key for AI formatting (required for AI features)
 ```
 
 ## Development Conventions
@@ -149,11 +176,12 @@ GEMINI_API_KEY=         # Google Gemini API key
 - Request format: YouTube URL with language/origin options
 - Response: Structured transcript data with metadata
 
-### Gemini AI Integration
-- Model: `gemini-1.5-flash-latest`
-- Streaming: `generateContentStream` for real-time output
-- Chunking: Process 1000 words at a time
+### Groq AI Integration
+- Model: `llama-3.1-8b-instant` (ultra-fast LPU™ technology)
+- Streaming: Vercel AI SDK `streamText` for real-time output
+- Processing Speed: Up to 1,500 tokens/second
 - Formatting styles: Summary, chapters, clean, bullets, timestamps
+- Rate Limits: 6000 TPM (free tier), suitable for most use cases
 
 ### Error Recovery
 - Network failures: User-friendly error messages
@@ -182,6 +210,9 @@ GEMINI_API_KEY=         # Google Gemini API key
 - Server-side API calls only
 - Input validation for all user data
 - No sensitive data in client bundles
+- Proprietary prompts isolated in server-only modules
+- Generic error messages to prevent information disclosure
+- Technology stack obscured from client-side code
 
 ### Data Privacy
 - No user data persistence

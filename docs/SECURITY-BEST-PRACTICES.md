@@ -25,6 +25,7 @@ This document outlines the security measures implemented to protect proprietary 
 - Removed specific technology mentions (Groq, Llama, etc.)
 - Generic descriptions for AI processing
 - No implementation details in user-facing text
+- Technology stack completely hidden from browser inspection
 
 ## 3. Server-Side Security
 
@@ -54,10 +55,9 @@ This document outlines the security measures implemented to protect proprietary 
 
 ### Environment Variables Required
 ```
-GROQ_API_KEY=your-api-key
-AI_MODEL=model-name
-AI_TEMPERATURE=0.3
-AI_MAX_TOKENS=8000
+GROQ_API_KEY=your-groq-api-key  # Required for AI formatting
+OXYLABS_USERNAME=your-username  # Required for transcript extraction
+OXYLABS_PASSWORD=your-password  # Required for transcript extraction
 ```
 
 ### Production Checklist
@@ -81,10 +81,26 @@ AI_MAX_TOKENS=8000
 - X-Content-Type-Options
 - Strict-Transport-Security
 
-## 7. Additional Recommendations
+## 7. AI SDK Security Benefits
+
+### Vercel AI SDK Advantages
+- Built-in stream safety and sanitization
+- No custom buffer management reduces attack surface
+- Standard error handling patterns
+- Provider abstraction hides implementation details
+
+### Streaming Security
+- Text-only streaming prevents injection attacks
+- No custom JSON parsing reduces vulnerability
+- Native browser streaming APIs
+- Automatic connection cleanup
+
+## 8. Additional Recommendations
 
 1. **API Gateway**: Consider using an API gateway to further abstract backend services
 2. **Request Signing**: Implement request signing for API calls
 3. **Encryption**: Encrypt sensitive data at rest and in transit
 4. **Monitoring**: Set up alerts for unusual API usage patterns
 5. **Documentation**: Keep security documentation updated but separate from public docs
+6. **Rate Limiting**: Implement at both application and infrastructure levels
+7. **API Key Rotation**: Regular rotation schedule for all API keys

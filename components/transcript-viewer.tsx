@@ -46,28 +46,28 @@ export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
   };
   
   return (
-    <div className="p-6 bg-card rounded-lg border border-border">
+    <div className="p-4 lg:p-6 bg-card rounded-lg border border-border flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Transcript</h3>
         <div className="flex gap-2">
           <button
             onClick={copyToClipboard}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity text-sm lg:text-base"
           >
             <Copy className="w-4 h-4" />
-            Copy
+            <span className="hidden sm:inline">Copy</span>
           </button>
           <button
             onClick={downloadTranscript}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded hover:opacity-90 transition-opacity border border-border"
+            className="flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-2 bg-secondary text-secondary-foreground rounded hover:opacity-90 transition-opacity border border-border text-sm lg:text-base"
           >
             <Download className="w-4 h-4" />
-            Download
+            <span className="hidden sm:inline">Download</span>
           </button>
         </div>
       </div>
       
-      <div className="bg-secondary/50 rounded p-4 h-[400px] overflow-y-auto border border-border">
+      <div className="bg-secondary/50 rounded p-4 flex-1 min-h-[300px] lg:h-[400px] overflow-y-auto border border-border">
         <div className="space-y-2">
           {transcript.map((item, index) => (
             <div key={index} className="flex gap-3">

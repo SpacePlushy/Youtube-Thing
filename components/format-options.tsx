@@ -19,7 +19,7 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
   const estimatedMinutes = 1;
 
   return (
-    <div className="p-6 bg-card rounded-lg border border-border">
+    <div className="p-4 lg:p-6 bg-card rounded-lg border border-border">
       <div className="flex items-center gap-2 mb-4">
         <Sparkles className="w-5 h-5 text-primary" />
         <h3 className="text-lg font-semibold">AI Formatting Options</h3>

@@ -138,18 +138,18 @@ export default function Home() {
   };
   
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4 text-foreground">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="max-w-4xl mx-auto px-4 py-4 lg:py-16 w-full flex-1 flex flex-col">
+        <div className="text-center mb-4 lg:mb-12">
+          <h1 className="text-2xl lg:text-4xl font-bold mb-2 lg:mb-4 text-foreground">
             YouTube Thing
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm lg:text-base text-muted-foreground">
             Extract transcripts from any YouTube video with captions
           </p>
         </div>
         
-        <form onSubmit={handleExtract} className="space-y-4">
+        <form onSubmit={handleExtract} className="space-y-2 lg:space-y-4">
           <div>
             <input
               type="url"
@@ -215,7 +215,8 @@ export default function Home() {
             className="w-full py-3 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-            {loading ? 'Extracting...' : 'Extract Transcript'}
+            <span className="hidden sm:inline">{loading ? 'Extracting...' : 'Extract Transcript'}</span>
+            <span className="sm:hidden">{loading ? 'Loading...' : 'Extract'}</span>
           </button>
         </form>
         
@@ -228,7 +229,7 @@ export default function Home() {
         )}
         
         {transcript.length > 0 && (
-          <>
+          <div className="flex-1 flex flex-col min-h-0">
             {usingCache && (
               <div className="mt-4 p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm flex items-center justify-between">
                 <span>Using cached transcript • Loaded instantly from browser storage</span>
@@ -247,7 +248,7 @@ export default function Home() {
             )}
             
             {/* Responsive grid: stacked on mobile, side-by-side on desktop */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start flex-1 min-h-0">
               <TranscriptViewer transcript={transcript} />
               
               <FormatOptions 
@@ -305,7 +306,7 @@ export default function Home() {
                   </button>
                 </div>
                 <div className="prose prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-card-foreground">
+                  <pre className="whitespace-pre-wrap text-sm text-card-foreground max-h-[300px] lg:max-h-[400px] overflow-y-auto">
                     {formattedTranscript}
                     {isFormatting && (
                       <span className="animate-pulse">▊</span>
@@ -336,7 +337,7 @@ export default function Home() {
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

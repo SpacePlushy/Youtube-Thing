@@ -18,7 +18,7 @@ This project uses a **3-tier documentation system** that organizes knowledge by 
 ## Tier 1: Foundational Documentation (System-Wide)
 
 - **[Master Context](/CLAUDE.md)** - *Essential for every session.* Coding standards, project overview, key technical patterns, and development workflow
-- **[Project Structure](/docs/ai-context/project-structure.md)** - *REQUIRED reading.* Complete technology stack (Next.js 15, Oxylabs, Gemini AI), file tree, and system architecture
+- **[Project Structure](/docs/ai-context/project-structure.md)** - *REQUIRED reading.* Complete technology stack (Next.js 15, Oxylabs, Groq AI), file tree, and system architecture
 - **[README](/README.md)** - *Public documentation.* Setup instructions, feature overview, and deployment guide
 - **[Oxylabs Setup](/OXYLABS_SETUP.md)** - *API configuration.* Detailed Oxylabs integration guide and troubleshooting (when created)
 
@@ -31,7 +31,7 @@ This project uses a **3-tier documentation system** that organizes knowledge by 
 
 ### Integration Components
 - **[Library Utilities](/lib/CONTEXT.md)** - *Core utilities.* YouTube parsing, caching system, AI formatting helpers (when created)
-- **[External Services](/docs/integrations/CONTEXT.md)** - *API integrations.* Oxylabs setup, Gemini configuration, fallback strategies (when created)
+- **[External Services](/docs/integrations/CONTEXT.md)** - *API integrations.* Oxylabs setup, Groq configuration, fallback strategies (when created)
 
 ## Tier 3: Feature-Specific Documentation
 
@@ -39,7 +39,7 @@ Granular CONTEXT.md files co-located with code:
 
 ### API Features
 - **[Oxylabs Route](/app/api/transcript-oxylabs/CONTEXT.md)** - Oxylabs API integration, request/response handling, error recovery (when created)
-- **[Format Route](/app/api/format-transcript/CONTEXT.md)** - Gemini streaming, chunk processing, format styles (when created)
+- **[Format Route](/app/api/format-transcript/CONTEXT.md)** - Groq streaming via AI SDK, format styles, error handling (when created)
 - **[Fallback Route](/app/api/transcript/CONTEXT.md)** - YouTube-transcript library usage, fallback logic (when created)
 
 ### UI Features
@@ -75,7 +75,7 @@ Granular CONTEXT.md files co-located with code:
 
 **Architecture**: project-structure.md, CLAUDE.md, Next.js 15, App Router
 **Transcript Extraction**: Oxylabs, youtube-transcript, API routes, fallback
-**AI Formatting**: Gemini, streaming, SSE, format styles, chunks
+**AI Formatting**: Groq, streaming, AI SDK, format styles, ultra-fast processing
 **Caching**: localStorage, TTL, browser storage, performance
 **UI Components**: transcript-viewer, format-options, Tailwind CSS
 **Error Handling**: fallback, retry, validation, user feedback

@@ -1,6 +1,6 @@
 # Architecture Decisions
 
-This document records important architectural decisions and their rationale.
+This document records important architectural decisions and their rationale for the Youtube-Thing project.
 
 ## 1. Configuration Management
 
@@ -147,3 +147,79 @@ Due to Next.js build-time requirements:
 - Move to microservices if needed
 - Consider API gateway for additional security
 - Implement rate limiting at infrastructure level
+
+## 8. AI Provider Selection
+
+### Decision: Groq as Primary AI Provider
+
+We selected Groq LPU™ as the primary AI formatting provider:
+
+1. **Ultra-Fast Processing**
+   - Up to 1,500 tokens/second
+   - 5x+ faster than traditional providers
+   - Sub-minute processing for any transcript
+
+2. **Integration via Vercel AI SDK**
+   - Unified streaming interface
+   - Clean error handling
+   - Provider flexibility
+
+### Rationale
+
+- **Performance**: Dramatically better user experience
+- **Cost**: Generous free tier (6000 TPM)
+- **Simplicity**: AI SDK reduces implementation complexity
+- **Future-Proof**: Easy to add additional providers
+
+### Trade-offs
+
+- Dependency on Groq availability
+- Less model variety than other providers
+- Rate limits require consideration
+
+## 9. Streaming Architecture
+
+### Decision: Vercel AI SDK for Streaming
+
+Replaced custom SSE/JSON streaming with Vercel AI SDK:
+
+1. **Simplified Implementation**
+   - From 750+ lines to ~180 lines
+   - No custom buffer management
+   - Native stream safety
+
+2. **Text Streaming**
+   - Plain text instead of JSON
+   - No complex parsing required
+   - Real-time updates
+
+### Rationale
+
+- **Maintainability**: Standard patterns, less code
+- **Reliability**: Battle-tested SDK
+- **Performance**: Eliminated parsing overhead
+- **Developer Experience**: Easier to understand and modify
+
+## 10. Responsive Design Strategy
+
+### Decision: Mobile-First with Selective Scrolling
+
+Implemented adaptive layouts:
+
+1. **Desktop**: Side-by-side cards (≥1024px)
+2. **Mobile**: 
+   - Stacked cards
+   - Viewport-contained layout
+   - Only transcript areas scroll
+
+### Rationale
+
+- **Usability**: Everything accessible without page scrolling on mobile
+- **Performance**: Reduced reflows and repaints
+- **Accessibility**: Better for one-handed mobile use
+
+### Implementation
+
+- Tailwind responsive utilities (`lg:` breakpoint)
+- CSS Grid with `grid-cols-1 lg:grid-cols-2`
+- Fixed heights with `overflow-y-auto` for scrollable areas
