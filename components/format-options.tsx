@@ -179,7 +179,12 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
           </div>
 
           <button
-            onClick={() => onFormat({ style, includeTimestamps, paragraphLength, aiProvider })}
+            onClick={() => {
+              console.log('[FormatOptions] Button clicked with options:', { style, includeTimestamps, paragraphLength, aiProvider });
+              console.log('[FormatOptions] isFormatting:', isFormatting);
+              console.log('[FormatOptions] transcriptLength:', transcriptLength);
+              onFormat({ style, includeTimestamps, paragraphLength, aiProvider });
+            }}
             disabled={isFormatting}
             className="px-6 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >

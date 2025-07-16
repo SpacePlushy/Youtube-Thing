@@ -78,17 +78,23 @@ export default function Home() {
   };
   
   const handleFormat = async (options: any) => {
+    console.log('[handleFormat] Function called with options:', options);
+    console.log('[handleFormat] Current transcript length:', transcript.length);
+    console.log('[handleFormat] Current isFormatting state:', isFormatting);
+    
     setIsFormatting(true);
     setFormattedTranscript('');
     setError('');
     setFormattingProgress(null);
     
     try {
+      console.log('[handleFormat] Making API call to /api/format-transcript');
       const response = await fetch('/api/format-transcript', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript, options })
       });
+      console.log('[handleFormat] API response status:', response.status, response.statusText);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -199,9 +205,11 @@ export default function Home() {
         }
       }
     } catch (err) {
+      console.error('[handleFormat] Error occurred:', err);
       setError(err instanceof Error ? err.message : 'Failed to format transcript');
       console.error('Formatting error:', err);
     } finally {
+      console.log('[handleFormat] Formatting completed, setting isFormatting to false');
       setIsFormatting(false);
       setFormattingProgress(null);
     }

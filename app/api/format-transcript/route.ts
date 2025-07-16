@@ -51,8 +51,10 @@ const safeStreamWrite = async (writer: WritableStreamDefaultWriter, encoder: Tex
 };
 
 export async function POST(request: NextRequest) {
+  console.log('[Format API] POST request received');
   try {
     const { transcript, options } = await request.json();
+    console.log('[Format API] Request parsed - transcript length:', transcript?.length, 'options:', options);
     
     // Create a TransformStream for streaming response
     const encoder = new TextEncoder();
