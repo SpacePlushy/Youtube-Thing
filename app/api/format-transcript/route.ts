@@ -67,9 +67,11 @@ export async function POST(request: NextRequest) {
       : formatWithGeminiStream;
       
     formatFunction(transcript, options, writer, encoder).finally(() => {
+      console.log('[Format API] Format function completed, closing writer');
       writer.close();
     });
     
+    console.log('[Format API] Returning streaming response');
     // Return streaming response
     return new Response(stream.readable, {
       headers: {

@@ -112,23 +112,33 @@ export default function Home() {
       let currentChunkIndex = -1;
       let textBuffer = ''; // Buffer for incomplete JSON across chunks
       
+      console.log('[handleFormat] Starting to read streaming response...');
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
+        if (done) {
+          console.log('[handleFormat] Streaming finished (done=true)');
+          break;
+        }
         
         const text = decoder.decode(value, { stream: true }); // Enable stream mode
+        console.log('[handleFormat] Received chunk:', text.length, 'characters');
+        console.log('[handleFormat] Chunk content:', text.substring(0, 200) + (text.length > 200 ? '...' : ''));
         textBuffer += text;
         
         // Process complete lines from the buffer
         const lines = textBuffer.split('\n');
         textBuffer = lines.pop() || ''; // Keep the incomplete last line in buffer
+        console.log('[handleFormat] Processing', lines.length, 'lines from buffer');
         
         for (const line of lines) {
+          console.log('[handleFormat] Processing line:', line.substring(0, 100) + (line.length > 100 ? '...' : ''));
           if (line.startsWith('data: ')) {
             const dataStr = line.slice(6).trim();
+            console.log('[handleFormat] Found SSE data:', dataStr.substring(0, 100) + (dataStr.length > 100 ? '...' : ''));
             if (dataStr) {
               try {
                 const data = JSON.parse(dataStr);
+                console.log('[handleFormat] Parsed JSON data:', data.type, data);
                 
                 if (data.type === 'stream' && data.isPartial) {
                   // Handle streaming text within a chunk
@@ -169,10 +179,17 @@ export default function Home() {
                   setFormattedTranscript(cleanedChunks.join('\n\n'));
                   
                 } else if (data.type === 'progress') {
+                  console.log('[handleFormat] Progress update:', data.message, data.progress + '%');
                   // Update progress in UI
                   setFormattingProgress({ message: data.message, progress: data.progress });
+                } else if (data.type === 'complete') {
+                  console.log('[handleFormat] Complete message received');
+                  setFormattingProgress(null);
                 } else if (data.type === 'error') {
+                  console.error('[handleFormat] Error from server:', data);
                   throw new Error(data.message);
+                } else {
+                  console.log('[handleFormat] Unknown data type:', data.type, data);
                 }
               } catch (e) {
                 console.error('Failed to parse streaming data:', e);
