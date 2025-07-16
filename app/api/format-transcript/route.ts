@@ -5,30 +5,46 @@ import Groq from 'groq-sdk';
 // Utility function to safely send JSON data in streaming response
 const safeStreamWrite = async (writer: WritableStreamDefaultWriter, encoder: TextEncoder, data: any) => {
   try {
-    // Deep clone and sanitize the data
-    const sanitizedData = JSON.parse(JSON.stringify(data, (key, value) => {
+    // Create a deep clone of the data and sanitize string values
+    const sanitizeString = (str: string): string => {
+      // Properly escape characters for JSON - don't double-escape
+      return str
+        .replace(/\\/g, '\\\\')  // Escape backslashes
+        .replace(/"/g, '\\"')   // Escape quotes
+        .replace(/\n/g, '\\n')  // Escape newlines
+        .replace(/\r/g, '\\r')  // Escape carriage returns
+        .replace(/\t/g, '\\t')  // Escape tabs
+        .replace(/\b/g, '\\b')  // Escape backspace
+        .replace(/\f/g, '\\f')  // Escape form feed
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Remove control characters
+    };
+
+    const sanitizeValue = (value: any): any => {
       if (typeof value === 'string') {
-        // Replace problematic characters that can break JSON
-        return value
-          .replace(/\\/g, '\\\\')
-          .replace(/"/g, '\\"')
-          .replace(/\n/g, '\\n')
-          .replace(/\r/g, '\\r')
-          .replace(/\t/g, '\\t')
-          .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Remove control characters
+        return sanitizeString(value);
+      } else if (Array.isArray(value)) {
+        return value.map(sanitizeValue);
+      } else if (value !== null && typeof value === 'object') {
+        const sanitized: any = {};
+        for (const [key, val] of Object.entries(value)) {
+          sanitized[key] = sanitizeValue(val);
+        }
+        return sanitized;
       }
       return value;
-    }));
-    
+    };
+
+    const sanitizedData = sanitizeValue(data);
     const jsonString = JSON.stringify(sanitizedData);
     await writer.write(encoder.encode(`data: ${jsonString}\n\n`));
   } catch (error) {
-    console.error('[Groq] JSON serialization error:', error);
+    console.error('[Stream] JSON serialization error:', error);
     // Send minimal safe fallback
     const safeData = {
       type: data.type || 'message',
-      content: '[Content processed]',
-      isPartial: false
+      content: '[Content could not be processed safely]',
+      isPartial: false,
+      error: 'serialization_failed'
     };
     await writer.write(encoder.encode(`data: ${JSON.stringify(safeData)}\n\n`));
   }
@@ -86,7 +102,7 @@ async function formatWithGeminiStream(
   const geminiApiKey = process.env.GEMINI_API_KEY;
   
   if (!geminiApiKey) {
-    await writer.write(encoder.encode(`data: {"error": "GEMINI_API_KEY not configured"}\n\n`));
+    await safeStreamWrite(writer, encoder, { error: "GEMINI_API_KEY not configured" });
     throw new Error('GEMINI_API_KEY not configured');
   }
   
@@ -103,36 +119,41 @@ async function formatWithGeminiStream(
 - Organizing into clear paragraphs
 - Maintaining the speaker's voice and meaning
 - Making it easy to read while preserving accuracy
-${options.includeTimestamps ? '- IMPORTANT: Each timestamp [HH:MM:SS] or [MM:SS] must start on a new line, text flows continuously until next timestamp' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`,
     
     summary: `You are a transcript summarizer. Create a concise summary that:
 - Captures all main points and key insights
 - Organizes information logically
 - Uses clear, professional language
 - Maintains accuracy to the original content
-${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM:SS] for key points, each on a new line with text flowing after' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`,
     
     chapters: `You are a transcript organizer. Structure this transcript into chapters by:
 - Identifying major topic shifts
 - Creating descriptive chapter titles
 - Organizing content under each chapter
 - Adding brief introductions to each section
-${options.includeTimestamps ? '- IMPORTANT: Each chapter should start with its timestamp on a new line, content flows continuously' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`,
     
     bullets: `You are a transcript analyzer. Convert this transcript into bullet points that:
 - Highlight key information and insights
 - Group related points together
 - Use clear, concise language
 - Maintain logical flow
-${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM:SS] at the start of relevant bullet points' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`,
     
-    timestamps: `You are a transcript formatter. Format this transcript while:
-- IMPORTANT: Keep all timestamps exactly as they appear in square brackets [HH:MM:SS] or [MM:SS]
-- Each timestamp MUST start on a new line
-- Text should flow continuously without extra line breaks until the next timestamp
-- Format: [timestamp] text continues until next timestamp
-- Do NOT add paragraph breaks within timestamped sections
-- Maintain chronological order and readability`
+    timestamps: `You are a transcript formatter. Format this transcript EXACTLY like this example:
+[0:01]
+We may look on our time as the moment civilization was transformed...
+
+[0:24]
+The technology known as a chatbot is only one of the recent breakthroughs...
+
+RULES:
+- Each timestamp [HH:MM:SS] or [MM:SS] MUST be on its own line
+- Text follows immediately on the next line
+- No extra spacing or formatting
+- Maintain chronological order`
   };
   
   const paragraphInstructions = {
@@ -165,7 +186,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   const totalChunks = Math.ceil(transcriptSegments.length / LINES_PER_CHUNK);
   
   // Send initial progress
-  await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting formatting...", "progress": 0}\n\n`));
+  await safeStreamWrite(writer, encoder, {
+    type: "progress", 
+    message: "Starting formatting...", 
+    progress: 0
+  });
   
   let processedText = '';
   
@@ -205,7 +230,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
     try {
       // Send progress update
       const progress = Math.round((i / totalChunks) * 100);
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Processing chunk ${i + 1} of ${totalChunks}...", "progress": ${progress}}\n\n`));
+      await safeStreamWrite(writer, encoder, {
+        type: "progress", 
+        message: `Processing chunk ${i + 1} of ${totalChunks}...`, 
+        progress: progress
+      });
       
       // Use streaming for real-time output
       const result = await model.generateContentStream(prompt);
@@ -216,24 +245,23 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
         if (text) {
           chunkText += text;
           // Stream each word/phrase as it comes
-          await writer.write(encoder.encode(`data: ${JSON.stringify({
+          await safeStreamWrite(writer, encoder, {
             type: 'stream',
             content: text,
             chunkIndex: i,
             isPartial: true
-          })}\n\n`));
+          });
         }
       }
       
       // Send the complete chunk when done
-      const finalChunk = {
+      await safeStreamWrite(writer, encoder, {
         type: 'chunk',
         content: chunkText,
         chunkIndex: i,
         totalChunks: totalChunks,
         isPartial: false
-      };
-      await writer.write(encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`));
+      });
       
       // Only add spacing if the previous chunk doesn't end with newlines
       if (i > 0 && processedText && !processedText.endsWith('\n\n')) {
@@ -247,18 +275,20 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       }
     } catch (error) {
       console.error(`[Gemini] Error processing chunk ${i + 1}:`, error);
-      const errorData = {
+      await safeStreamWrite(writer, encoder, {
         type: 'error',
         message: `Failed to format chunk ${i + 1}`,
         error: error instanceof Error ? error.message : 'Unknown error'
-      };
-      await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
+      });
       throw error;
     }
   }
   
   // Send completion message
-  await writer.write(encoder.encode(`data: {"type": "complete", "message": "Formatting complete!"}\n\n`));
+  await safeStreamWrite(writer, encoder, {
+    type: "complete", 
+    message: "Formatting complete!"
+  });
 }
 
 function chunkTranscript(text: string, maxChars: number): string[] {
@@ -299,7 +329,7 @@ async function formatWithGroqStream(
   
   if (!groqApiKey) {
     console.error('[Groq] GROQ_API_KEY not found in environment variables');
-    await writer.write(encoder.encode(`data: {"error": "GROQ_API_KEY not configured"}\n\n`));
+    await safeStreamWrite(writer, encoder, { error: "GROQ_API_KEY not configured" });
     throw new Error('GROQ_API_KEY not configured');
   }
   
@@ -309,7 +339,7 @@ async function formatWithGroqStream(
   // Validate API key format
   if (!groqApiKey.startsWith('gsk_')) {
     console.error('[Groq] Invalid API key format - should start with gsk_');
-    await writer.write(encoder.encode(`data: {"error": "Invalid GROQ_API_KEY format - should start with gsk_"}\n\n`));
+    await safeStreamWrite(writer, encoder, { error: "Invalid GROQ_API_KEY format - should start with gsk_" });
     throw new Error('Invalid GROQ_API_KEY format');
   }
   
@@ -335,29 +365,34 @@ ${options.includeTimestamps ? '- IMPORTANT: Each timestamp [HH:MM:SS] or [MM:SS]
 - Organizes information logically
 - Uses clear, professional language
 - Maintains accuracy to the original content
-${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM:SS] for key points, each on a new line with text flowing after' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`,
     
     chapters: `You are a transcript organizer. Structure this transcript into chapters by:
 - Identifying major topic shifts
 - Creating descriptive chapter titles
 - Organizing content under each chapter
 - Adding brief introductions to each section
-${options.includeTimestamps ? '- IMPORTANT: Each chapter should start with its timestamp on a new line, content flows continuously' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`,
     
     bullets: `You are a transcript analyzer. Convert this transcript into bullet points that:
 - Highlight key information and insights
 - Group related points together
 - Use clear, concise language
 - Maintain logical flow
-${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM:SS] at the start of relevant bullet points' : ''}`,
+${options.includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`,
     
-    timestamps: `You are a transcript formatter. Format this transcript while:
-- IMPORTANT: Keep all timestamps exactly as they appear in square brackets [HH:MM:SS] or [MM:SS]
-- Each timestamp MUST start on a new line
-- Text should flow continuously without extra line breaks until the next timestamp
-- Format: [timestamp] text continues until next timestamp
-- Do NOT add paragraph breaks within timestamped sections
-- Maintain chronological order and readability`
+    timestamps: `You are a transcript formatter. Format this transcript EXACTLY like this example:
+[0:01]
+We may look on our time as the moment civilization was transformed...
+
+[0:24]
+The technology known as a chatbot is only one of the recent breakthroughs...
+
+RULES:
+- Each timestamp [HH:MM:SS] or [MM:SS] MUST be on its own line
+- Text follows immediately on the next line
+- No extra spacing or formatting
+- Maintain chronological order`
   };
   
   const paragraphInstructions = {
@@ -402,13 +437,13 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
     const formattedChunk = chunkSegments
       .map((segment, index) => {
         if (options.includeTimestamps) {
+          // Always start timestamps on new line, except for the very first one
           const prefix = (i === 0 && index === 0) ? '' : '\n';
-          return `${prefix}[${segment.timestamp}] ${segment.text}`;
+          return `${prefix}[${segment.timestamp}]\n${segment.text}`;
         }
         return segment.text;
       })
-      .join(options.includeTimestamps ? ' ' : ' ')
-      .replace(/\n /g, '\n');
+      .join(''); // Join without spaces to preserve newlines
     
     chunks.push({
       index: i,
@@ -420,11 +455,24 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   console.log(`[Groq] Processing ${transcript.length} segments in ${PARALLEL_CHUNKS} parallel chunks`);
   
   // Send initial progress with agent count
-  await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting parallel processing with ${PARALLEL_CHUNKS} agents (optimized for ${estimatedTotalTokens} tokens)...", "progress": 10}\n\n`));
+  await safeStreamWrite(writer, encoder, {
+    type: "progress", 
+    message: `Starting parallel processing with ${PARALLEL_CHUNKS} agents (optimized for ${estimatedTotalTokens} tokens)...`, 
+    progress: 10
+  });
   
   // Track progress across parallel agents
   const chunkProgress = new Array(PARALLEL_CHUNKS).fill(0);
   const chunkStartTimes = new Array(PARALLEL_CHUNKS).fill(0);
+  
+  // Mutex for thread-safe streaming writes
+  let writeMutex = Promise.resolve();
+  const safeStreamWriteWithMutex = async (data: any) => {
+    writeMutex = writeMutex.then(async () => {
+      await safeStreamWrite(writer, encoder, data);
+    });
+    await writeMutex;
+  };
   
   const updateOverallProgress = () => {
     const avgProgress = chunkProgress.reduce((sum, progress) => sum + progress, 0) / PARALLEL_CHUNKS;
@@ -440,7 +488,7 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       'Continue the content seamlessly - no introduction or conclusion needed.'
     }`;
     
-    const chunkPrompt = `${options.includeTimestamps ? 'IMPORTANT: Each timestamp should start on a new line, text flows continuously.\n\n' : ''}Format this transcript section:\n\n${chunk.content}`;
+    const chunkPrompt = `${options.includeTimestamps ? 'IMPORTANT: Format timestamps exactly as shown in the input - each timestamp on its own line followed by text. Maintain this format:\n[timestamp]\ntext content here\n[timestamp]\nmore text content\n\n' : ''}Format this transcript section:\n\n${chunk.content}`;
     
     // Estimate tokens for this chunk more carefully
     const estimatedInputTokens = (chunkSystemPrompt.length + chunkPrompt.length) / ESTIMATED_CHARS_PER_TOKEN;
@@ -455,7 +503,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       
       // Send progress update
       const currentProgress = updateOverallProgress();
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Agent ${chunkIndex + 1}/${PARALLEL_CHUNKS} started...", "progress": ${currentProgress}}\n\n`));
+      await safeStreamWriteWithMutex({
+        type: "progress", 
+        message: `Agent ${chunkIndex + 1}/${PARALLEL_CHUNKS} started...`, 
+        progress: currentProgress
+      });
       
       const completion = await groq.chat.completions.create({
         model: 'llama-3.1-8b-instant',
@@ -474,7 +526,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       
       // Send completion update
       const finalProgress = updateOverallProgress();
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Agent ${chunkIndex + 1}/${PARALLEL_CHUNKS} completed (${tokensPerSecond} tokens/sec)", "progress": ${finalProgress}}\n\n`));
+      await safeStreamWriteWithMutex({
+        type: "progress", 
+        message: `Agent ${chunkIndex + 1}/${PARALLEL_CHUNKS} completed (${tokensPerSecond} tokens/sec)`, 
+        progress: finalProgress
+      });
       
       return {
         index: chunkIndex,
@@ -488,7 +544,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       chunkProgress[chunkIndex] = 0; // Failed
       
       const errorProgress = updateOverallProgress();
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Agent ${chunkIndex + 1}/${PARALLEL_CHUNKS} failed - using original content", "progress": ${errorProgress}}\n\n`));
+      await safeStreamWriteWithMutex({
+        type: "progress", 
+        message: `Agent ${chunkIndex + 1}/${PARALLEL_CHUNKS} failed - using original content`, 
+        progress: errorProgress
+      });
       
       // Return original content instead of error message to preserve transcript
       return {
@@ -503,13 +563,21 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   
   try {
     // Process all chunks in parallel
-    await writer.write(encoder.encode(`data: {"type": "progress", "message": "Processing ${PARALLEL_CHUNKS} chunks with parallel agents...", "progress": 20}\n\n`));
+    await safeStreamWrite(writer, encoder, {
+      type: "progress", 
+      message: `Processing ${PARALLEL_CHUNKS} chunks with parallel agents...`, 
+      progress: 20
+    });
     
     const chunkPromises = chunks.map((chunk, index) => processChunk(chunk, index));
     const results = await Promise.all(chunkPromises);
     
     // Update progress
-    await writer.write(encoder.encode(`data: {"type": "progress", "message": "Merging results...", "progress": 80}\n\n`));
+    await safeStreamWrite(writer, encoder, {
+      type: "progress", 
+      message: "Merging results...", 
+      progress: 80
+    });
     
     // Sort results by index to maintain order
     results.sort((a, b) => a.index - b.index);
@@ -527,14 +595,19 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
         
         // Clean up chunk boundaries for seamless merging
         if (i > 0) {
-          // Remove any leading whitespace/newlines from continuation chunks
-          chunkContent = chunkContent.replace(/^\s+/, '');
+          // For timestamp formatting, preserve leading newlines that precede timestamps
+          if (options.includeTimestamps && chunkContent.startsWith('\n[')) {
+            // Don't remove leading newlines if they precede timestamps
+          } else {
+            // Remove leading whitespace for non-timestamp content
+            chunkContent = chunkContent.replace(/^\s+/, '');
+          }
           
-          // Add appropriate spacing between chunks
-          if (mergedContent && !mergedContent.endsWith('\n\n')) {
+          // Add spacing only if not already present
+          if (mergedContent && !mergedContent.endsWith('\n') && !chunkContent.startsWith('\n')) {
             if (options.includeTimestamps) {
-              // For timestamps, ensure proper line breaks
-              mergedContent += mergedContent.endsWith('\n') ? '' : '\n';
+              // For timestamps, add single newline
+              mergedContent += '\n';
             } else {
               // For regular content, add paragraph spacing
               mergedContent += '\n\n';
@@ -559,7 +632,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
     // If all chunks failed, try a single large request as fallback
     if (successfulChunks === 0) {
       console.log('[Groq] All parallel chunks failed, attempting single request fallback...');
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Parallel processing failed, trying single request...", "progress": 50}\n\n`));
+      await safeStreamWrite(writer, encoder, {
+        type: "progress", 
+        message: "Parallel processing failed, trying single request...", 
+        progress: 50
+      });
       
       try {
         // Format entire transcript as single request with lower token limit
@@ -588,7 +665,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
         const fallbackContent = fallbackCompletion.choices[0].message.content || fullTranscript;
         mergedContent = fallbackContent;
         
-        await writer.write(encoder.encode(`data: {"type": "progress", "message": "Single request fallback successful!", "progress": 90}\n\n`));
+        await safeStreamWrite(writer, encoder, {
+          type: "progress", 
+          message: "Single request fallback successful!", 
+          progress: 90
+        });
         
       } catch (fallbackError) {
         console.error('[Groq] Fallback request also failed:', fallbackError);
@@ -605,7 +686,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
           .replace(/\n /g, '\n');
         
         mergedContent = originalTranscript;
-        await writer.write(encoder.encode(`data: {"type": "progress", "message": "Using original transcript (AI formatting unavailable)", "progress": 90}\n\n`));
+        await safeStreamWrite(writer, encoder, {
+          type: "progress", 
+          message: "Using original transcript (AI formatting unavailable)", 
+          progress: 90
+        });
       }
     }
     
@@ -632,7 +717,11 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       ? `${PARALLEL_CHUNKS} agents completed! ⚡ (${avgTokensPerSecond} tokens/sec avg, ${parallelEfficiency}% efficiency)`
       : `${successfulChunks}/${PARALLEL_CHUNKS} agents completed (${avgTokensPerSecond} tokens/sec avg, ${parallelEfficiency}% efficiency)`;
     
-    await writer.write(encoder.encode(`data: {"type": "progress", "message": "${completionMessage}", "progress": 100}\n\n`));
+    await safeStreamWrite(writer, encoder, {
+      type: "progress", 
+      message: completionMessage, 
+      progress: 100
+    });
     
   } catch (error) {
     console.error('[Groq] Error in parallel processing:', error);
@@ -647,10 +736,13 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
         parallelChunks: PARALLEL_CHUNKS
       }
     };
-    await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
+    await safeStreamWrite(writer, encoder, errorData);
     throw error;
   }
   
   // Send completion message
-  await writer.write(encoder.encode(`data: {"type": "complete", "message": "Groq formatting complete! ⚡"}\n\n`));
+  await safeStreamWrite(writer, encoder, {
+    type: "complete", 
+    message: "Groq formatting complete! ⚡"
+  });
 }

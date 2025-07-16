@@ -104,18 +104,23 @@ export default function Home() {
       let completedChunks: string[] = [];
       let currentChunkText = '';
       let currentChunkIndex = -1;
+      let textBuffer = ''; // Buffer for incomplete JSON across chunks
       
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         
-        const text = decoder.decode(value);
-        const lines = text.split('\n');
+        const text = decoder.decode(value, { stream: true }); // Enable stream mode
+        textBuffer += text;
+        
+        // Process complete lines from the buffer
+        const lines = textBuffer.split('\n');
+        textBuffer = lines.pop() || ''; // Keep the incomplete last line in buffer
         
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6);
-            if (dataStr.trim()) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr) {
               try {
                 const data = JSON.parse(dataStr);
                 
@@ -165,8 +170,31 @@ export default function Home() {
                 }
               } catch (e) {
                 console.error('Failed to parse streaming data:', e);
+                console.error('Problematic data string:', dataStr);
+                console.error('Line context:', line);
+                // Continue processing other lines instead of breaking
               }
             }
+          }
+        }
+      }
+      
+      // Process any remaining buffer content
+      if (textBuffer.trim() && textBuffer.startsWith('data: ')) {
+        const dataStr = textBuffer.slice(6).trim();
+        if (dataStr) {
+          try {
+            const data = JSON.parse(dataStr);
+            // Handle the final data if it's complete
+            if (data.type === 'progress' || data.type === 'complete' || data.type === 'error') {
+              if (data.type === 'progress') {
+                setFormattingProgress({ message: data.message, progress: data.progress });
+              } else if (data.type === 'error') {
+                throw new Error(data.message);
+              }
+            }
+          } catch (e) {
+            console.error('Failed to parse final streaming data:', e);
           }
         }
       }
