@@ -3,9 +3,16 @@ import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { buildPrompt, getChunkConfig, buildChunkPrompt } from '@/lib/ai-prompts';
 import { envConfig } from '@/lib/env-config';
+import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES } from '@/lib/constants';
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+/**
+ * Route segment configuration for streaming AI responses
+ * @see lib/route-config.ts - ROUTE_CONFIGS.formatTranscript for documentation
+ * 
+ * Next.js requires this to be a literal value at build time
+ * Allows up to 1 minute for processing large transcripts
+ */
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,8 +23,11 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: 'Failed to process request' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: ERROR_MESSAGES.GENERIC_PROCESSING_ERROR }),
+      { 
+        status: HTTP_CONFIG.STATUS_CODES.INTERNAL_SERVER_ERROR, 
+        headers: HTTP_CONFIG.HEADERS.JSON 
+      }
     );
   }
 }
@@ -40,7 +50,7 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   const groqApiKey = envConfig.groqApiKey;
   
   if (!groqApiKey) {
-    throw new Error('Service not configured');
+    throw new Error(ERROR_MESSAGES.SERVICE_NOT_CONFIGURED);
   }
   
   // Get prompts from secure module
@@ -66,11 +76,7 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   });
   
   return result.toTextStreamResponse({
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Transfer-Encoding': 'chunked',
-      'Connection': 'keep-alive'
-    }
+    headers: HTTP_CONFIG.HEADERS.STREAMING
   });
 }
 
@@ -135,10 +141,6 @@ async function formatWithGroqParallel(transcript: any[], options: any, systemPro
   });
   
   return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Transfer-Encoding': 'chunked',
-      'Connection': 'keep-alive'
-    }
+    headers: HTTP_CONFIG.HEADERS.STREAMING
   });
 }

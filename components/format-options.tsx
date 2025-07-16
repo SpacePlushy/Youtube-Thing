@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Sparkles, DollarSign, Clock } from 'lucide-react';
+import { FORMAT_STYLES, PARAGRAPH_LENGTHS, type FormatStyle, type ParagraphLength } from '@/lib/constants';
 
 interface FormatOptionsProps {
   transcriptLength: number;
@@ -10,9 +11,9 @@ interface FormatOptionsProps {
 }
 
 export function FormatOptions({ transcriptLength, onFormat, isFormatting }: FormatOptionsProps) {
-  const [style, setStyle] = useState<'summary' | 'chapters' | 'clean' | 'bullets' | 'timestamps'>('clean');
+  const [style, setStyle] = useState<FormatStyle>(FORMAT_STYLES.CLEAN);
   const [includeTimestamps, setIncludeTimestamps] = useState(true);
-  const [paragraphLength, setParagraphLength] = useState<'short' | 'medium' | 'long'>('medium');
+  const [paragraphLength, setParagraphLength] = useState<ParagraphLength>(PARAGRAPH_LENGTHS.MEDIUM);
   
   // Processing estimate
   const estimatedMinutes = 1;
@@ -35,18 +36,18 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
             onChange={(e) => setStyle(e.target.value as any)}
             className="w-full px-4 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent"
           >
-            <option value="clean">Clean Transcript</option>
-            <option value="summary">Summary</option>
-            <option value="chapters">Chapters</option>
-            <option value="bullets">Bullet Points</option>
-            <option value="timestamps">With Timestamps</option>
+            <option value={FORMAT_STYLES.CLEAN}>Clean Transcript</option>
+            <option value={FORMAT_STYLES.SUMMARY}>Summary</option>
+            <option value={FORMAT_STYLES.CHAPTERS}>Chapters</option>
+            <option value={FORMAT_STYLES.BULLETS}>Bullet Points</option>
+            <option value={FORMAT_STYLES.TIMESTAMPS}>With Timestamps</option>
           </select>
           <p className="text-xs text-muted-foreground mt-1">
-            {style === 'clean' && 'Remove filler words, fix grammar, organize into paragraphs'}
-            {style === 'summary' && 'Concise summary of main points'}
-            {style === 'chapters' && 'Organize into logical chapters with headings'}
-            {style === 'bullets' && 'Key points as bullet lists'}
-            {style === 'timestamps' && 'Preserve timing information'}
+            {style === FORMAT_STYLES.CLEAN && 'Remove filler words, fix grammar, organize into paragraphs'}
+            {style === FORMAT_STYLES.SUMMARY && 'Concise summary of main points'}
+            {style === FORMAT_STYLES.CHAPTERS && 'Organize into logical chapters with headings'}
+            {style === FORMAT_STYLES.BULLETS && 'Key points as bullet lists'}
+            {style === FORMAT_STYLES.TIMESTAMPS && 'Preserve timing information'}
           </p>
         </div>
 
@@ -84,7 +85,7 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
               Paragraph Length
             </label>
             <div className="flex gap-2">
-              {(['short', 'medium', 'long'] as const).map((length) => (
+              {(Object.values(PARAGRAPH_LENGTHS) as ParagraphLength[]).map((length) => (
                 <button
                   key={length}
                   onClick={() => setParagraphLength(length)}

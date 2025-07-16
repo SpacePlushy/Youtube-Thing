@@ -1,8 +1,10 @@
 // AI prompt configuration - proprietary formatting logic
+import { FormatStyle, ParagraphLength, AI_PROCESSING } from './constants';
+
 export interface FormatOptions {
-  style: 'summary' | 'chapters' | 'clean' | 'bullets' | 'timestamps';
+  style: FormatStyle;
   includeTimestamps: boolean;
-  paragraphLength: 'short' | 'medium' | 'long';
+  paragraphLength: ParagraphLength;
 }
 
 // Internal prompt builder - not exposed to client
@@ -103,12 +105,12 @@ export function getChunkConfig(transcriptLength: number): {
   chunkSize: number;
   useParallel: boolean;
 } {
-  const CHUNK_SIZE = 100;
-  const estimatedTokens = transcriptLength * 20;
+  const estimatedTokens = transcriptLength * AI_PROCESSING.TOKENS_PER_SEGMENT_ESTIMATE;
   
   return {
-    chunkSize: CHUNK_SIZE,
-    useParallel: estimatedTokens > 6000 || transcriptLength > CHUNK_SIZE
+    chunkSize: AI_PROCESSING.DEFAULT_CHUNK_SIZE,
+    useParallel: estimatedTokens > AI_PROCESSING.PARALLEL_PROCESSING_TOKEN_THRESHOLD || 
+                 transcriptLength > AI_PROCESSING.DEFAULT_CHUNK_SIZE
   };
 }
 
