@@ -17,72 +17,69 @@ This project uses a **3-tier documentation system** that organizes knowledge by 
 
 ## Tier 1: Foundational Documentation (System-Wide)
 
-- **[Master Context](/CLAUDE.md)** - *Essential for every session.* Coding standards, security requirements, MCP server integration patterns, and development protocols
-- **[Project Structure](/docs/ai-context/project-structure.md)** - *REQUIRED reading.* Complete technology stack (Next.js 15, tRPC, Clerk, Upstash Redis), file tree, and system architecture
-- **[Implementation Plan](/IMPLEMENTATION_PLAN.md)** - *Development roadmap.* Step-by-step setup guide, architecture decisions, and feature implementation order
-- **[Task Management](/docs/ai-context/handoff.md)** - *Session continuity.* Current tasks, progress tracking, and next session goals (when created)
+- **[Master Context](/CLAUDE.md)** - *Essential for every session.* Coding standards, project overview, key technical patterns, and development workflow
+- **[Project Structure](/docs/ai-context/project-structure.md)** - *REQUIRED reading.* Complete technology stack (Next.js 15, Oxylabs, Gemini AI), file tree, and system architecture
+- **[README](/README.md)** - *Public documentation.* Setup instructions, feature overview, and deployment guide
+- **[Oxylabs Setup](/OXYLABS_SETUP.md)** - *API configuration.* Detailed Oxylabs integration guide and troubleshooting (when created)
 
 ## Tier 2: Component-Level Documentation
 
 ### Core Application Components
-- **[Server API](/server/CONTEXT.md)** - *tRPC implementation.* Router patterns, procedures, middleware, and type safety (when created)
-- **[Authentication](/app/(auth)/CONTEXT.md)** - *Clerk integration.* Auth flows, protected routes, and user management (when created)
-- **[Dashboard](/app/(dashboard)/CONTEXT.md)** - *Protected features.* User interface patterns, data visualization, and user workflows (when created)
+- **[API Routes](/app/api/CONTEXT.md)** - *Server endpoints.* Transcript extraction, AI formatting, streaming patterns (when created)
+- **[Main Application](/app/CONTEXT.md)** - *Client interface.* Page structure, state management, user interactions (when created)
+- **[Components](/components/CONTEXT.md)** - *UI components.* Transcript viewer, format options, component patterns (when created)
 
-### Data & Integration Components
-- **[YouTube Integration](/server/api/routers/youtube/CONTEXT.md)** - *YouTube API patterns.* Data extraction, rate limiting, and metadata processing (when created)
-- **[Redis Storage](/server/db/CONTEXT.md)** - *Upstash Redis patterns.* Key structures, JSON storage, and caching strategies (when created)
-
-### UI Components
-- **[Component Library](/components/CONTEXT.md)** - *shadcn/ui patterns.* Reusable components, theming, and composition patterns (when created)
-- **[Layouts](/app/CONTEXT.md)** - *Next.js App Router.* Layout patterns, metadata, and route groups (when created)
+### Integration Components
+- **[Library Utilities](/lib/CONTEXT.md)** - *Core utilities.* YouTube parsing, caching system, AI formatting helpers (when created)
+- **[External Services](/docs/integrations/CONTEXT.md)** - *API integrations.* Oxylabs setup, Gemini configuration, fallback strategies (when created)
 
 ## Tier 3: Feature-Specific Documentation
 
 Granular CONTEXT.md files co-located with code:
 
 ### API Features
-- **[YouTube Router](/server/api/routers/youtube.ts)** - Video extraction procedures, rate limiting, error handling
-- **[User Router](/server/api/routers/user.ts)** - User preferences, saved videos, profile management
-- **[tRPC Context](/server/api/trpc.ts)** - Context creation, authentication integration, type inference
+- **[Oxylabs Route](/app/api/transcript-oxylabs/CONTEXT.md)** - Oxylabs API integration, request/response handling, error recovery (when created)
+- **[Format Route](/app/api/format-transcript/CONTEXT.md)** - Gemini streaming, chunk processing, format styles (when created)
+- **[Fallback Route](/app/api/transcript/CONTEXT.md)** - YouTube-transcript library usage, fallback logic (when created)
 
 ### UI Features
-- **[Video Card](/components/video-card/CONTEXT.md)** - Display patterns, interaction states, data binding (when created)
-- **[Extraction Form](/components/extraction-form/CONTEXT.md)** - Form validation, URL parsing, submission flow (when created)
-- **[Results Display](/components/results-display/CONTEXT.md)** - Data presentation, export options, sharing features (when created)
+- **[Transcript Viewer](/components/transcript-viewer/CONTEXT.md)** - Display logic, segment rendering, export functionality (when created)
+- **[Format Options](/components/format-options/CONTEXT.md)** - UI controls, format selection, streaming status (when created)
 
 ### Utility Features
-- **[YouTube Parser](/lib/youtube-parser/CONTEXT.md)** - URL validation, ID extraction, metadata parsing (when created)
-- **[Export Utilities](/lib/export/CONTEXT.md)** - Format converters, download generation, data transformers (when created)
+- **[Transcript Cache](/lib/transcript-cache/CONTEXT.md)** - localStorage implementation, TTL management, cache keys (when created)
+- **[YouTube Parser](/lib/youtube/CONTEXT.md)** - URL validation, video ID extraction, API client (when created)
+- **[AI Formatter](/lib/ai-formatter/CONTEXT.md)** - Prompt engineering, chunk processing, streaming helpers (when created)
 
 ## Quick Reference Guide
 
 ### For New Features
-1. Read `/CLAUDE.md` for coding standards and conventions
+1. Read `/CLAUDE.md` for coding standards and project overview
 2. Check `/docs/ai-context/project-structure.md` for architecture patterns
-3. Review `/IMPLEMENTATION_PLAN.md` for development approach
-4. Find relevant Tier 2 component docs
+3. Review relevant component documentation
+4. Follow established patterns for similar features
 
 ### For Bug Fixes
 1. Understand the architecture via `project-structure.md`
-2. Check relevant Tier 3 feature documentation
-3. Follow debugging patterns in `/CLAUDE.md`
+2. Check relevant feature documentation
+3. Review error handling patterns in `/CLAUDE.md`
+4. Test with various YouTube URLs and options
 
 ### For Performance Optimization
-1. Review current architecture in `project-structure.md`
-2. Check Redis caching patterns in data storage docs
-3. Follow Next.js server component best practices
+1. Review caching implementation in transcript-cache
+2. Check streaming patterns in format-transcript
+3. Profile with Chrome DevTools
+4. Follow Next.js optimization best practices
 
 ## Search Keywords
 
-**Architecture**: project-structure.md, CLAUDE.md, middleware.ts, server components
-**Authentication**: Clerk, middleware.ts, protected routes, clerkMiddleware
-**Database**: Redis, Upstash, KV storage, JSON patterns, key structures
-**API**: tRPC, routers, procedures, type safety, TanStack Query
-**UI**: shadcn/ui, Tailwind CSS v4, Radix UI, server components
-**YouTube**: extraction, metadata, video data, YouTube API
-**Testing**: (to be documented)
-**Deployment**: (to be documented)
+**Architecture**: project-structure.md, CLAUDE.md, Next.js 15, App Router
+**Transcript Extraction**: Oxylabs, youtube-transcript, API routes, fallback
+**AI Formatting**: Gemini, streaming, SSE, format styles, chunks
+**Caching**: localStorage, TTL, browser storage, performance
+**UI Components**: transcript-viewer, format-options, Tailwind CSS
+**Error Handling**: fallback, retry, validation, user feedback
+**Deployment**: Vercel, environment variables, production build
 
 ## Documentation Standards
 
@@ -104,8 +101,8 @@ Granular CONTEXT.md files co-located with code:
 - Remove obsolete documentation
 
 ## Next Steps for Documentation
-1. Create Tier 2 component CONTEXT.md files as components are built
-2. Add Tier 3 feature docs during implementation
-3. Document testing strategies and patterns
-4. Add deployment and monitoring guides
-5. Create troubleshooting guides for common issues
+1. Create component-level CONTEXT.md files as needed
+2. Add feature-specific documentation for complex implementations
+3. Document any new API integrations
+4. Create troubleshooting guides for common issues
+5. Add performance optimization guides
