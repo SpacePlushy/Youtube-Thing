@@ -203,96 +203,187 @@ export default function Home() {
           </h1>
         </div>
         
-        {/* Main content grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 flex-1">
-          {/* Left Panel - Input Controls and Raw Transcript */}
-          <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col">
-            <form onSubmit={handleExtract} className="space-y-3 mb-4">
-              <input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-sm"
-                disabled={loading}
-              />
-              
-              <div className="grid grid-cols-2 gap-3">
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+        {/* Main content - conditional layout based on transcript */}
+        {transcript.length === 0 ? (
+          /* Centered layout when no transcript */
+          <div className="flex-1 flex items-start justify-center pt-8">
+            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 w-full max-w-xl">
+              <form onSubmit={handleExtract} className="space-y-3">
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-sm"
                   disabled={loading}
-                >
-                  <option value="en">English</option>
-                  <option value="es">Spanish</option>
-                  <option value="fr">French</option>
-                  <option value="de">German</option>
-                  <option value="it">Italian</option>
-                  <option value="pt">Portuguese</option>
-                  <option value="ru">Russian</option>
-                  <option value="ja">Japanese</option>
-                  <option value="ko">Korean</option>
-                  <option value="zh">Chinese</option>
-                  <option value="ar">Arabic</option>
-                  <option value="hi">Hindi</option>
-                </select>
+                />
                 
-                <select
-                  value={transcriptOrigin}
-                  onChange={(e) => setTranscriptOrigin(e.target.value as 'auto_generated' | 'uploader_provided')}
-                  className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
-                  disabled={loading}
-                >
-                  <option value="auto_generated">Auto-generated</option>
-                  <option value="uploader_provided">Uploader Provided</option>
-                </select>
-              </div>
-              
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{loading ? 'Extracting...' : 'Extract Script'}</span>
-              </button>
-            </form>
-            
-            {error && (
-              <div className="p-3 bg-red-950/20 border border-red-900/30 text-red-400 rounded text-sm mb-4">
-                {error}
-              </div>
-            )}
-            
-            {transcriptMetadata?.hadToFallback && (
-              <div className="p-3 bg-yellow-950/20 border border-yellow-900/30 text-yellow-400 rounded text-sm mb-4">
-                Note: The requested transcript wasn&apos;t available. 
-                Showing {transcriptMetadata.actualOrigin === 'auto_generated' ? 'auto-generated' : 'uploader-provided'} transcript 
-                in {transcriptMetadata.actualLanguage === 'en' ? 'English' : transcriptMetadata.actualLanguage}.
-              </div>
-            )}
-            
-            {usingCache && (
-              <div className="p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm mb-4 flex items-center justify-between">
-                <span>Using cached transcript</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                    disabled={loading}
+                  >
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="ru">Russian</option>
+                    <option value="ja">Japanese</option>
+                    <option value="ko">Korean</option>
+                    <option value="zh">Chinese</option>
+                    <option value="ar">Arabic</option>
+                    <option value="hi">Hindi</option>
+                  </select>
+                  
+                  <select
+                    value={transcriptOrigin}
+                    onChange={(e) => setTranscriptOrigin(e.target.value as 'auto_generated' | 'uploader_provided')}
+                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                    disabled={loading}
+                  >
+                    <option value="auto_generated">Auto-generated</option>
+                    <option value="uploader_provided">Uploader Provided</option>
+                  </select>
+                </div>
+                
                 <button
-                  onClick={() => {
-                    TranscriptCache.clearAll();
-                    setUsingCache(false);
-                    analytics.trackCacheAction('clear');
-                    alert('Cache cleared!');
-                  }}
-                  className="text-green-400 hover:text-green-300 transition-colors"
-                  title="Clear cache"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{loading ? 'Extracting...' : 'Extract Script'}</span>
                 </button>
-              </div>
-            )}
+              </form>
+              
+              {error && (
+                <div className="p-3 bg-red-950/20 border border-red-900/30 text-red-400 rounded text-sm mt-4">
+                  {error}
+                </div>
+              )}
+              
+              {transcriptMetadata?.hadToFallback && (
+                <div className="p-3 bg-yellow-950/20 border border-yellow-900/30 text-yellow-400 rounded text-sm mt-4">
+                  Note: The requested transcript wasn&apos;t available. 
+                  Showing {transcriptMetadata.actualOrigin === 'auto_generated' ? 'auto-generated' : 'uploader-provided'} transcript 
+                  in {transcriptMetadata.actualLanguage === 'en' ? 'English' : transcriptMetadata.actualLanguage}.
+                </div>
+              )}
+              
+              {usingCache && (
+                <div className="p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm mt-4 flex items-center justify-between">
+                  <span>Using cached transcript</span>
+                  <button
+                    onClick={() => {
+                      TranscriptCache.clearAll();
+                      setUsingCache(false);
+                      analytics.trackCacheAction('clear');
+                      alert('Cache cleared!');
+                    }}
+                    className="text-green-400 hover:text-green-300 transition-colors"
+                    title="Clear cache"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             
-            {/* Transcript Display */}
-            {transcript.length > 0 && (
+            </div>
+          </div>
+        ) : (
+          /* Two-panel layout when transcript exists */
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 flex-1">
+            {/* Left Panel - Input Controls and Raw Transcript */}
+            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col">
+              <form onSubmit={handleExtract} className="space-y-3 mb-4">
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-sm"
+                  disabled={loading}
+                />
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                    disabled={loading}
+                  >
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="ru">Russian</option>
+                    <option value="ja">Japanese</option>
+                    <option value="ko">Korean</option>
+                    <option value="zh">Chinese</option>
+                    <option value="ar">Arabic</option>
+                    <option value="hi">Hindi</option>
+                  </select>
+                  
+                  <select
+                    value={transcriptOrigin}
+                    onChange={(e) => setTranscriptOrigin(e.target.value as 'auto_generated' | 'uploader_provided')}
+                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                    disabled={loading}
+                  >
+                    <option value="auto_generated">Auto-generated</option>
+                    <option value="uploader_provided">Uploader Provided</option>
+                  </select>
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{loading ? 'Extracting...' : 'Extract Script'}</span>
+                </button>
+              </form>
+              
+              {error && (
+                <div className="p-3 bg-red-950/20 border border-red-900/30 text-red-400 rounded text-sm mb-4">
+                  {error}
+                </div>
+              )}
+              
+              {transcriptMetadata?.hadToFallback && (
+                <div className="p-3 bg-yellow-950/20 border border-yellow-900/30 text-yellow-400 rounded text-sm mb-4">
+                  Note: The requested transcript wasn&apos;t available. 
+                  Showing {transcriptMetadata.actualOrigin === 'auto_generated' ? 'auto-generated' : 'uploader-provided'} transcript 
+                  in {transcriptMetadata.actualLanguage === 'en' ? 'English' : transcriptMetadata.actualLanguage}.
+                </div>
+              )}
+              
+              {usingCache && (
+                <div className="p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm mb-4 flex items-center justify-between">
+                  <span>Using cached transcript</span>
+                  <button
+                    onClick={() => {
+                      TranscriptCache.clearAll();
+                      setUsingCache(false);
+                      analytics.trackCacheAction('clear');
+                      alert('Cache cleared!');
+                    }}
+                    className="text-green-400 hover:text-green-300 transition-colors"
+                    title="Clear cache"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              
+              {/* Transcript Display */}
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold">Transcript</h3>
@@ -342,11 +433,9 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-          
-          {/* Right Panel - AI Formatting Options and Formatted Transcript */}
-          {transcript.length > 0 && (
+            </div>
+            
+            {/* Right Panel - AI Formatting Options and Formatted Transcript */}
             <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col">
               <FormatOptions 
                 transcriptLength={transcript.length}
@@ -421,8 +510,8 @@ export default function Home() {
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
