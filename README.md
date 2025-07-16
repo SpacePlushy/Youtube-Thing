@@ -10,6 +10,9 @@ A modern YouTube transcript extraction tool built with Next.js and Oxylabs API. 
 - 🎨 **Dark Theme** - Modern dark UI with excellent readability
 - 💾 **Export Options** - Copy to clipboard or download as text file
 - ⚡ **Fast & Reliable** - Powered by Oxylabs enterprise API
+- 🤖 **AI Formatting** - Format transcripts with AI (clean, summarize, chapters, bullets)
+- 🚀 **Ultra-Fast Processing** - Groq LPU™ integration for lightning-fast AI formatting (up to 1,500 tokens/sec)
+- 💰 **Free AI Tier** - Groq's generous free tier for transcript formatting
 
 ## Tech Stack
 
@@ -43,10 +46,15 @@ npm install
 cp .env.example .env.local
 ```
 
-4. Edit `.env.local` and add your Oxylabs credentials:
+4. Edit `.env.local` and add your credentials:
 ```env
+# Oxylabs API (required for transcript extraction)
 OXYLABS_USERNAME=your_username
 OXYLABS_PASSWORD=your_password
+
+# AI Formatting (optional - choose one or both)
+GROQ_API_KEY=your_groq_api_key     # Get free at https://console.groq.com/keys
+GEMINI_API_KEY=your_gemini_api_key # Get at https://makersuite.google.com/app/apikey
 ```
 
 ### Development
