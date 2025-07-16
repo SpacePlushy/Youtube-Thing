@@ -14,7 +14,7 @@ const safeStreamWrite = async (writer: WritableStreamDefaultWriter, encoder: Tex
         .replace(/\n/g, '\\n')  // Escape newlines
         .replace(/\r/g, '\\r')  // Escape carriage returns
         .replace(/\t/g, '\\t')  // Escape tabs
-        .replace(/\b/g, '\\b')  // Escape backspace
+        .replace(/\x08/g, '\\b')  // Escape actual backspace character (not word boundary)
         .replace(/\f/g, '\\f')  // Escape form feed
         .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Remove control characters
     };
