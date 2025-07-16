@@ -336,124 +336,166 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
   
   const systemPrompt = `${systemPrompts[options.style]}\n\n${paragraphInstructions[options.paragraphLength]}`;
   
-  // Format entire transcript for single-request processing
-  const formattedTranscript = transcript
-    .map((segment, index) => {
-      if (options.includeTimestamps) {
-        const prefix = index === 0 ? '' : '\n';
-        return `${prefix}[${segment.timestamp}] ${segment.text}`;
-      }
-      return segment.text;
-    })
-    .join(options.includeTimestamps ? ' ' : ' ')
-    .replace(/\n /g, '\n');
+  // Split transcript into 5 chunks for parallel processing
+  const PARALLEL_CHUNKS = 5;
+  const chunkSize = Math.ceil(transcript.length / PARALLEL_CHUNKS);
+  const chunks = [];
+  
+  for (let i = 0; i < PARALLEL_CHUNKS; i++) {
+    const startIdx = i * chunkSize;
+    const endIdx = Math.min((i + 1) * chunkSize, transcript.length);
+    const chunkSegments = transcript.slice(startIdx, endIdx);
+    
+    // Format chunk with timestamps
+    const formattedChunk = chunkSegments
+      .map((segment, index) => {
+        if (options.includeTimestamps) {
+          const prefix = (i === 0 && index === 0) ? '' : '\n';
+          return `${prefix}[${segment.timestamp}] ${segment.text}`;
+        }
+        return segment.text;
+      })
+      .join(options.includeTimestamps ? ' ' : ' ')
+      .replace(/\n /g, '\n');
+    
+    chunks.push({
+      index: i,
+      content: formattedChunk,
+      segments: chunkSegments.length
+    });
+  }
+  
+  console.log(`[Groq] Processing ${transcript.length} segments in ${PARALLEL_CHUNKS} parallel chunks`);
   
   // Send initial progress
-  await writer.write(encoder.encode(`data: {"type": "progress", "message": "Processing entire transcript with Groq...", "progress": 10}\n\n`));
+  await writer.write(encoder.encode(`data: {"type": "progress", "message": "Starting parallel processing with ${PARALLEL_CHUNKS} workers...", "progress": 10}\n\n`));
   
-  console.log(`[Groq] Processing entire transcript (${transcript.length} segments, ~${formattedTranscript.length} chars)`);
-  
-  // Build the complete prompt
-  const fullPrompt = `${options.includeTimestamps ? 'IMPORTANT: Each timestamp should start on a new line, text flows continuously.\n\n' : ''}Please format the following complete transcript:\n\n${formattedTranscript}`;
-  
-  try {
-    // Update progress
-    await writer.write(encoder.encode(`data: {"type": "progress", "message": "Sending transcript to Groq...", "progress": 20}\n\n`));
+  // Process all chunks in parallel
+  const processChunk = async (chunk: any, chunkIndex: number) => {
+    const chunkSystemPrompt = systemPrompt + `\n\nIMPORTANT: This is part ${chunkIndex + 1} of ${PARALLEL_CHUNKS} of a transcript. ${
+      chunkIndex === 0 ? 'Start naturally without introduction.' :
+      chunkIndex === PARALLEL_CHUNKS - 1 ? 'End naturally without conclusion.' :
+      'Continue the content seamlessly - no introduction or conclusion needed.'
+    }`;
     
-    // Use Groq SDK for streaming the entire transcript
-    let stream;
+    const chunkPrompt = `${options.includeTimestamps ? 'IMPORTANT: Each timestamp should start on a new line, text flows continuously.\n\n' : ''}Format this transcript section:\n\n${chunk.content}`;
+    
     try {
-      stream = await groq.chat.completions.create({
+      const completion = await groq.chat.completions.create({
         model: 'llama-3.1-8b-instant',
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: fullPrompt }
+          { role: 'system', content: chunkSystemPrompt },
+          { role: 'user', content: chunkPrompt }
         ],
         temperature: 0.3,
-        max_tokens: 8192, // Maximum available for comprehensive processing
-        stream: true,
+        max_tokens: 4000,
+        stream: false, // Use non-streaming for parallel processing
       });
-    } catch (apiError) {
-      console.error('[Groq] API Error:', apiError);
-      if (apiError instanceof Error && apiError.message.includes('401')) {
-        throw new Error('Authentication failed. API Key issue.');
-      }
-      throw apiError;
-    }
-    
-    let processedText = '';
-    let charCount = 0;
-    
-    try {
-      await writer.write(encoder.encode(`data: {"type": "progress", "message": "Groq is processing your transcript...", "progress": 30}\n\n`));
       
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || '';
-        if (content) {
-          processedText += content;
-          charCount += content.length;
+      return {
+        index: chunkIndex,
+        content: completion.choices[0].message.content || '',
+        success: true
+      };
+    } catch (error) {
+      console.error(`[Groq] Error processing chunk ${chunkIndex + 1}:`, error);
+      return {
+        index: chunkIndex,
+        content: `[Error processing chunk ${chunkIndex + 1}]`,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  };
+  
+  try {
+    // Process all chunks in parallel
+    await writer.write(encoder.encode(`data: {"type": "progress", "message": "Processing ${PARALLEL_CHUNKS} chunks in parallel...", "progress": 20}\n\n`));
+    
+    const chunkPromises = chunks.map((chunk, index) => processChunk(chunk, index));
+    const results = await Promise.all(chunkPromises);
+    
+    // Update progress
+    await writer.write(encoder.encode(`data: {"type": "progress", "message": "Merging results...", "progress": 80}\n\n`));
+    
+    // Sort results by index to maintain order
+    results.sort((a, b) => a.index - b.index);
+    
+    // Merge results seamlessly
+    let mergedContent = '';
+    let successfulChunks = 0;
+    
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      
+      if (result.success) {
+        successfulChunks++;
+        let chunkContent = result.content;
+        
+        // Clean up chunk boundaries for seamless merging
+        if (i > 0) {
+          // Remove any leading whitespace/newlines from continuation chunks
+          chunkContent = chunkContent.replace(/^\s+/, '');
           
-          // Stream each piece as it comes - ensure proper JSON escaping
-          try {
-            const streamData = {
-              type: 'stream',
-              content: content,
-              chunkIndex: 0,
-              isPartial: true
-            };
-            const jsonString = JSON.stringify(streamData);
-            await writer.write(encoder.encode(`data: ${jsonString}\n\n`));
-          } catch (jsonError) {
-            console.error('[Groq] JSON serialization error:', jsonError);
-            // Send safe fallback without the problematic content
-            await writer.write(encoder.encode(`data: {"type": "stream", "content": "[content processing...]", "chunkIndex": 0, "isPartial": true}\n\n`));
-          }
-          
-          // Update progress periodically based on output length
-          if (charCount % 1000 === 0) {
-            const estimatedProgress = Math.min(90, 30 + (charCount / 50)); // Rough estimate
-            await writer.write(encoder.encode(`data: {"type": "progress", "message": "Processing...", "progress": ${estimatedProgress}}\n\n`));
+          // Add appropriate spacing between chunks
+          if (mergedContent && !mergedContent.endsWith('\n\n')) {
+            if (options.includeTimestamps) {
+              // For timestamps, ensure proper line breaks
+              mergedContent += mergedContent.endsWith('\n') ? '' : '\n';
+            } else {
+              // For regular content, add paragraph spacing
+              mergedContent += '\n\n';
+            }
           }
         }
+        
+        mergedContent += chunkContent;
+        
+        // Stream the merged content as we process it
+        try {
+          const streamData = {
+            type: 'stream',
+            content: chunkContent,
+            chunkIndex: i,
+            isPartial: true
+          };
+          await writer.write(encoder.encode(`data: ${JSON.stringify(streamData)}\n\n`));
+        } catch (jsonError) {
+          console.error('[Groq] JSON serialization error:', jsonError);
+        }
+      } else {
+        console.error(`[Groq] Failed to process chunk ${i + 1}: ${result.error}`);
       }
-    } catch (e) {
-      console.error('[Groq] Error during streaming:', e);
-      if (e instanceof Error && e.message.includes('401')) {
-        const errorData = {
-          type: 'error',
-          message: 'Authentication failed. Please check your GROQ_API_KEY in Vercel environment variables.',
-          error: 'Invalid API Key',
-          details: {
-            hint: 'Make sure GROQ_API_KEY is set correctly in Vercel dashboard'
-          }
-        };
-        await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
-      }
-      throw e;
     }
     
-    // Send the complete result with safe JSON handling
+    if (successfulChunks === 0) {
+      throw new Error('All parallel processing chunks failed');
+    }
+    
+    // Send the complete result
     try {
       const finalChunk = {
         type: 'chunk',
-        content: processedText,
+        content: mergedContent,
         chunkIndex: 0,
         totalChunks: 1,
         isPartial: false
       };
-      const finalJson = JSON.stringify(finalChunk);
-      await writer.write(encoder.encode(`data: ${finalJson}\n\n`));
+      await writer.write(encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`));
     } catch (jsonError) {
       console.error('[Groq] Final chunk JSON error:', jsonError);
-      // Send safe final chunk notification
       await writer.write(encoder.encode(`data: {"type": "chunk", "content": "Processing completed - check formatted output above", "chunkIndex": 0, "totalChunks": 1, "isPartial": false}\n\n`));
     }
     
     // Update to 100% complete
-    await writer.write(encoder.encode(`data: {"type": "progress", "message": "Formatting complete!", "progress": 100}\n\n`));
+    const completionMessage = successfulChunks === PARALLEL_CHUNKS 
+      ? `Parallel processing complete! ⚡ (${PARALLEL_CHUNKS}/${PARALLEL_CHUNKS} chunks succeeded)`
+      : `Parallel processing complete with ${successfulChunks}/${PARALLEL_CHUNKS} chunks succeeded`;
+    
+    await writer.write(encoder.encode(`data: {"type": "progress", "message": "${completionMessage}", "progress": 100}\n\n`));
     
   } catch (error) {
-    console.error('[Groq] Error processing transcript:', error);
+    console.error('[Groq] Error in parallel processing:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorData = {
       type: 'error',
@@ -461,7 +503,8 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       error: errorMessage,
       details: {
         model: 'llama-3.1-8b-instant',
-        transcriptLength: transcript.length
+        transcriptLength: transcript.length,
+        parallelChunks: PARALLEL_CHUNKS
       }
     };
     await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));

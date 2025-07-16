@@ -31,7 +31,7 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
   
   // Speed estimates
   const speedInfo: Record<string, string> = {
-    groq: '⚡ Instant processing with Llama 3.1 8B',
+    groq: '⚡ Parallel processing (5 workers) with Llama 3.1 8B',
     claude: 'Fast',
     openai: 'Fast',
     gemini: 'Good speed (470 tokens/sec)',
