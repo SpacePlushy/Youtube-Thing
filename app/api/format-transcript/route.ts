@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 export async function POST(request: NextRequest) {
   try {
@@ -270,7 +271,12 @@ async function formatWithGroqStream(
     throw new Error('GROQ_API_KEY not configured');
   }
   
-  console.log('[Groq] Starting format with Llama 3.2 3B model');
+  // Initialize Groq client
+  const groq = new Groq({
+    apiKey: groqApiKey,
+  });
+  
+  console.log('[Groq] Starting format with Llama 3 8B model');
   
   // System prompts (same as Gemini)
   const systemPrompts: Record<string, string> = {
@@ -383,68 +389,37 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       
       console.log(`[Groq] Processing chunk ${i + 1}/${totalChunks}, ${chunkSegments.length} lines`);
       
-      // Call Groq API
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama3-8b-8192', // Using stable Llama 3 8B model
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: chunkText }
-          ],
-          temperature: 0.3,
-          max_tokens: 4000,
-          stream: true,
-        }),
+      // Use Groq SDK for streaming
+      const stream = await groq.chat.completions.create({
+        model: 'llama3-8b-8192',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: chunkText }
+        ],
+        temperature: 0.3,
+        max_tokens: 4000,
+        stream: true,
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[Groq] API Error Response:', errorText);
-        throw new Error(`Groq API error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-      
-      // Handle streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
       let chunkResult = '';
       
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const text = decoder.decode(value, { stream: true });
-          const lines = text.split('\n');
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-              
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content || '';
-                if (content) {
-                  chunkResult += content;
-                  // Stream each piece as it comes
-                  await writer.write(encoder.encode(`data: ${JSON.stringify({
-                    type: 'stream',
-                    content: content,
-                    chunkIndex: i,
-                    isPartial: true
-                  })}\n\n`));
-                }
-              } catch (e) {
-                // Skip parsing errors
-              }
-            }
+      try {
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            chunkResult += content;
+            // Stream each piece as it comes
+            await writer.write(encoder.encode(`data: ${JSON.stringify({
+              type: 'stream',
+              content: content,
+              chunkIndex: i,
+              isPartial: true
+            })}\n\n`));
           }
         }
+      } catch (e) {
+        console.error('[Groq] Error during streaming:', e);
+        throw e;
       }
       
       // Send the complete chunk
