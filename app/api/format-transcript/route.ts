@@ -393,13 +393,21 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
           processedText += content;
           charCount += content.length;
           
-          // Stream each piece as it comes
-          await writer.write(encoder.encode(`data: ${JSON.stringify({
-            type: 'stream',
-            content: content,
-            chunkIndex: 0,
-            isPartial: true
-          })}\n\n`));
+          // Stream each piece as it comes - ensure proper JSON escaping
+          try {
+            const streamData = {
+              type: 'stream',
+              content: content,
+              chunkIndex: 0,
+              isPartial: true
+            };
+            const jsonString = JSON.stringify(streamData);
+            await writer.write(encoder.encode(`data: ${jsonString}\n\n`));
+          } catch (jsonError) {
+            console.error('[Groq] JSON serialization error:', jsonError);
+            // Send safe fallback without the problematic content
+            await writer.write(encoder.encode(`data: {"type": "stream", "content": "[content processing...]", "chunkIndex": 0, "isPartial": true}\n\n`));
+          }
           
           // Update progress periodically based on output length
           if (charCount % 1000 === 0) {
@@ -424,15 +432,22 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       throw e;
     }
     
-    // Send the complete result
-    const finalChunk = {
-      type: 'chunk',
-      content: processedText,
-      chunkIndex: 0,
-      totalChunks: 1,
-      isPartial: false
-    };
-    await writer.write(encoder.encode(`data: ${JSON.stringify(finalChunk)}\n\n`));
+    // Send the complete result with safe JSON handling
+    try {
+      const finalChunk = {
+        type: 'chunk',
+        content: processedText,
+        chunkIndex: 0,
+        totalChunks: 1,
+        isPartial: false
+      };
+      const finalJson = JSON.stringify(finalChunk);
+      await writer.write(encoder.encode(`data: ${finalJson}\n\n`));
+    } catch (jsonError) {
+      console.error('[Groq] Final chunk JSON error:', jsonError);
+      // Send safe final chunk notification
+      await writer.write(encoder.encode(`data: {"type": "chunk", "content": "Processing completed - check formatted output above", "chunkIndex": 0, "totalChunks": 1, "isPartial": false}\n\n`));
+    }
     
     // Update to 100% complete
     await writer.write(encoder.encode(`data: {"type": "progress", "message": "Formatting complete!", "progress": 100}\n\n`));
