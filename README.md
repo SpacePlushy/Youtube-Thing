@@ -1,4 +1,4 @@
-# YouTube-Thing
+# YouTube Thing
 
 A modern YouTube transcript extraction tool built with Next.js and Oxylabs API. Extract transcripts from any YouTube video with support for multiple languages and transcript types.
 

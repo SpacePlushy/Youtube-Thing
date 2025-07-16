@@ -155,7 +155,7 @@ export default function Home() {
       <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 text-foreground">
-            Youtube-Thing
+            YouTube Thing
           </h1>
           <p className="text-muted-foreground">
             Extract transcripts from any YouTube video with captions
@@ -292,6 +292,28 @@ export default function Home() {
                     </span>
                   )}
                 </h3>
+                <div className="mb-4 flex gap-2">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(formattedTranscript)}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90"
+                  >
+                    Copy Formatted
+                  </button>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([formattedTranscript], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'formatted-transcript.txt';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:opacity-90"
+                  >
+                    Download Formatted
+                  </button>
+                </div>
                 <div className="prose prose-invert max-w-none">
                   <pre className="whitespace-pre-wrap text-sm text-card-foreground">
                     {formattedTranscript}

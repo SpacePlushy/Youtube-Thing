@@ -6,7 +6,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Youtube-Thing',
+  title: 'YouTube Thing',
   description: 'Extract transcripts from any YouTube video',
 }
 
