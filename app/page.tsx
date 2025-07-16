@@ -19,6 +19,16 @@ export default function Home() {
   const [isFormatting, setIsFormatting] = useState(false);
   const [formattingProgress, setFormattingProgress] = useState<{ message: string; progress: number } | null>(null);
   const [usingCache, setUsingCache] = useState(false);
+
+  // Helper function to properly unescape formatted content
+  const unescapeContent = (content: string): string => {
+    return content
+      .replace(/\\n/g, '\n')     // Convert \n to actual newlines
+      .replace(/\\r/g, '\r')     // Convert \r to carriage returns  
+      .replace(/\\t/g, '\t')     // Convert \t to actual tabs
+      .replace(/\\"/g, '"')      // Convert \" to actual quotes
+      .replace(/\\\\/g, '\\');   // Convert \\ to actual backslashes
+  };
   
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +176,7 @@ export default function Home() {
                     }
                   }
                   fullText += currentChunkText;
-                  setFormattedTranscript(fullText);
+                  setFormattedTranscript(unescapeContent(fullText));
                   
                 } else if (data.type === 'chunk' && !data.isPartial) {
                   // Final chunk complete
@@ -176,7 +186,7 @@ export default function Home() {
                   
                   // Update with all completed chunks, filtering empty ones
                   const cleanedChunks = completedChunks.filter(chunk => chunk && chunk.trim());
-                  setFormattedTranscript(cleanedChunks.join('\n\n'));
+                  setFormattedTranscript(unescapeContent(cleanedChunks.join('\n\n')));
                   
                 } else if (data.type === 'progress') {
                   console.log('[handleFormat] Progress update:', data.message, data.progress + '%');
