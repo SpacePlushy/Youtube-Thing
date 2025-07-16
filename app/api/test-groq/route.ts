@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     
     // Test with a simple prompt
     const chatCompletion = await groq.chat.completions.create({
-      model: 'llama3-8b-8192',
+      model: 'llama-3.1-8b-instant',
       messages: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: 'Say "Groq is working!" in 5 words or less.' }

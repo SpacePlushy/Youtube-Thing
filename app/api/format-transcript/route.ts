@@ -286,7 +286,7 @@ async function formatWithGroqStream(
     apiKey: groqApiKey.trim(), // Ensure no whitespace
   });
   
-  console.log('[Groq] Starting format with Llama 3 8B model');
+  console.log('[Groq] Starting format with Llama 3.1 8B Instant model');
   
   // System prompts (same as Gemini)
   const systemPrompts: Record<string, string> = {
@@ -403,13 +403,13 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       let stream;
       try {
         stream = await groq.chat.completions.create({
-          model: 'llama3-8b-8192',
+          model: 'llama-3.1-8b-instant', // Using the instant model for better performance
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: chunkText }
           ],
           temperature: 0.3,
-          max_tokens: 4000,
+          max_tokens: 1000, // Reduced to stay within token limits (6000/min)
           stream: true,
         });
       } catch (apiError) {
@@ -471,9 +471,9 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
       }
       processedText += chunkResult;
       
-      // Add delay between chunks to avoid rate limiting
+      // Add delay between chunks to respect rate limits (30 requests/minute)
       if (i < totalChunks - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay to be safe
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay = 30 requests/minute max
       }
     } catch (error) {
       console.error(`[Groq] Error processing chunk ${i + 1}:`, error);
