@@ -271,6 +271,9 @@ async function formatWithGroqStream(
     throw new Error('GROQ_API_KEY not configured');
   }
   
+  // Log API key info for debugging (first 10 chars only)
+  console.log('[Groq] API Key present:', groqApiKey.substring(0, 10) + '...');
+  
   // Initialize Groq client
   const groq = new Groq({
     apiKey: groqApiKey,
@@ -419,6 +422,20 @@ ${options.includeTimestamps ? '- IMPORTANT: Include timestamps [HH:MM:SS] or [MM
         }
       } catch (e) {
         console.error('[Groq] Error during streaming:', e);
+        // Check if it's an authentication error
+        if (e instanceof Error && e.message.includes('401')) {
+          const errorData = {
+            type: 'error',
+            message: `Authentication failed. Please check your GROQ_API_KEY in Vercel environment variables.`,
+            error: 'Invalid API Key',
+            details: {
+              hint: 'Make sure GROQ_API_KEY is set correctly in Vercel dashboard',
+              chunk: i + 1,
+              totalChunks
+            }
+          };
+          await writer.write(encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`));
+        }
         throw e;
       }
       
