@@ -11,8 +11,8 @@ A modern YouTube transcript extraction tool built with Next.js and Oxylabs API. 
 - 💾 **Export Options** - Copy to clipboard or download as text file
 - ⚡ **Fast & Reliable** - Powered by Oxylabs enterprise API
 - 🤖 **AI Formatting** - Format transcripts with AI (clean, summarize, chapters, bullets)
-- 🚀 **Ultra-Fast Processing** - Groq LPU™ integration for lightning-fast AI formatting (up to 1,500 tokens/sec)
-- 💰 **Free AI Tier** - Groq's generous free tier for transcript formatting
+- 🚀 **Ultra-Fast Processing** - Advanced AI integration for lightning-fast formatting
+- 💰 **Free AI Tier** - Generous free tier for transcript formatting
 
 ## Tech Stack
 

@@ -14,8 +14,8 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
   const [includeTimestamps, setIncludeTimestamps] = useState(true);
   const [paragraphLength, setParagraphLength] = useState<'short' | 'medium' | 'long'>('medium');
   
-  // Groq processing estimate - ultra-fast parallel processing
-  const estimatedMinutes = 1; // Under 1 minute with parallel agents
+  // Processing estimate
+  const estimatedMinutes = 1;
 
   return (
     <div className="mt-6 p-6 bg-card rounded-lg border border-border">
@@ -50,15 +50,15 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
           </p>
         </div>
 
-        {/* AI Provider Info (Fixed - No Selection) */}
+        {/* AI Processing Info */}
         <div className="p-4 bg-secondary rounded-lg border border-border">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
-                Powered by Groq LPU™
+                AI Processing
               </h4>
-              <p className="text-sm text-muted-foreground">⚡ Smart parallel processing with Llama 3.1 8B</p>
+              <p className="text-sm text-muted-foreground">⚡ Fast processing with advanced AI</p>
             </div>
             <div className="text-right">
               <div className="text-lg font-semibold text-primary">Free! 🚀</div>
@@ -116,10 +116,7 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
 
           <button
             onClick={() => {
-              console.log('[FormatOptions] Button clicked with options:', { style, includeTimestamps, paragraphLength, aiProvider: 'groq' });
-              console.log('[FormatOptions] isFormatting:', isFormatting);
-              console.log('[FormatOptions] transcriptLength:', transcriptLength);
-              onFormat({ style, includeTimestamps, paragraphLength, aiProvider: 'groq' });
+              onFormat({ style, includeTimestamps, paragraphLength });
             }}
             disabled={isFormatting}
             className="px-6 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"

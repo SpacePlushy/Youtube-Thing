@@ -49,12 +49,10 @@ export default function Home() {
       const cached = TranscriptCache.get(videoId, language, transcriptOrigin);
       
       if (cached) {
-        console.log('[Cache] Using cached transcript for:', videoId);
         setTranscript(cached.transcript);
         setTranscriptMetadata(cached.metadata);
         setUsingCache(true);
       } else {
-        console.log('[Cache] No cached transcript, fetching from API...');
         const result = await extractTranscript(videoId, 'oxylabs', { language, transcriptOrigin });
         
         // Cache the result
@@ -66,7 +64,6 @@ export default function Home() {
             result.transcript,
             result.metadata
           );
-          console.log('[Cache] Cached transcript for future use');
         }
         
         setTranscript(result.transcript || []);
@@ -80,22 +77,17 @@ export default function Home() {
   };
   
   const handleFormat = async (options: any) => {
-    console.log('[handleFormat] Function called with options:', options);
-    console.log('[handleFormat] Current transcript length:', transcript.length);
-    
     setIsFormatting(true);
     setFormattedTranscript('');
     setError('');
     setFormattingProgress({ message: 'Starting AI formatting...', progress: 10 });
     
     try {
-      console.log('[handleFormat] Making API call to /api/format-transcript');
       const response = await fetch('/api/format-transcript', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript, options })
       });
-      console.log('[handleFormat] API response status:', response.status, response.statusText);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -120,16 +112,13 @@ export default function Home() {
       const decoder = new TextDecoder();
       let accumulatedText = '';
       
-      console.log('[handleFormat] Starting to read text stream...');
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
-          console.log('[handleFormat] Streaming finished');
           break;
         }
         
         const textChunk = decoder.decode(value, { stream: true });
-        console.log('[handleFormat] Received text chunk:', textChunk.length, 'characters');
         accumulatedText += textChunk;
         setFormattedTranscript(accumulatedText);
         
@@ -142,10 +131,8 @@ export default function Home() {
       setTimeout(() => setFormattingProgress(null), 1000);
       
     } catch (err) {
-      console.error('[handleFormat] Error occurred:', err);
       setError(err instanceof Error ? err.message : 'Failed to format transcript');
     } finally {
-      console.log('[handleFormat] Formatting completed');
       setIsFormatting(false);
     }
   };
