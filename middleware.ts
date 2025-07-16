@@ -1,28 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Generate nonce for CSP - using Edge Runtime compatible crypto
-  const nonce = crypto.randomUUID();
   
-  // Strict Content Security Policy
+  // Content Security Policy - production-ready for Next.js
+  // In production, Next.js requires 'unsafe-eval' for certain optimizations
+  // and 'unsafe-inline' for hydration scripts
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://www.googletagmanager.com;
-    style-src 'self' 'nonce-${nonce}' 'unsafe-inline';
+    script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""};
+    style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
-    connect-src 'self' https://*.youtube.com https://*.googleapis.com;
+    connect-src 'self' https://*.youtube.com https://*.googleapis.com https://*.vercel.app wss://*.vercel.app https://generativelanguage.googleapis.com;
     media-src 'self';
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
     upgrade-insecure-requests;
-    block-all-mixed-content;
   `.replace(/\s{2,}/g, ' ').trim();
 
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
 
   // Security headers
   const securityHeaders = {
