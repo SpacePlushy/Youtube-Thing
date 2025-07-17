@@ -6,10 +6,13 @@ The application implements rate limiting to prevent API abuse and ensure fair us
 ## Implementation Details
 
 ### Rate Limits by Endpoint
-- **`/api/transcript-oxylabs`**: 1 request per 10 seconds
-- **`/api/transcript-primary`**: 1 request per 10 seconds
+- **`/api/transcript-oxylabs`**: 1 request per 10 seconds + 1000 requests per day globally
+- **`/api/transcript-primary`**: 1 request per 10 seconds + 1000 requests per day globally
 - **`/api/format-transcript`**: 1 request per 10 seconds  
 - **Other API endpoints**: 1 request per 10 seconds
+
+### Global Daily Limits
+Transcript extraction endpoints have an additional **global daily limit of 1000 requests** shared across all users to control Oxylabs API costs. This limit resets every 24 hours.
 
 ### How It Works
 1. **Client Identification**: Combines IP address and user agent to create unique identifiers
@@ -20,10 +23,12 @@ The application implements rate limiting to prevent API abuse and ensure fair us
 
 ### Rate Limit Headers
 ```
-X-RateLimit-Limit: 1       # Max requests allowed
-X-RateLimit-Remaining: 0   # Requests remaining in window
-X-RateLimit-Reset: 1234567 # Unix timestamp when limit resets
-Retry-After: 10            # Seconds until next request (only on 429)
+X-RateLimit-Limit: 1                          # Max requests allowed per window
+X-RateLimit-Remaining: 0                      # Requests remaining in window
+X-RateLimit-Reset: 1234567                    # Unix timestamp when limit resets
+X-RateLimit-Global-Daily-Remaining: 856       # Global daily requests remaining
+X-RateLimit-Global-Daily-Reset: 1704567890    # When global daily limit resets
+Retry-After: 10                               # Seconds until next request (only on 429)
 ```
 
 ### Rate Limit Response (429)
@@ -31,7 +36,18 @@ Retry-After: 10            # Seconds until next request (only on 429)
 {
   "error": "Too Many Requests",
   "message": "Rate limit exceeded. Please try again later.",
-  "retryAfter": 1234567890
+  "retryAfter": 1234567890,
+  "isGlobalLimit": false
+}
+```
+
+**Global Daily Limit Response:**
+```json
+{
+  "error": "Too Many Requests", 
+  "message": "Daily service limit reached. Service will resume in 24 hours.",
+  "retryAfter": 1704567890,
+  "isGlobalLimit": true
 }
 ```
 
@@ -68,10 +84,33 @@ For local development:
 2. The rate limiter will use the same Upstash Redis instance as production
 
 ## Monitoring
+
+### Real-time Usage Monitoring
+Check global daily usage at: `/api/admin/usage`
+
+Example response:
+```json
+{
+  "oxylabsDailyUsage": {
+    "used": 247,
+    "remaining": 753,
+    "limit": 1000,
+    "percentageUsed": 25,
+    "resetTime": 1704567890,
+    "resetDate": "2024-01-06T12:34:50.000Z",
+    "timeUntilReset": "18 hours"
+  },
+  "status": "healthy",
+  "message": "753 requests remaining today"
+}
+```
+
+### Analytics & Monitoring
 - Check rate limit headers in API responses
 - Monitor usage in Upstash console with built-in analytics
 - View rate limit violations and patterns
 - Set up alerts for high usage or violations
+- Use `/api/admin/usage` endpoint for automated monitoring
 
 ## Window Types
 Upstash supports various rate limiting strategies:

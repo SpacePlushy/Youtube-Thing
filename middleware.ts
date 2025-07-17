@@ -54,11 +54,18 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
     
     // If rate limit exceeded, return 429 response
     if (!rateLimitResult.success) {
+      // Determine if this is a global daily limit or per-user limit
+      const isGlobalLimit = rateLimitResult.globalDailyRemaining === 0;
+      const message = isGlobalLimit 
+        ? 'Daily service limit reached. Service will resume in 24 hours.'
+        : 'Rate limit exceeded. Please try again later.';
+      
       const response = NextResponse.json(
         {
           error: 'Too Many Requests',
-          message: 'Rate limit exceeded. Please try again later.',
+          message,
           retryAfter: rateLimitResult.reset,
+          isGlobalLimit,
         },
         { 
           status: 429,
