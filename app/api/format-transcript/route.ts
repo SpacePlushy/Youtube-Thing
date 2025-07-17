@@ -63,7 +63,7 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
     return formatWithGroqSequential(transcript, options, prompts.system, chunkConfig.chunkSize);
   }
   
-  // For smaller transcripts, use single request
+  // For smaller transcripts, use single request with progress
   const formattedTranscript = formatTranscriptForAI(transcript, options);
   const userPrompt = prompts.user + formattedTranscript;
   
@@ -75,7 +75,30 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
     maxTokens: envConfig.aiMaxTokens,
   });
   
-  return result.toTextStreamResponse({
+  // Create a transform stream to inject progress markers
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  let firstChunk = true;
+  
+  const transformStream = new TransformStream({
+    async transform(chunk, controller) {
+      // Send initial progress on first chunk
+      if (firstChunk) {
+        controller.enqueue(encoder.encode(`__PROGRESS__:${JSON.stringify({ current: 0, total: 1 })}\n`));
+        firstChunk = false;
+      }
+      
+      // Pass through the original chunk
+      controller.enqueue(chunk);
+    },
+    
+    flush(controller) {
+      // Send completion progress
+      controller.enqueue(encoder.encode(`\n__PROGRESS__:${JSON.stringify({ current: 1, total: 1 })}\n`));
+    }
+  });
+  
+  return new Response(result.textStream.pipeThrough(transformStream), {
     headers: HTTP_CONFIG.HEADERS.STREAMING
   });
 }
@@ -93,6 +116,9 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        // Send initial progress metadata
+        controller.enqueue(encoder.encode(`__PROGRESS__:${JSON.stringify({ current: 0, total: totalChunks })}\n`));
+        
         // Process each chunk sequentially with overlap
         for (let i = 0; i < transcript.length; i += effectiveChunkSize) {
           // Include overlap from previous chunk (except for first chunk)
@@ -123,6 +149,10 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
           
           // Add separator between chunks if needed
           processedChunks++;
+          
+          // Send progress update after each chunk completes
+          controller.enqueue(encoder.encode(`\n__PROGRESS__:${JSON.stringify({ current: processedChunks, total: totalChunks })}\n`));
+          
           if (processedChunks < totalChunks) {
             const separator = options.includeTimestamps ? '\n' : '\n\n';
             controller.enqueue(encoder.encode(separator));

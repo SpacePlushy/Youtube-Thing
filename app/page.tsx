@@ -149,12 +149,13 @@ export default function Home() {
         throw new Error('No response body');
       }
       
-      setFormattingProgress({ message: 'Streaming AI response...', progress: 30 });
+      setFormattingProgress({ message: 'Initializing AI formatter...', progress: 0 });
       
       // Simple text streaming following AI SDK patterns
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let accumulatedText = '';
+      let progressData = { current: 0, total: 1 };
       
       while (true) {
         const { done, value } = await reader.read();
@@ -163,21 +164,45 @@ export default function Home() {
         }
         
         const textChunk = decoder.decode(value, { stream: true });
-        accumulatedText += textChunk;
-        setFormattedTranscript(accumulatedText);
         
-        // Update progress based on estimated output size (improved heuristic)
-        const estimatedFinalSize = transcript.length * 40; // Better estimate based on transcript length
-        const progress = Math.min(90, 30 + (accumulatedText.length / estimatedFinalSize) * 60);
-        setFormattingProgress({ message: 'Formatting transcript...', progress });
+        // Check for progress markers
+        const progressMatch = textChunk.match(/__PROGRESS__:({.*?})\n/);
+        if (progressMatch) {
+          try {
+            progressData = JSON.parse(progressMatch[1]);
+            // Remove progress marker from output
+            const cleanedChunk = textChunk.replace(/__PROGRESS__:.*?\n/g, '');
+            accumulatedText += cleanedChunk;
+          } catch (e) {
+            // If parsing fails, just add the chunk as-is
+            accumulatedText += textChunk;
+          }
+        } else {
+          accumulatedText += textChunk;
+        }
+        
+        setFormattedTranscript(accumulatedText.replace(/__PROGRESS__:.*?\n/g, ''));
+        
+        // Calculate truly accurate progress based on chunks completed
+        const progress = progressData.total > 0 
+          ? Math.round((progressData.current / progressData.total) * 100)
+          : 0;
+        
+        const message = progressData.total > 1 
+          ? `Formatting transcript... (chunk ${progressData.current} of ${progressData.total})`
+          : 'Formatting transcript...';
+        setFormattingProgress({ message, progress });
       }
       
       // Decode any remaining bytes without the stream flag
       const finalChunk = decoder.decode();
       if (finalChunk) {
         accumulatedText += finalChunk;
-        setFormattedTranscript(accumulatedText);
       }
+      
+      // Final cleanup of any remaining progress markers
+      const cleanedTranscript = accumulatedText.replace(/__PROGRESS__:.*?\n/g, '');
+      setFormattedTranscript(cleanedTranscript);
       
       setFormattingProgress({ message: 'Complete!', progress: 100 });
       setTimeout(() => setFormattingProgress(null), 1000);
