@@ -3,6 +3,7 @@ import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { checkBotId } from 'botid/server';
 import { buildPrompt } from '@/lib/ai-prompts';
+import { shouldBlockRequest } from '@/lib/bot-detection';
 import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
 import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
@@ -68,13 +69,25 @@ export async function POST(request: NextRequest) {
         env: process.env.NODE_ENV 
       });
       
-      // More permissive approach: Only block if we're highly confident it's malicious
-      // BotID can have false positives, especially on mobile browsers
-      // For now, we'll rely on rate limiting as primary protection
-      if (botVerification.isBot && !botVerification.isGoodBot) {
-        console.warn('[BotID] Potential bot detected but allowing request (mobile browsers can trigger false positives)');
-        console.warn('[BotID] User-Agent:', request.headers.get('user-agent') || 'Unknown');
-        // Don't block - let rate limiting handle abuse protection
+      // Enhanced bot detection combining BotID with additional checks
+      const userAgent = request.headers.get('user-agent') || '';
+      const blockDecision = shouldBlockRequest(botVerification, userAgent);
+      
+      console.log('[BotID] Enhanced detection result:', {
+        botIdResult: botVerification,
+        userAgent: userAgent.substring(0, 100),
+        blockDecision
+      });
+      
+      if (blockDecision.block) {
+        console.log('[BotID] Blocking request:', blockDecision.reason);
+        return new Response(
+          JSON.stringify({ error: 'Access denied' }),
+          { 
+            status: HTTP_CONFIG.STATUS_CODES.FORBIDDEN, 
+            headers: HTTP_CONFIG.HEADERS.JSON 
+          }
+        );
       }
       console.log('[BotID] Request verified as legitimate');
     } catch (botError) {
