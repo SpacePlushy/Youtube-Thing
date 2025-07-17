@@ -24,14 +24,30 @@ interface TranscriptSegment {
 export async function POST(request: NextRequest) {
   try {
     // BotID verification - protect against automated transcript extraction
-    const botVerification = await checkBotId();
-    if (botVerification.isBot) {
-      console.log('[BotID] Bot detected, blocking transcript extraction request');
-      return NextResponse.json({ 
-        error: 'Access denied' 
-      }, { status: 403 });
+    // Graceful degradation: if BotID fails, allow the request to proceed
+    try {
+      console.log('[BotID] Starting bot verification...');
+      const botVerification = await checkBotId();
+      console.log('[BotID] Verification result:', { 
+        isBot: botVerification.isBot,
+        isHuman: botVerification.isHuman,
+        isGoodBot: botVerification.isGoodBot,
+        bypassed: botVerification.bypassed,
+        env: process.env.NODE_ENV 
+      });
+      
+      if (botVerification.isBot) {
+        console.log('[BotID] Bot detected, blocking transcript extraction request');
+        return NextResponse.json({ 
+          error: 'Access denied' 
+        }, { status: 403 });
+      }
+      console.log('[BotID] Request verified as human');
+    } catch (botError) {
+      console.warn('[BotID] Bot verification failed, allowing request to proceed:', botError instanceof Error ? botError.message : 'Unknown error');
+      console.warn('[BotID] Error details:', botError);
+      // Continue with the request even if BotID fails
     }
-    console.log('[BotID] Request verified as human');
 
     const { videoId: videoIdOrUrl, language = 'en', transcriptOrigin = 'auto_generated' } = await request.json() as { 
       videoId: string;

@@ -56,18 +56,34 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   try {
     // BotID verification - protect against automated AI formatting abuse
-    const botVerification = await checkBotId();
-    if (botVerification.isBot) {
-      console.log('[BotID] Bot detected, blocking AI formatting request');
-      return new Response(
-        JSON.stringify({ error: 'Access denied' }),
-        { 
-          status: HTTP_CONFIG.STATUS_CODES.FORBIDDEN, 
-          headers: HTTP_CONFIG.HEADERS.JSON 
-        }
-      );
+    // Graceful degradation: if BotID fails, allow the request to proceed
+    try {
+      console.log('[BotID] Starting bot verification for AI formatting...');
+      const botVerification = await checkBotId();
+      console.log('[BotID] Verification result:', { 
+        isBot: botVerification.isBot,
+        isHuman: botVerification.isHuman,
+        isGoodBot: botVerification.isGoodBot,
+        bypassed: botVerification.bypassed,
+        env: process.env.NODE_ENV 
+      });
+      
+      if (botVerification.isBot) {
+        console.log('[BotID] Bot detected, blocking AI formatting request');
+        return new Response(
+          JSON.stringify({ error: 'Access denied' }),
+          { 
+            status: HTTP_CONFIG.STATUS_CODES.FORBIDDEN, 
+            headers: HTTP_CONFIG.HEADERS.JSON 
+          }
+        );
+      }
+      console.log('[BotID] AI formatting request verified as human');
+    } catch (botError) {
+      console.warn('[BotID] Bot verification failed, allowing request to proceed:', botError instanceof Error ? botError.message : 'Unknown error');
+      console.warn('[BotID] Error details:', botError);
+      // Continue with the request even if BotID fails
     }
-    console.log('[BotID] AI formatting request verified as human');
 
     const { transcript, options } = await request.json();
     
