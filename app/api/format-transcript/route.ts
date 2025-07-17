@@ -5,90 +5,29 @@ import { buildPrompt, getChunkConfig, buildChunkPrompt } from '@/lib/ai-prompts'
 import { envConfig } from '@/lib/env-config';
 import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
 
-// Advanced overlap detection using multiple strategies
-function findNonOverlappingContent(
-  chunkOutput: string, 
+// Helper function to extract overlap context information
+function buildOverlapContext(
   chunkSegments: any[], 
   overlap: number, 
-  includeTimestamps: boolean
-): string {
-  if (!includeTimestamps) {
-    // For non-timestamp content, use conservative text-based splitting
-    return chunkOutput.substring(Math.floor(chunkOutput.length * 0.4));
+  chunkIndex: number
+): { overlapSegments: number; newContentStartTimestamp?: string; lastProcessedTimestamp?: string } | undefined {
+  if (chunkIndex === 0) {
+    return undefined; // No overlap for first chunk
   }
-
-  // Strategy 1: Find target timestamp from original segments
-  const targetSegmentIndex = Math.min(overlap, chunkSegments.length - 1);
-  const targetTimestamp = chunkSegments[targetSegmentIndex]?.timestamp;
   
-  if (targetTimestamp) {
-    // Look for exact timestamp match with various formatting
-    const timestampPatterns = [
-      `\n[${targetTimestamp}]`,      // Newline + timestamp (most common)
-      `[${targetTimestamp}]`,        // Start of chunk
-      `\n\n[${targetTimestamp}]`,    // Double newline + timestamp
-    ];
-    
-    for (const pattern of timestampPatterns) {
-      const splitIndex = chunkOutput.indexOf(pattern);
-      if (splitIndex !== -1) {
-        return chunkOutput.substring(splitIndex);
-      }
-    }
-  }
-
-  // Strategy 2: Parse all timestamps and find logical break point
-  const timestampRegex = /(\n?)(\[[\d:]+\])/g;
-  const allMatches = Array.from(chunkOutput.matchAll(timestampRegex));
+  const overlapSegments = Math.min(overlap, chunkSegments.length);
+  const newContentStartIndex = overlapSegments;
+  const newContentStartTimestamp = chunkSegments[newContentStartIndex]?.timestamp;
   
-  if (allMatches.length > 1) {
-    // Calculate expected break point based on overlap ratio, but be more conservative
-    const overlapRatio = Math.min(0.3, overlap / chunkSegments.length); // Cap at 30%
-    const expectedBreakPoint = Math.floor(chunkOutput.length * overlapRatio);
-    
-    // Find the first timestamp that appears after our expected break point
-    const validMatch = allMatches.find(match => 
-      match.index !== undefined && match.index >= expectedBreakPoint
-    );
-    
-    if (validMatch && validMatch.index !== undefined) {
-      return chunkOutput.substring(validMatch.index);
-    }
-  }
-
-  // Strategy 3: Intelligent content-based overlap detection
-  if (allMatches.length > 0) {
-    // Look for repeating patterns that might indicate overlap
-    const lines = chunkOutput.split('\n');
-    const timestampLines = lines.filter(line => /^\[[\d:]+\]/.test(line.trim()));
-    
-    if (timestampLines.length > 0) {
-      // Find a good break point by analyzing timestamp progression - use earlier point to preserve content
-      const quarterPoint = Math.floor(timestampLines.length / 4); // Use 1/4 instead of 1/2
-      const targetLine = timestampLines[quarterPoint];
-      const lineIndex = chunkOutput.indexOf(targetLine);
-      
-      if (lineIndex !== -1) {
-        // Find the start of this line (include any preceding newline)
-        let startIndex = lineIndex;
-        while (startIndex > 0 && chunkOutput[startIndex - 1] !== '\n') {
-          startIndex--;
-        }
-        if (startIndex > 0 && chunkOutput[startIndex - 1] === '\n') {
-          startIndex--; // Include the newline
-        }
-        return chunkOutput.substring(startIndex);
-      }
-    }
-  }
-
-  // Strategy 4: Conservative fallback - prefer content preservation over perfect deduplication
-  // Use a much smaller skip to avoid losing significant content
-  const conservativeStart = Math.floor(chunkOutput.length * 0.25);
-  const fallbackContent = chunkOutput.substring(conservativeStart);
+  // For lastProcessedTimestamp, we'd ideally track this from previous chunk
+  // For now, estimate based on overlap position
+  const lastProcessedTimestamp = overlapSegments > 0 ? chunkSegments[overlapSegments - 1]?.timestamp : undefined;
   
-  console.warn('Using conservative overlap detection fallback - preserving more content');
-  return fallbackContent;
+  return {
+    overlapSegments,
+    newContentStartTimestamp,
+    lastProcessedTimestamp
+  };
 }
 
 // Clean AI output by removing common commentary patterns
@@ -275,8 +214,9 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
           const chunkContent = formatTranscriptForAI(chunkSegments, options);
           const chunkIndex = Math.floor(i / effectiveChunkSize); // Fix: Use Math.floor for proper integer index
           
-          // Build prompts for this chunk
-          const chunkSystemPrompt = buildChunkPrompt(systemPrompt, chunkIndex, totalChunks);
+          // Build overlap-aware prompts for this chunk
+          const overlapContext = buildOverlapContext(chunkSegments, overlap, chunkIndex);
+          const chunkSystemPrompt = buildChunkPrompt(systemPrompt, chunkIndex, totalChunks, overlapContext);
           const prompts = buildPrompt(options);
           const userPrompt = prompts.user + chunkContent;
           
@@ -298,20 +238,9 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
           // Clean the chunk output to remove any AI commentary
           chunkOutput = cleanAIOutput(chunkOutput);
           
-          // Process chunk output based on whether it's overlapping
-          if (chunkIndex === 0) {
-            // First chunk: output everything
-            controller.enqueue(encoder.encode(chunkOutput));
-          } else {
-            // For subsequent chunks, use advanced overlap detection
-            const deduplicatedContent = findNonOverlappingContent(
-              chunkOutput, 
-              chunkSegments, 
-              overlap, 
-              options.includeTimestamps
-            );
-            controller.enqueue(encoder.encode(deduplicatedContent));
-          }
+          // AI-aware processing: AI handles overlap detection intelligently
+          // Simply clean output and stream - AI was given explicit overlap context
+          controller.enqueue(encoder.encode(chunkOutput));
           
           processedChunks++;
           

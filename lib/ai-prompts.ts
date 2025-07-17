@@ -142,37 +142,66 @@ export function getChunkConfig(transcriptLength: number): {
   };
 }
 
-// Build chunk-specific prompts for sequential processing
+// Build intelligent chunk-specific prompts with explicit overlap awareness
 export function buildChunkPrompt(
   baseSystem: string,
   chunkIndex: number,
-  totalChunks: number
+  totalChunks: number,
+  overlapInfo?: { 
+    overlapSegments: number; 
+    newContentStartTimestamp?: string; 
+    lastProcessedTimestamp?: string;
+  }
 ): string {
-  const chunkInstructions = chunkIndex === 0 
-    ? 'Start with the first timestamp and process all content sequentially.' 
-    : `Continue from where the previous chunk ended. This chunk contains some overlapping content from the previous chunk - process ALL timestamps you see, including any that may repeat from previous chunks. The deduplication will be handled automatically.`;
+  
+  let processingStrategy = '';
+  
+  if (chunkIndex === 0) {
+    processingStrategy = `FIRST CHUNK: Process all content with full formatting and detail.`;
+  } else {
+    const overlapSize = overlapInfo?.overlapSegments || 0;
+    const newStart = overlapInfo?.newContentStartTimestamp;
+    const lastProcessed = overlapInfo?.lastProcessedTimestamp;
     
+    processingStrategy = `CONTINUATION CHUNK: You are now processing chunk ${chunkIndex + 1} of ${totalChunks}.
+
+OVERLAP AWARENESS:
+- This chunk includes ${overlapSize} timestamps from the previous chunk (overlap region)
+- Previous chunk ended around: ${lastProcessed || '[previous timestamp]'}  
+- NEW content starts around: ${newStart || '[overlap boundary]'}
+
+SMART PROCESSING STRATEGY:
+- For timestamps BEFORE ${newStart || '[boundary]'}: These are overlaps from previous chunk
+  → Skip or provide minimal processing to avoid duplication
+- For timestamps AT/AFTER ${newStart || '[boundary]'}: This is NEW content
+  → Process with full detail and formatting
+
+YOUR RESPONSIBILITY: Intelligently avoid duplicating content while ensuring seamless flow.`;
+  }
+  
   const endingInstructions = chunkIndex === totalChunks - 1
-    ? 'Process through to the final timestamp.'
-    : 'Process all timestamps through to the end of this chunk.';
+    ? 'FINAL CHUNK: Process through to the very end.'
+    : 'Process to the end of your assigned content.';
     
   return `${baseSystem}
 
-CHUNK PROCESSING INSTRUCTIONS:
-This is chunk ${chunkIndex + 1} of ${totalChunks} total chunks.
-
-${chunkInstructions}
+INTELLIGENT OVERLAP-AWARE PROCESSING:
+${processingStrategy}
 ${endingInstructions}
 
-CRITICAL FORMAT REQUIREMENTS:
-- Output EXACTLY in this format: [timestamp] text content
-- Each [timestamp] MUST be on the same line as its text
-- Process EVERY timestamp you see in sequential order
-- Include ALL content - overlap handling is done automatically
-- NO commentary, headers, or explanations
-- NO skipping timestamps to avoid "duplicates" 
-- Start immediately with the first [timestamp] you see
-- End with the last [timestamp] in your input
+CRITICAL OUTPUT REQUIREMENTS:
+- EXACTLY this format: [timestamp] text content
+- Each [timestamp] MUST be on same line as its text
+- Maintain chronological timestamp order
+- Start with your first meaningful timestamp
+- NO commentary, explanations, or meta-text
+- Create smooth, continuous transcript flow
 
-IMPORTANT: Do not try to detect or skip overlapping content yourself. Process everything sequentially and let the system handle deduplication.`;
+DEDUPLICATION INTELLIGENCE:
+- YOU handle overlap detection and avoidance
+- Focus processing effort on genuinely NEW content
+- Ensure no content gaps or abrupt transitions
+- If unsure about overlap, err on the side of light processing rather than full duplication
+
+GOAL: Seamless continuous transcript with zero duplicates and zero gaps.`;
 }
