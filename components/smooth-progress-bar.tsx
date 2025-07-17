@@ -14,6 +14,7 @@ export function SmoothProgressBar({ progress, message, onComplete }: SmoothProgr
   const progressWidth = useTransform(progressValue, [0, 100], ['0%', '100%']);
   const progressCompleteRef = useRef(false);
   const [displayProgress, setDisplayProgress] = useState(0);
+  const isFirstRender = useRef(true);
 
   // Subscribe to motion value changes
   useMotionValueEvent(progressValue, "change", (latest) => {
@@ -21,6 +22,14 @@ export function SmoothProgressBar({ progress, message, onComplete }: SmoothProgr
   });
 
   useEffect(() => {
+    // On first render, set the initial value without animation
+    if (isFirstRender.current) {
+      progressValue.set(progress);
+      setDisplayProgress(progress);
+      isFirstRender.current = false;
+      return;
+    }
+
     // Animate to the target progress with smooth easing
     const controls = animate(progressValue, progress, {
       duration: 0.8,

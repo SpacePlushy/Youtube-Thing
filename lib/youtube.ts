@@ -6,6 +6,13 @@ export function extractVideoId(url: string): string | null {
     // First, try to normalize the URL if it's missing protocol
     let normalizedUrl = url.trim();
     
+    // Check if input looks like a plain video ID (11 characters, alphanumeric with - and _)
+    const videoIdPattern = /^[a-zA-Z0-9_-]{11}$/;
+    if (videoIdPattern.test(normalizedUrl)) {
+      console.log('[YouTube] Input appears to be a plain video ID:', normalizedUrl);
+      return normalizedUrl;
+    }
+    
     // Add protocol if missing
     if (!normalizedUrl.match(/^https?:\/\//i)) {
       // Check if it starts with youtube.com or youtu.be

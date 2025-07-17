@@ -68,7 +68,7 @@ export default function Home() {
     
     const videoId = extractVideoId(url);
     if (!videoId) {
-      setError('Invalid YouTube URL. Please enter a valid YouTube video URL (e.g., youtube.com/watch?v=... or youtu.be/...)');
+      setError('Invalid input. Please enter a YouTube video URL (e.g., youtube.com/watch?v=...) or just the video ID');
       return;
     }
     
@@ -146,7 +146,7 @@ export default function Home() {
     setIsFormatting(true);
     setFormattedTranscript('');
     setError('');
-    setFormattingProgress({ message: 'Starting AI formatting...', progress: 10 });
+    setFormattingProgress({ message: 'Initializing AI formatter...', progress: 0 });
     
     const startTime = Date.now();
     
@@ -173,14 +173,13 @@ export default function Home() {
         throw new Error('No response body');
       }
       
-      setFormattingProgress({ message: 'Initializing AI formatter...', progress: 0 });
-      
       // Simple text streaming following AI SDK patterns
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let accumulatedText = '';
       let progressData = { current: 0, total: 1 };
       let currentProgress = 0;
+      let lastProgressUpdate = Date.now();
       
       while (true) {
         const { done, value } = await reader.read();
@@ -218,15 +217,24 @@ export default function Home() {
         } else {
           accumulatedText += textChunk;
           
-          // Incremental progress based on text accumulation
+          // Incremental progress based on text accumulation for single chunks
           if (progressData.total === 1 && currentProgress < 95) {
-            // For single chunks, smoothly increment progress as text streams in
-            const textProgress = Math.min(95, currentProgress + 1);
-            setFormattingProgress({ 
-              message: 'Formatting transcript...', 
-              progress: textProgress 
-            });
-            currentProgress = textProgress;
+            // Update progress every 100ms to avoid too frequent updates
+            const now = Date.now();
+            if (now - lastProgressUpdate > 100) {
+              // Calculate progress based on accumulated text length (estimate)
+              const estimatedProgress = Math.min(90, Math.floor((accumulatedText.length / 5000) * 90));
+              const newProgress = Math.max(currentProgress + 2, estimatedProgress);
+              
+              if (newProgress > currentProgress) {
+                setFormattingProgress({ 
+                  message: 'Formatting transcript...', 
+                  progress: Math.min(95, newProgress)
+                });
+                currentProgress = newProgress;
+                lastProgressUpdate = now;
+              }
+            }
           }
         }
         
@@ -332,7 +340,7 @@ export default function Home() {
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://youtube.com/watch?v=..."
+                  placeholder="YouTube URL or video ID"
                   className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-sm"
                   disabled={loading}
                 />
@@ -435,7 +443,7 @@ export default function Home() {
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://youtube.com/watch?v=..."
+                  placeholder="YouTube URL or video ID"
                   className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-sm"
                   disabled={loading}
                 />
