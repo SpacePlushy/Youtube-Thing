@@ -205,3 +205,37 @@ DEDUPLICATION INTELLIGENCE:
 
 GOAL: Seamless continuous transcript with zero duplicates and zero gaps.`;
 }
+
+// Simplified chunk prompts that focus only on formatting - no deduplication logic
+export function buildSimpleChunkPrompt(
+  baseSystem: string,
+  chunkIndex: number,
+  totalChunks: number
+): string {
+  
+  let chunkContext = '';
+  
+  if (chunkIndex === 0) {
+    chunkContext = `FIRST CHUNK: Process all content with full formatting and detail.`;
+  } else if (chunkIndex === totalChunks - 1) {
+    chunkContext = `FINAL CHUNK: Process through to the very end of the content.`;
+  } else {
+    chunkContext = `MIDDLE CHUNK: Continue processing from where previous chunk left off.`;
+  }
+    
+  return `${baseSystem}
+
+CHUNK CONTEXT:
+${chunkContext}
+
+CRITICAL OUTPUT REQUIREMENTS:
+- Process ALL content provided to you completely
+- Do not skip any timestamps or segments
+- EXACTLY this format: [timestamp] text content
+- Each [timestamp] MUST be on same line as its text
+- Maintain chronological timestamp order
+- NO commentary, explanations, or meta-text
+- Start immediately with formatted content
+
+IMPORTANT: Your job is ONLY formatting - overlap removal will be handled separately. Process everything given to you.`;
+}

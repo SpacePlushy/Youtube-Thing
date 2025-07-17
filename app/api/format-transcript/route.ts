@@ -1,32 +1,34 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
-import { buildPrompt, getChunkConfig, buildChunkPrompt } from '@/lib/ai-prompts';
+import { buildPrompt, getChunkConfig, buildChunkPrompt, buildSimpleChunkPrompt } from '@/lib/ai-prompts';
 import { envConfig } from '@/lib/env-config';
 import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
 
-// Helper function to extract overlap context information
-function buildOverlapContext(
+// Helper function to track precise segment positions for overlap removal
+function buildPositionTracker(
   chunkSegments: any[], 
   overlap: number, 
-  chunkIndex: number
-): { overlapSegments: number; newContentStartTimestamp?: string; lastProcessedTimestamp?: string } | undefined {
+  chunkIndex: number,
+  startIndex: number
+): { overlapEndIndex: number; newContentStartIndex: number; actualStartIndex: number } {
   if (chunkIndex === 0) {
-    return undefined; // No overlap for first chunk
+    return { 
+      overlapEndIndex: -1, 
+      newContentStartIndex: 0,
+      actualStartIndex: startIndex 
+    };
   }
   
+  // Calculate exact indices for overlap removal
   const overlapSegments = Math.min(overlap, chunkSegments.length);
-  const newContentStartIndex = overlapSegments;
-  const newContentStartTimestamp = chunkSegments[newContentStartIndex]?.timestamp;
-  
-  // For lastProcessedTimestamp, we'd ideally track this from previous chunk
-  // For now, estimate based on overlap position
-  const lastProcessedTimestamp = overlapSegments > 0 ? chunkSegments[overlapSegments - 1]?.timestamp : undefined;
+  const overlapEndIndex = overlapSegments - 1; // Last overlap segment index in current chunk
+  const newContentStartIndex = overlapSegments; // First new content segment index
   
   return {
-    overlapSegments,
-    newContentStartTimestamp,
-    lastProcessedTimestamp
+    overlapEndIndex,
+    newContentStartIndex,
+    actualStartIndex: startIndex
   };
 }
 
@@ -62,6 +64,39 @@ function cleanAIOutput(output: string): string {
   cleaned = cleaned.replace(/^here'?s\s+(?:the\s+)?(?:formatted\s+)?(?:transcript|output|result|summary|content)(?:\s*:)?\s*/i, '');
   
   return cleaned.trim();
+}
+
+// Precise overlap removal using position tracking - inspired by LangChain's approach
+function removeOverlapPrecisely(
+  chunkContent: string,
+  positionTracker: any,
+  options: any
+): string {
+  // For subsequent chunks, remove the overlap portion
+  const { newContentStartIndex } = positionTracker;
+  
+  if (options.includeTimestamps) {
+    // Parse timestamped content and remove overlapped segments
+    const lines = chunkContent.split('\n').filter((line: string) => line.trim());
+    const timestampPattern = /^\[(\d{1,2}:\d{2}(?::\d{2})?)\]/;
+    
+    // Skip lines that correspond to overlap segments
+    const filteredLines = lines.filter((line: string, index: number) => {
+      if (!timestampPattern.test(line)) return true; // Keep non-timestamp lines
+      return index >= newContentStartIndex; // Only keep lines after overlap
+    });
+    
+    return filteredLines.join('\n');
+  } else {
+    // For non-timestamped content, use paragraph-based removal
+    const paragraphs = chunkContent.split('\n\n').filter((p: string) => p.trim());
+    
+    // Estimate which paragraphs to skip based on overlap ratio
+    const overlapRatio = newContentStartIndex / (newContentStartIndex + 20); // Estimate total segments
+    const paragraphsToSkip = Math.floor(paragraphs.length * overlapRatio);
+    
+    return paragraphs.slice(paragraphsToSkip).join('\n\n');
+  }
 }
 
 /**
@@ -189,7 +224,7 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   });
 }
 
-// Sequential processing for long transcripts with proper streaming
+// Sequential processing with precise position-based overlap removal
 async function formatWithGroqSequential(transcript: any[], options: any, systemPrompt: string, chunkSize: number) {
   const encoder = new TextEncoder();
   let processedChunks = 0;
@@ -197,6 +232,9 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
   const overlap = Math.min(50, Math.max(10, Math.floor(chunkSize * 0.05)));
   const effectiveChunkSize = chunkSize - overlap; // Adjust for overlap
   const totalChunks = Math.ceil(transcript.length / effectiveChunkSize);
+  
+  // Track all processed chunks for precise overlap removal
+  const processedResults: { content: string; positionTracker: any }[] = [];
   
   // Create a streaming response that processes chunks sequentially
   const stream = new ReadableStream({
@@ -212,11 +250,13 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
           const endIndex = Math.min(transcript.length, i + chunkSize);
           const chunkSegments = transcript.slice(startIndex, endIndex);
           const chunkContent = formatTranscriptForAI(chunkSegments, options);
-          const chunkIndex = Math.floor(i / effectiveChunkSize); // Fix: Use Math.floor for proper integer index
+          const chunkIndex = Math.floor(i / effectiveChunkSize);
           
-          // Build overlap-aware prompts for this chunk
-          const overlapContext = buildOverlapContext(chunkSegments, overlap, chunkIndex);
-          const chunkSystemPrompt = buildChunkPrompt(systemPrompt, chunkIndex, totalChunks, overlapContext);
+          // Track precise positions for overlap removal
+          const positionTracker = buildPositionTracker(chunkSegments, overlap, chunkIndex, startIndex);
+          
+          // Use simplified prompts - AI focuses only on formatting
+          const chunkSystemPrompt = buildSimpleChunkPrompt(systemPrompt, chunkIndex, totalChunks);
           const prompts = buildPrompt(options);
           const userPrompt = prompts.user + chunkContent;
           
@@ -238,9 +278,16 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
           // Clean the chunk output to remove any AI commentary
           chunkOutput = cleanAIOutput(chunkOutput);
           
-          // AI-aware processing: AI handles overlap detection intelligently
-          // Simply clean output and stream - AI was given explicit overlap context
-          controller.enqueue(encoder.encode(chunkOutput));
+          // Store for precise overlap removal
+          processedResults.push({ content: chunkOutput, positionTracker });
+          
+          // For first chunk, stream immediately. For subsequent chunks, remove overlap first
+          let finalOutput = chunkOutput;
+          if (chunkIndex > 0) {
+            finalOutput = removeOverlapPrecisely(chunkOutput, positionTracker, options);
+          }
+          
+          controller.enqueue(encoder.encode(finalOutput));
           
           processedChunks++;
           
