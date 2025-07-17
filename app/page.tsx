@@ -308,14 +308,14 @@ export default function Home() {
       <AnimatePresence>
         {copyNotification && (
           <motion.div
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.3 }}
-            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
+            className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50"
           >
-            <div className="bg-card border border-border rounded-lg px-4 py-2 shadow-lg">
-              <p className="text-sm text-card-foreground">{copyNotification}</p>
+            <div className="bg-card border border-border rounded-lg px-6 py-3 shadow-lg">
+              <p className="text-base text-card-foreground font-medium">{copyNotification}</p>
             </div>
           </motion.div>
         )}
@@ -600,16 +600,16 @@ export default function Home() {
                         </span>
                       )}
                     </h3>
-                    <div className="flex gap-1 sm:gap-2">
+                    <div className="flex gap-2">
                       <button
                         onClick={async () => {
                           await copyToClipboard(formattedTranscript, 'Formatted transcript');
                           analytics.trackExport('copy', 'formatted');
                         }}
-                        className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity text-xs sm:text-sm"
+                        className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity text-sm"
                       >
                         <Copy className="w-3 h-3" />
-                        <span className="hidden sm:inline">Copy</span>
+                        <span>Copy</span>
                       </button>
                       <button
                         onClick={() => {
@@ -622,10 +622,10 @@ export default function Home() {
                           URL.revokeObjectURL(url);
                           analytics.trackExport('download', 'formatted');
                         }}
-                        className="flex items-center gap-1 px-2 py-1 bg-secondary text-secondary-foreground rounded hover:opacity-90 transition-opacity border border-border text-xs sm:text-sm"
+                        className="flex items-center gap-1 px-2 py-1 bg-secondary text-secondary-foreground rounded hover:opacity-90 transition-opacity border border-border text-sm"
                       >
                         <Download className="w-3 h-3" />
-                        <span className="hidden sm:inline">Download</span>
+                        <span>Download</span>
                       </button>
                     </div>
                   </div>
