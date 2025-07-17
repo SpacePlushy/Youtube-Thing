@@ -42,9 +42,11 @@ function getLengthConfig(length: string): string {
 }
 
 function buildUserPrompt(includeTimestamps: boolean): string {
+  const baseInstructions = `CRITICAL: Output ONLY the formatted transcript. Do not include any commentary, explanations, or introductory text like "Here is the formatted output:" or "I've cleaned up the transcript:". Start immediately with the formatted content.`;
+  
   return includeTimestamps 
-    ? 'IMPORTANT: Format timestamps exactly as shown in the input - keep timestamps on the same line as the text. Maintain this format:\n[0:01] text content here\n[0:24] more text content\n\nFormat this transcript:\n\n'
-    : 'Format this transcript:\n\n';
+    ? `${baseInstructions}\n\nIMPORTANT: Format timestamps exactly as shown in the input - keep timestamps on the same line as the text. Maintain this format:\n[0:01] text content here\n[0:24] more text content\n\nFormat this transcript:\n\n`
+    : `${baseInstructions}\n\nFormat this transcript:\n\n`;
 }
 
 // Proprietary prompt builders - core business logic
@@ -55,7 +57,9 @@ function buildCleanPrompt(includeTimestamps: boolean): string {
 - Organizing into clear paragraphs
 - Maintaining the speaker's voice and meaning
 - Making it easy to read while preserving accuracy
-${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}`;
+${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}
+
+CRITICAL: Output ONLY the cleaned transcript. NO explanations, commentary, or introductory text. Start immediately with the formatted content.`;
 }
 
 function buildSummaryPrompt(includeTimestamps: boolean): string {
@@ -64,7 +68,9 @@ function buildSummaryPrompt(includeTimestamps: boolean): string {
 - Organizes information logically
 - Uses clear, professional language
 - Maintains accuracy to the original content
-${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}`;
+${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}
+
+CRITICAL: Output ONLY the summary. NO explanations, commentary, or introductory text. Start immediately with the summarized content.`;
 }
 
 function buildChaptersPrompt(includeTimestamps: boolean): string {
@@ -73,7 +79,9 @@ function buildChaptersPrompt(includeTimestamps: boolean): string {
 - Creating descriptive chapter titles
 - Organizing content under each chapter
 - Adding brief introductions to each section
-${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}`;
+${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}
+
+CRITICAL: Output ONLY the organized chapters. NO explanations, commentary, or introductory text. Start immediately with the chapter content.`;
 }
 
 function buildBulletsPrompt(includeTimestamps: boolean): string {
@@ -82,7 +90,9 @@ function buildBulletsPrompt(includeTimestamps: boolean): string {
 - Group related points together
 - Use clear, concise language
 - Maintain logical flow
-${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}`;
+${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}
+
+CRITICAL: Output ONLY the bullet points. NO explanations, commentary, or introductory text. Start immediately with the bullet point content.`;
 }
 
 function buildTimestampsPrompt(): string {
@@ -94,7 +104,9 @@ RULES:
 - Each timestamp [HH:MM:SS] or [MM:SS] MUST be on the same line as the text
 - Format as: [timestamp] text content
 - No extra spacing or formatting
-- Maintain chronological order`;
+- Maintain chronological order
+
+CRITICAL: Output ONLY the formatted transcript. NO explanations, commentary, or introductory text. Start immediately with the timestamped content.`;
 }
 
 // Dynamic chunk configuration based on transcript length
@@ -124,7 +136,7 @@ export function getChunkConfig(transcriptLength: number): {
   };
 }
 
-// Build chunk-specific prompts for parallel processing
+// Build chunk-specific prompts for sequential processing
 export function buildChunkPrompt(
   baseSystem: string,
   chunkIndex: number,
@@ -135,5 +147,13 @@ export function buildChunkPrompt(
     chunkIndex === totalChunks - 1 ? 'End naturally without conclusion.' :
     'Continue the content seamlessly - no introduction or conclusion needed.';
     
-  return `${baseSystem}\n\nIMPORTANT: This is part ${chunkIndex + 1} of ${totalChunks} of a transcript. ${position}`;
+  return `${baseSystem}\n\nIMPORTANT: This is part ${chunkIndex + 1} of ${totalChunks} of a transcript. ${position}
+
+CRITICAL FORMAT REQUIREMENTS:
+- Maintain EXACT timestamp format: [0:01] text content
+- Each timestamp MUST be on the same line as its text
+- Start your response with the first timestamp you see
+- End naturally at the last timestamp you process
+- NO extra formatting, headers, or separators
+- Keep timestamps in chronological order`;
 }

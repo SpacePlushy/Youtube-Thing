@@ -8,6 +8,7 @@ import { TranscriptCache } from '@/lib/transcript-cache';
 import { analytics } from '@/lib/analytics';
 import { Loader2, Trash2, Copy, Download } from 'lucide-react';
 
+
 export default function Home() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -300,6 +301,7 @@ export default function Home() {
       
       // Final cleanup of any remaining progress markers
       const cleanedTranscript = accumulatedText.replace(/__PROGRESS__:.*?\n/g, '');
+      
       setFormattedTranscript(cleanedTranscript);
       
       // Cleanup timers and animate to 100%
