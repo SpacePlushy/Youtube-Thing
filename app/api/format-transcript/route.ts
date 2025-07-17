@@ -79,6 +79,23 @@ function cleanAIOutput(output: string): string {
   return cleaned.trim();
 }
 
+// Rolling context window to prevent memory overflow with long transcripts
+function maintainContextWindow(previousResult: string | null, newContent: string, maxLines: number = 50): string {
+  if (!previousResult) {
+    return newContent;
+  }
+  
+  const combined = previousResult + '\n' + newContent;
+  const lines = combined.split('\n').filter(line => line.trim());
+  
+  // Keep only the last N lines for context - this ensures constant memory usage
+  if (lines.length > maxLines) {
+    return lines.slice(-maxLines).join('\n');
+  }
+  
+  return combined;
+}
+
 // AI-powered intelligent overlap resolution using Groq
 async function resolveOverlapWithAI(
   chunkContent: string,
@@ -339,7 +356,7 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
           }
           
           // Store this result for the next chunk's context
-          previousChunkResult = (previousChunkResult || '') + (finalOutput ? '\n' + finalOutput : '');
+          previousChunkResult = maintainContextWindow(previousChunkResult, finalOutput || '');
           
           controller.enqueue(encoder.encode(finalOutput));
           

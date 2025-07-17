@@ -9,39 +9,45 @@ export interface FormatOptions {
 
 // Internal prompt builder - not exposed to client
 export function buildPrompt(options: FormatOptions): { system: string; user: string } {
-  const styleConfig = getStyleConfig(options.style, options.includeTimestamps);
-  const lengthConfig = getLengthConfig(options.paragraphLength);
+  const styleConfig = getStyleConfig(options.style, options.includeTimestamps, options.paragraphLength);
+  const lengthConfig = getLengthConfig(options.paragraphLength, options.includeTimestamps);
   
   return {
     system: `${styleConfig}\n\n${lengthConfig}`,
-    user: buildUserPrompt(options.includeTimestamps)
+    user: buildUserPrompt(options.includeTimestamps, options.style)
   };
 }
 
 // Private configuration functions
-function getStyleConfig(style: string, includeTimestamps: boolean): string {
+function getStyleConfig(style: string, includeTimestamps: boolean, paragraphLength: string): string {
   const configs: Record<string, string> = {
-    clean: buildCleanPrompt(includeTimestamps),
-    summary: buildSummaryPrompt(includeTimestamps),
-    chapters: buildChaptersPrompt(includeTimestamps),
-    bullets: buildBulletsPrompt(includeTimestamps),
-    timestamps: buildTimestampsPrompt()
+    clean: buildCleanPrompt(includeTimestamps, paragraphLength),
+    summary: buildSummaryPrompt(includeTimestamps, paragraphLength),
+    chapters: buildChaptersPrompt(includeTimestamps, paragraphLength),
+    bullets: buildBulletsPrompt(includeTimestamps, paragraphLength),
+    timestamps: buildTimestampsPrompt() // Always line-by-line for timestamps style
   };
   
   return configs[style] || configs.clean;
 }
 
-function getLengthConfig(length: string): string {
+function getLengthConfig(length: string, includeTimestamps: boolean): string {
   const configs: Record<string, string> = {
-    short: 'Keep paragraphs brief (2-3 sentences).',
-    medium: 'Use standard paragraph length (4-6 sentences).',
-    long: 'Create longer, detailed paragraphs (7-10 sentences).'
+    short: includeTimestamps 
+      ? 'Keep paragraphs brief (2-3 sentences). Place timestamps at the start of each paragraph: [0:01] Paragraph content here...'
+      : 'Keep paragraphs brief (2-3 sentences).',
+    medium: includeTimestamps 
+      ? 'Use standard paragraph length (4-6 sentences). Place timestamps at the start of each paragraph: [0:01] Paragraph content here...'
+      : 'Use standard paragraph length (4-6 sentences).',
+    long: includeTimestamps 
+      ? 'Create longer, detailed paragraphs (7-10 sentences). Place timestamps at the start of each paragraph: [0:01] Paragraph content here...'
+      : 'Create longer, detailed paragraphs (7-10 sentences).'
   };
   
   return configs[length] || configs.medium;
 }
 
-function buildUserPrompt(includeTimestamps: boolean): string {
+function buildUserPrompt(includeTimestamps: boolean, style: string): string {
   const baseInstructions = `CRITICAL: Output ONLY the formatted transcript. Do not include any commentary, explanations, or introductory text like "Here is the formatted output:" or "I've cleaned up the transcript:". Start immediately with the formatted content.
 
 PROCESSING REQUIREMENTS:
@@ -50,53 +56,76 @@ PROCESSING REQUIREMENTS:
 - Maintain chronological order throughout
 - Complete processing of the entire input before stopping`;
   
-  return includeTimestamps 
-    ? `${baseInstructions}\n\nTIMESTAMP FORMAT: Keep timestamps on the same line as text exactly like this:\n[0:01] text content here\n[0:24] more text content\n\nProcess this complete transcript:\n\n`
-    : `${baseInstructions}\n\nProcess this complete transcript:\n\n`;
+  if (!includeTimestamps) {
+    return `${baseInstructions}\n\nProcess this complete transcript:\n\n`;
+  }
+  
+  // Only the "timestamps" style uses line-by-line format
+  const timestampFormat = style === 'timestamps' 
+    ? `\n\nTIMESTAMP FORMAT: Keep timestamps on the same line as text exactly like this:\n[0:01] text content here\n[0:24] more text content`
+    : `\n\nTIMESTAMP FORMAT: Place timestamps at the START of paragraphs only. Let content flow naturally into proper paragraphs based on the selected length.`;
+    
+  return `${baseInstructions}${timestampFormat}\n\nProcess this complete transcript:\n\n`;
 }
 
 // Proprietary prompt builders - core business logic
-function buildCleanPrompt(includeTimestamps: boolean): string {
+function buildCleanPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+  const timestampFormat = includeTimestamps 
+    ? '- IMPORTANT: Place timestamps at the START of each paragraph only: [0:01] Paragraph content flows naturally here with multiple sentences forming a cohesive paragraph based on the selected length.'
+    : '';
+    
   return `You are a transcript editor. Clean up this transcript by:
 - Removing filler words (um, uh, like, you know)
 - Fixing grammar and punctuation
-- Organizing into clear paragraphs
+- Organizing into clear paragraphs based on the selected paragraph length
 - Maintaining the speaker's voice and meaning
 - Making it easy to read while preserving accuracy
-${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}
+${timestampFormat}
 
 CRITICAL: Output ONLY the cleaned transcript. NO explanations, commentary, or introductory text. Start immediately with the formatted content.`;
 }
 
-function buildSummaryPrompt(includeTimestamps: boolean): string {
+function buildSummaryPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+  const timestampFormat = includeTimestamps 
+    ? '- IMPORTANT: Place timestamps at the START of each paragraph only: [0:01] Paragraph content flows naturally here with multiple sentences forming a cohesive paragraph.'
+    : '';
+    
   return `You are a transcript summarizer. Create a concise summary that:
 - Captures all main points and key insights
-- Organizes information logically
+- Organizes information logically into paragraphs
 - Uses clear, professional language
 - Maintains accuracy to the original content
-${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}
+${timestampFormat}
 
 CRITICAL: Output ONLY the summary. NO explanations, commentary, or introductory text. Start immediately with the summarized content.`;
 }
 
-function buildChaptersPrompt(includeTimestamps: boolean): string {
+function buildChaptersPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+  const timestampFormat = includeTimestamps 
+    ? '- IMPORTANT: Place timestamps at the START of each paragraph only: [0:01] Paragraph content flows naturally here with multiple sentences forming a cohesive paragraph.'
+    : '';
+    
   return `You are a transcript organizer. Structure this transcript into chapters by:
 - Identifying major topic shifts
 - Creating descriptive chapter titles
-- Organizing content under each chapter
+- Organizing content under each chapter into proper paragraphs
 - Adding brief introductions to each section
-${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}
+${timestampFormat}
 
 CRITICAL: Output ONLY the organized chapters. NO explanations, commentary, or introductory text. Start immediately with the chapter content.`;
 }
 
-function buildBulletsPrompt(includeTimestamps: boolean): string {
+function buildBulletsPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+  const timestampFormat = includeTimestamps 
+    ? '- IMPORTANT: Place timestamps at the START of each bullet point: [0:01] • Bullet content flows naturally here with complete thoughts.'
+    : '';
+    
   return `You are a transcript analyzer. Convert this transcript into bullet points that:
 - Highlight key information and insights
 - Group related points together
 - Use clear, concise language
 - Maintain logical flow
-${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}
+${timestampFormat}
 
 CRITICAL: Output ONLY the bullet points. NO explanations, commentary, or introductory text. Start immediately with the bullet point content.`;
 }
@@ -190,8 +219,8 @@ ${processingStrategy}
 ${endingInstructions}
 
 CRITICAL OUTPUT REQUIREMENTS:
-- EXACTLY this format: [timestamp] text content
-- Each [timestamp] MUST be on same line as its text
+- Place timestamps at the START of paragraphs only, not every line
+- Let content flow naturally into proper paragraphs based on selected length
 - Maintain chronological timestamp order
 - Start with your first meaningful timestamp
 - NO commentary, explanations, or meta-text
@@ -231,8 +260,8 @@ ${chunkContext}
 CRITICAL OUTPUT REQUIREMENTS:
 - Process ALL content provided to you completely
 - Do not skip any timestamps or segments
-- EXACTLY this format: [timestamp] text content
-- Each [timestamp] MUST be on same line as its text
+- Place timestamps at the START of paragraphs only, not every line
+- Let content flow naturally into proper paragraphs based on selected length
 - Maintain chronological timestamp order
 - NO commentary, explanations, or meta-text
 - Start immediately with formatted content
@@ -269,8 +298,8 @@ ${chunkInstructions}
 FORMATTING REQUIREMENTS:
 - Process ALL content provided to you completely
 - Ensure seamless continuation from any previous content
-- EXACTLY this format: [timestamp] text content
-- Each [timestamp] MUST be on same line as its text
+- Place timestamps at the START of paragraphs only, not every line
+- Let content flow naturally into proper paragraphs based on selected length
 - Maintain chronological timestamp order
 - NO commentary, explanations, or meta-text
 - Start immediately with formatted content
