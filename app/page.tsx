@@ -426,7 +426,7 @@ export default function Home() {
               /* Two-panel layout when transcript exists */
               <motion.div
                 key="panels"
-                className="absolute inset-0 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 min-h-0 overflow-hidden"
+                className="absolute inset-0 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 min-h-0 overflow-y-auto lg:overflow-hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
@@ -434,7 +434,7 @@ export default function Home() {
                 {/* Left Panel - Input Controls and Raw Transcript */}
                 <motion.div 
                   layoutId="input-card"
-                  className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-[calc(50vh-4rem)] lg:h-auto"
+                  className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-auto lg:h-auto"
                   initial={false}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -564,12 +564,12 @@ export default function Home() {
             
             {/* Right Panel - AI Formatting Options and Formatted Transcript */}
             <motion.div 
-              className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-[calc(50vh-4rem)] lg:h-auto"
+              className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-auto lg:h-auto"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
             >
-              <div className="overflow-y-auto">
+              <div className="flex-shrink-0">
                 <FormatOptions 
                   transcriptLength={transcript.length}
                   onFormat={handleFormat}
@@ -630,7 +630,7 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="bg-secondary/50 rounded p-4 flex-1 overflow-y-auto border border-border">
+                  <div className="bg-secondary/50 rounded p-4 flex-1 overflow-y-auto border border-border max-h-[50vh] lg:max-h-none">
                     <div className="space-y-2">
                       {parseFormattedTranscript(formattedTranscript).map((item, index) => (
                         <div key={index} className="flex gap-3">
