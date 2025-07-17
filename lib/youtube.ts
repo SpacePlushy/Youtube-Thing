@@ -72,7 +72,8 @@ interface TranscriptOptions {
 export async function extractTranscript(
   videoId: string, 
   provider: 'default' | 'alt1' | 'alt2' | 'alt3' | 'primary' = 'primary',
-  options: TranscriptOptions = {}
+  options: TranscriptOptions = {},
+  customFetch: typeof fetch = fetch
 ) {
   try {
     console.log('[Frontend] Requesting transcript for video ID:', videoId);
@@ -99,7 +100,7 @@ export async function extractTranscript(
       console.log('[Frontend] Using default API');
     }
     
-    const response = await fetch(apiUrl, {
+    const response = await customFetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

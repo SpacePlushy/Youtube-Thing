@@ -9,6 +9,7 @@ import { TranscriptCache } from '@/lib/transcript-cache';
 import { analytics } from '@/lib/analytics';
 import { Loader2, Copy, Download } from 'lucide-react';
 import { initializeBotId } from '@/lib/botid-init';
+import { botIdFetch } from '@/lib/botid-fetch';
 
 
 export default function Home() {
@@ -121,7 +122,7 @@ export default function Home() {
         });
         analytics.trackCacheAction('hit');
       } else {
-        const result = await extractTranscript(videoId, 'primary', { language, transcriptOrigin });
+        const result = await extractTranscript(videoId, 'primary', { language, transcriptOrigin }, botIdFetch);
         
         // Cache the result
         if (result.transcript && result.transcript.length > 0) {
@@ -181,7 +182,7 @@ export default function Home() {
     const startTime = Date.now();
     
     try {
-      const response = await fetch('/api/format-transcript', {
+      const response = await botIdFetch('/api/format-transcript', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript, options })
