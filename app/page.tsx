@@ -630,20 +630,20 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="bg-secondary/50 rounded p-3 sm:p-4 flex-1 overflow-y-auto border border-border max-h-[60vh] sm:max-h-[50vh] lg:max-h-none">
+                  <div className="bg-secondary/50 rounded p-4 flex-1 overflow-y-auto border border-border max-h-[60vh] sm:max-h-[50vh] lg:max-h-none">
                     <div className="space-y-2">
                       {parseFormattedTranscript(formattedTranscript).map((item, index) => (
-                        <div key={index} className="flex gap-2 sm:gap-3">
-                          <span className="text-xs sm:text-sm text-muted-foreground min-w-[50px] sm:min-w-[60px] font-mono">
+                        <div key={index} className="flex gap-3">
+                          <span className="text-sm text-muted-foreground min-w-[60px] font-mono">
                             {item.timestamp}
                           </span>
-                          <p className="text-xs sm:text-sm text-card-foreground">{item.text}</p>
+                          <p className="text-sm text-card-foreground">{item.text}</p>
                         </div>
                       ))}
                       {isFormatting && (
-                        <div className="flex gap-2 sm:gap-3">
-                          <span className="text-xs sm:text-sm text-muted-foreground min-w-[50px] sm:min-w-[60px] font-mono"></span>
-                          <span className="text-xs sm:text-sm text-card-foreground animate-pulse">▊</span>
+                        <div className="flex gap-3">
+                          <span className="text-sm text-muted-foreground min-w-[60px] font-mono"></span>
+                          <span className="text-sm text-card-foreground animate-pulse">▊</span>
                         </div>
                       )}
                     </div>
