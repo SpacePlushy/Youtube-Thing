@@ -35,14 +35,23 @@ export async function POST(request: NextRequest) {
     // Handle both video ID and full URLs
     let videoId = videoIdOrUrl;
     
+    console.log('[Oxylabs] Original input:', videoIdOrUrl);
+    console.log('[Oxylabs] Input type detection - contains youtube.com:', videoIdOrUrl.includes('youtube.com'));
+    console.log('[Oxylabs] Input type detection - contains youtu.be:', videoIdOrUrl.includes('youtu.be'));
+    console.log('[Oxylabs] Input type detection - contains http:', videoIdOrUrl.includes('http'));
+    
     // Check if it's a URL (contains youtube.com, youtu.be, or http)
     if (videoIdOrUrl.includes('youtube.com') || videoIdOrUrl.includes('youtu.be') || videoIdOrUrl.includes('http')) {
+      console.log('[Oxylabs] Detected URL format, extracting video ID...');
       const extractedId = extractVideoId(videoIdOrUrl);
       if (!extractedId) {
+        console.error('[Oxylabs] Failed to extract video ID from URL:', videoIdOrUrl);
         return NextResponse.json({ error: 'Invalid YouTube URL' }, { status: 400 });
       }
       videoId = extractedId;
-      console.log('[Oxylabs] Extracted video ID from URL:', videoIdOrUrl, '->', videoId);
+      console.log('[Oxylabs] Successfully extracted video ID from URL:', videoIdOrUrl, '->', videoId);
+    } else {
+      console.log('[Oxylabs] Detected plain video ID format, using as-is:', videoId);
     }
 
     console.log('[Oxylabs] Extracting transcript for video:', videoId);
@@ -62,6 +71,27 @@ export async function POST(request: NextRequest) {
     // Create basic auth header
     const credentials = Buffer.from(`${username}:${password}`).toString('base64');
 
+    // Prepare request payload
+    const requestPayload = {
+      source: 'youtube_transcript',
+      query: videoId,
+      context: [
+        {
+          key: 'language_code',
+          value: language
+        },
+        {
+          key: 'transcript_origin',
+          value: transcriptOrigin
+        }
+      ]
+    };
+
+    console.log('[Oxylabs] Sending request to Oxylabs API with payload:', JSON.stringify(requestPayload, null, 2));
+    console.log('[Oxylabs] Video ID being sent to Oxylabs:', videoId);
+    console.log('[Oxylabs] Video ID length:', videoId.length);
+    console.log('[Oxylabs] Video ID format validation (11 chars, alphanumeric):', /^[a-zA-Z0-9_-]{11}$/.test(videoId));
+
     // First, try with user's preferred settings
     let oxylabsResponse = await fetch('https://realtime.oxylabs.io/v1/queries', {
       method: 'POST',
@@ -69,20 +99,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'Authorization': `Basic ${credentials}`,
       },
-      body: JSON.stringify({
-        source: 'youtube_transcript',
-        query: videoId,
-        context: [
-          {
-            key: 'language_code',
-            value: language
-          },
-          {
-            key: 'transcript_origin',
-            value: transcriptOrigin
-          }
-        ]
-      }),
+      body: JSON.stringify(requestPayload),
     });
 
     console.log('[Oxylabs] Response status:', oxylabsResponse.status);
