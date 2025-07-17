@@ -113,6 +113,8 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   const userPrompt = prompts.user + formattedTranscript;
   
   console.log(`Calling AI with model: ${envConfig.aiModel}, maxTokens: ${envConfig.aiMaxTokens}`);
+  console.log(`System prompt length: ${prompts.system.length}, User prompt length: ${userPrompt.length}`);
+  
   const result = streamText({
     model: groq(envConfig.aiModel),
     system: prompts.system,
@@ -120,6 +122,14 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
     temperature: envConfig.aiTemperature,
     maxTokens: envConfig.aiMaxTokens,
   });
+  
+  // Add timeout detection
+  let streamStarted = false;
+  const streamTimeout = setTimeout(() => {
+    if (!streamStarted) {
+      console.error('AI stream timeout - no response received after 10 seconds');
+    }
+  }, 10000);
   
   // Create a transform stream to inject progress markers and clean output
   const encoder = new TextEncoder();
@@ -132,20 +142,28 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   
   const transformStream = new TransformStream({
     async transform(chunk, controller) {
-      // Send initial progress on first chunk
-      if (firstChunk) {
-        controller.enqueue(encoder.encode(`__PROGRESS__:${JSON.stringify({ current: 0, total: 1 })}\n`));
-        console.log('Starting single transcript processing stream');
-        firstChunk = false;
-      }
-      
-      // Accumulate chunks to apply cleaning to the beginning
-      const chunkText = decoder.decode(chunk, { stream: true });
-      accumulatedOutput += chunkText;
-      totalChunksReceived++;
-      
-      if (totalChunksReceived === 1) {
-        console.log(`Received first AI chunk, length: ${chunkText.length}`);
+      try {
+        // Send initial progress on first chunk
+        if (firstChunk) {
+          controller.enqueue(encoder.encode(`__PROGRESS__:${JSON.stringify({ current: 0, total: 1 })}\n`));
+          console.log('Starting single transcript processing stream');
+          firstChunk = false;
+        }
+        
+        // Accumulate chunks to apply cleaning to the beginning
+        const chunkText = decoder.decode(chunk, { stream: true });
+        accumulatedOutput += chunkText;
+        totalChunksReceived++;
+        
+        if (totalChunksReceived === 1) {
+          console.log(`Received first AI chunk, length: ${chunkText.length}`);
+          streamStarted = true;
+          clearTimeout(streamTimeout);
+        }
+      } catch (error) {
+        console.error('Error in transform stream:', error);
+        clearTimeout(streamTimeout);
+        controller.error(error);
       }
       
       // Apply cleaning to remove commentary only at the beginning
