@@ -326,6 +326,9 @@ export default function Home() {
           <h1 className="text-2xl lg:text-4xl font-bold text-foreground">
             YouTube Thing
           </h1>
+          <p className="text-sm lg:text-base text-muted-foreground mt-2 max-w-2xl mx-auto">
+            Extract and format transcripts from any YouTube video. Get clean, readable text with AI-powered formatting and grammar corrections.
+          </p>
         </div>
         
         {/* Main content - animated layout based on transcript */}
@@ -396,7 +399,7 @@ export default function Home() {
                   className="w-full py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>{loading ? 'Extracting...' : 'Extract Script'}</span>
+                  <span>{loading ? 'Extracting...' : 'Extract Transcript'}</span>
                 </button>
               </form>
               
@@ -487,7 +490,7 @@ export default function Home() {
                   className="w-full py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>{loading ? 'Extracting...' : 'Extract Script'}</span>
+                  <span>{loading ? 'Extracting...' : 'Extract Transcript'}</span>
                 </button>
               </form>
               
