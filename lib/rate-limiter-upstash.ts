@@ -101,7 +101,7 @@ export async function checkRateLimit(
     const todayKey = `${GLOBAL_DAILY_KEY}:${new Date().toISOString().split('T')[0]}`;
     const currentCount = (await redis.get(todayKey) as number) || 0;
     
-    console.log(`[Rate Limit] Checking global daily - Key: ${todayKey}, Count: ${currentCount}/${GLOBAL_DAILY_LIMIT}`);
+    console.log(`[Rate Limit] Checking global daily - Key: ${todayKey}, Count: ${currentCount}/${GLOBAL_DAILY_LIMIT}, Endpoint: ${endpoint}`);
     
     if (currentCount >= GLOBAL_DAILY_LIMIT) {
       console.log(`[Rate Limit] Global daily limit reached: ${currentCount}/${GLOBAL_DAILY_LIMIT}`);
