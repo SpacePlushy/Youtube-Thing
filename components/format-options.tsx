@@ -27,10 +27,10 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
       <div className="space-y-4">
         {/* Info about what will happen */}
         <div className="p-3 bg-secondary/50 rounded-lg">
-          <p className="text-sm text-foreground">
+          <p className="text-sm text-foreground mb-2">
             Your transcript will be cleaned and formatted with:
           </p>
-          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+          <ul className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <li>• Timestamps preserved throughout</li>
             <li>• Filler words removed</li>
             <li>• Grammar corrections</li>
