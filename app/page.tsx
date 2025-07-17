@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractVideoId, extractTranscript } from '@/lib/youtube';
 import { FormatOptions } from '@/components/format-options';
+import { SmoothProgressBar } from '@/components/smooth-progress-bar';
 import { TranscriptCache } from '@/lib/transcript-cache';
 import { analytics } from '@/lib/analytics';
 import { Loader2, Trash2, Copy, Download } from 'lucide-react';
@@ -179,67 +180,7 @@ export default function Home() {
       const decoder = new TextDecoder();
       let accumulatedText = '';
       let progressData = { current: 0, total: 1 };
-      let targetProgress = 0;
-      let displayProgress = 0;
-      let animationFrameId: number | null = null;
-      let progressTimer: NodeJS.Timeout | null = null;
-      
-      // Smooth progress animation
-      const animateProgress = () => {
-        if (displayProgress < targetProgress) {
-          displayProgress = Math.min(displayProgress + 1, targetProgress);
-          const message = progressData.total > 1 
-            ? `Formatting transcript... (chunk ${progressData.current} of ${progressData.total})`
-            : 'Formatting transcript...';
-          setFormattingProgress({ message, progress: displayProgress });
-          
-          // Continue animating if not reached target
-          if (displayProgress < targetProgress) {
-            animationFrameId = requestAnimationFrame(animateProgress);
-          }
-        }
-      };
-      
-      // Estimate time per chunk based on transcript length (3-10 seconds per chunk)
-      const estimatedTimePerChunk = Math.min(10000, Math.max(3000, transcript.length * 2));
-      
-      // Start smooth progress increment
-      const startSmoothProgress = (currentChunk: number, totalChunks: number) => {
-        if (progressTimer) {
-          clearInterval(progressTimer);
-          progressTimer = null;
-        }
-        
-        const startProgress = (currentChunk / totalChunks) * 100;
-        const endProgress = ((currentChunk + 1) / totalChunks) * 100;
-        const increment = (endProgress - startProgress) / (estimatedTimePerChunk / 100);
-        
-        progressTimer = setInterval(() => {
-          if (targetProgress < endProgress - 1) {
-            targetProgress = Math.min(targetProgress + increment, endProgress - 1);
-            animateProgress();
-          } else {
-            clearInterval(progressTimer!);
-            progressTimer = null;
-          }
-        }, 100);
-      };
-      
-      // Cleanup function
-      const cleanupProgress = () => {
-        if (progressTimer) {
-          clearInterval(progressTimer);
-          progressTimer = null;
-        }
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-          animationFrameId = null;
-        }
-      };
-      
-      // Start initial progress animation to show activity
-      targetProgress = 5;
-      animateProgress();
+      let currentProgress = 0;
       
       while (true) {
         const { done, value } = await reader.read();
@@ -254,30 +195,18 @@ export default function Home() {
         if (progressMatch) {
           try {
             const newProgressData = JSON.parse(progressMatch[1]);
-            
-            // If starting a new chunk, begin smooth progress
-            if (newProgressData.current !== progressData.current && newProgressData.current < newProgressData.total) {
-              startSmoothProgress(newProgressData.current, newProgressData.total);
-            }
-            
-            // For single chunk transcripts, start smooth progress immediately
-            if (progressData.current === 0 && progressData.total === 1 && newProgressData.total === 1) {
-              targetProgress = 10;
-              animateProgress();
-              startSmoothProgress(0, 1);
-            }
-            
-            // If chunk completed, jump to actual progress
-            if (newProgressData.current > progressData.current) {
-              if (progressTimer) {
-                clearInterval(progressTimer);
-                progressTimer = null;
-              }
-              targetProgress = Math.round((newProgressData.current / newProgressData.total) * 100);
-              animateProgress();
-            }
-            
             progressData = newProgressData;
+            
+            // Calculate progress based on chunks completed
+            const targetProgress = Math.round((newProgressData.current / newProgressData.total) * 100);
+            
+            // Update progress with smooth animation handled by the component
+            const message = newProgressData.total > 1 
+              ? `Formatting transcript... (chunk ${newProgressData.current} of ${newProgressData.total})`
+              : 'Formatting transcript...';
+            
+            setFormattingProgress({ message, progress: targetProgress });
+            currentProgress = targetProgress;
             
             // Remove progress marker from output
             const cleanedChunk = textChunk.replace(/__PROGRESS__:.*?\n/g, '');
@@ -288,6 +217,17 @@ export default function Home() {
           }
         } else {
           accumulatedText += textChunk;
+          
+          // Incremental progress based on text accumulation
+          if (progressData.total === 1 && currentProgress < 95) {
+            // For single chunks, smoothly increment progress as text streams in
+            const textProgress = Math.min(95, currentProgress + 1);
+            setFormattingProgress({ 
+              message: 'Formatting transcript...', 
+              progress: textProgress 
+            });
+            currentProgress = textProgress;
+          }
         }
         
         setFormattedTranscript(accumulatedText.replace(/__PROGRESS__:.*?\n/g, ''));
@@ -304,25 +244,8 @@ export default function Home() {
       
       setFormattedTranscript(cleanedTranscript);
       
-      // Cleanup timers and animate to 100%
-      cleanupProgress();
-      targetProgress = 100;
-      displayProgress = Math.max(displayProgress, 95); // Jump to at least 95% if we're behind
-      
-      // Animate final progress to 100%
-      const finalAnimation = () => {
-        if (displayProgress < 100) {
-          displayProgress = Math.min(displayProgress + 1, 100);
-          setFormattingProgress({ message: 'Formatting transcript...', progress: displayProgress });
-          if (displayProgress < 100) {
-            requestAnimationFrame(finalAnimation);
-          } else {
-            setFormattingProgress({ message: 'Complete!', progress: 100 });
-            setTimeout(() => setFormattingProgress(null), 1000);
-          }
-        }
-      };
-      finalAnimation();
+      // Set final progress to 100%
+      setFormattingProgress({ message: 'Complete!', progress: 100 });
       
       // Track successful formatting
       analytics.trackFormatting({
@@ -659,16 +582,13 @@ export default function Home() {
               
               {formattingProgress && (
                 <div className="mt-4 p-4 bg-secondary/50 rounded-lg border border-border">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">{formattingProgress.message}</span>
-                    <span className="text-sm text-muted-foreground">{formattingProgress.progress}%</span>
-                  </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${formattingProgress.progress}%` }}
-                    />
-                  </div>
+                  <SmoothProgressBar
+                    progress={formattingProgress.progress}
+                    message={formattingProgress.message}
+                    onComplete={() => {
+                      setTimeout(() => setFormattingProgress(null), 1000);
+                    }}
+                  />
                 </div>
               )}
               
