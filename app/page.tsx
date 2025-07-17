@@ -62,7 +62,7 @@ export default function Home() {
     e.preventDefault();
     
     if (!url.trim()) {
-      setError('Please enter a YouTube URL');
+      setError('Please enter a YouTube URL or video ID');
       return;
     }
     
@@ -350,7 +350,7 @@ export default function Home() {
                 >
               <form onSubmit={handleExtract} className="space-y-3">
                 <input
-                  type="url"
+                  type="text"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="YouTube URL or video ID"
@@ -453,7 +453,7 @@ export default function Home() {
                 >
               <form onSubmit={handleExtract} className="space-y-3 mb-4">
                 <input
-                  type="url"
+                  type="text"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="YouTube URL or video ID"
