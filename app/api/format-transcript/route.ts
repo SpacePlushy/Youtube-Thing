@@ -1,34 +1,47 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
-import { buildPrompt, getChunkConfig, buildChunkPrompt, buildSimpleChunkPrompt } from '@/lib/ai-prompts';
+import { buildPrompt, getChunkConfig, buildChunkPrompt, buildContextAwareChunkPrompt } from '@/lib/ai-prompts';
 import { envConfig } from '@/lib/env-config';
 import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
 
-// Helper function to track precise segment positions for overlap removal
-function buildPositionTracker(
+// Helper function to build intelligent context for AI-managed overlap
+function buildChunkContext(
   chunkSegments: any[], 
+  previousChunkResult: string | null,
   overlap: number, 
   chunkIndex: number,
-  startIndex: number
-): { overlapEndIndex: number; newContentStartIndex: number; actualStartIndex: number } {
+  options: any
+): { contextInfo: string; overlapSegments: any[] } {
   if (chunkIndex === 0) {
     return { 
-      overlapEndIndex: -1, 
-      newContentStartIndex: 0,
-      actualStartIndex: startIndex 
+      contextInfo: 'FIRST CHUNK: Start fresh with complete formatting.',
+      overlapSegments: []
     };
   }
   
-  // Calculate exact indices for overlap removal
-  const overlapSegments = Math.min(overlap, chunkSegments.length);
-  const overlapEndIndex = overlapSegments - 1; // Last overlap segment index in current chunk
-  const newContentStartIndex = overlapSegments; // First new content segment index
+  // Extract overlap segments for context
+  const overlapSegments = chunkSegments.slice(0, Math.min(overlap, chunkSegments.length));
+  
+  // Build context from previous chunk's ending
+  let previousContext = '';
+  if (previousChunkResult) {
+    const previousLines = previousChunkResult.split('\n').filter(line => line.trim());
+    const lastFewLines = previousLines.slice(-3).join('\n'); // Last 3 lines of previous chunk
+    previousContext = `PREVIOUS CHUNK ENDED WITH:\n${lastFewLines}`;
+  }
+  
+  const contextInfo = `CONTINUATION CHUNK ${chunkIndex + 1}:
+${previousContext}
+
+OVERLAP SEGMENTS (for context):
+${formatTranscriptForAI(overlapSegments, options)}
+
+Your task: Continue seamlessly from where the previous chunk ended. Use the overlap segments as context to ensure smooth continuation, but don't duplicate content that was already properly formatted in the previous chunk.`;
   
   return {
-    overlapEndIndex,
-    newContentStartIndex,
-    actualStartIndex: startIndex
+    contextInfo,
+    overlapSegments
   };
 }
 
@@ -66,36 +79,56 @@ function cleanAIOutput(output: string): string {
   return cleaned.trim();
 }
 
-// Precise overlap removal using position tracking - inspired by LangChain's approach
-function removeOverlapPrecisely(
+// AI-powered intelligent overlap resolution using Groq
+async function resolveOverlapWithAI(
   chunkContent: string,
-  positionTracker: any,
+  previousChunkResult: string | null,
+  overlapSegments: any[],
   options: any
-): string {
-  // For subsequent chunks, remove the overlap portion
-  const { newContentStartIndex } = positionTracker;
+): Promise<string> {
+  if (!previousChunkResult) {
+    return chunkContent; // First chunk, no overlap to resolve
+  }
   
-  if (options.includeTimestamps) {
-    // Parse timestamped content and remove overlapped segments
-    const lines = chunkContent.split('\n').filter((line: string) => line.trim());
-    const timestampPattern = /^\[(\d{1,2}:\d{2}(?::\d{2})?)\]/;
-    
-    // Skip lines that correspond to overlap segments
-    const filteredLines = lines.filter((line: string, index: number) => {
-      if (!timestampPattern.test(line)) return true; // Keep non-timestamp lines
-      return index >= newContentStartIndex; // Only keep lines after overlap
+  const overlapContext = formatTranscriptForAI(overlapSegments, options);
+  
+  const resolutionPrompt = `You are an expert transcript continuity manager. Your task is to ensure seamless flow between transcript chunks.
+
+PREVIOUS CHUNK ENDED WITH:
+${previousChunkResult.split('\n').slice(-3).join('\n')}
+
+OVERLAP CONTENT (for reference):
+${overlapContext}
+
+CURRENT CHUNK OUTPUT:
+${chunkContent}
+
+Your task: Return ONLY the portion of the current chunk that represents NEW content (not duplicated from the previous chunk). Ensure:
+1. Seamless continuation from the previous chunk
+2. No duplicate timestamps or content
+3. Maintain the same formatting style
+4. Start exactly where the previous chunk left off
+
+Return only the deduplicated NEW content:`;
+  
+  try {
+    const result = await streamText({
+      model: groq(envConfig.aiModel),
+      system: 'You are a precise transcript deduplication expert. Return only the new content without any explanations.',
+      prompt: resolutionPrompt,
+      temperature: 0.1, // Low temperature for consistency
+      maxTokens: envConfig.aiMaxTokensChunk,
     });
     
-    return filteredLines.join('\n');
-  } else {
-    // For non-timestamped content, use paragraph-based removal
-    const paragraphs = chunkContent.split('\n\n').filter((p: string) => p.trim());
+    let resolvedContent = '';
+    for await (const textPart of result.textStream) {
+      resolvedContent += textPart;
+    }
     
-    // Estimate which paragraphs to skip based on overlap ratio
-    const overlapRatio = newContentStartIndex / (newContentStartIndex + 20); // Estimate total segments
-    const paragraphsToSkip = Math.floor(paragraphs.length * overlapRatio);
-    
-    return paragraphs.slice(paragraphsToSkip).join('\n\n');
+    return cleanAIOutput(resolvedContent);
+  } catch (error) {
+    console.error('AI overlap resolution failed, using fallback:', error);
+    return chunkContent; // Fallback to original content
   }
 }
 
@@ -224,7 +257,7 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   });
 }
 
-// Sequential processing with precise position-based overlap removal
+// AI-managed sequential processing with intelligent overlap resolution
 async function formatWithGroqSequential(transcript: any[], options: any, systemPrompt: string, chunkSize: number) {
   const encoder = new TextEncoder();
   let processedChunks = 0;
@@ -233,8 +266,8 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
   const effectiveChunkSize = chunkSize - overlap; // Adjust for overlap
   const totalChunks = Math.ceil(transcript.length / effectiveChunkSize);
   
-  // Track all processed chunks for precise overlap removal
-  const processedResults: { content: string; positionTracker: any }[] = [];
+  // Track processed results for AI context
+  let previousChunkResult: string | null = null;
   
   // Create a streaming response that processes chunks sequentially
   const stream = new ReadableStream({
@@ -243,20 +276,36 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
         // Send initial progress metadata
         controller.enqueue(encoder.encode(`__PROGRESS__:${JSON.stringify({ current: 0, total: totalChunks })}\n`));
         
-        // Process each chunk sequentially with overlap
+        // Process each chunk sequentially with AI-managed overlap
         for (let i = 0; i < transcript.length; i += effectiveChunkSize) {
           // Include overlap from previous chunk (except for first chunk)
           const startIndex = i === 0 ? 0 : Math.max(0, i - overlap);
           const endIndex = Math.min(transcript.length, i + chunkSize);
           const chunkSegments = transcript.slice(startIndex, endIndex);
-          const chunkContent = formatTranscriptForAI(chunkSegments, options);
           const chunkIndex = Math.floor(i / effectiveChunkSize);
           
-          // Track precise positions for overlap removal
-          const positionTracker = buildPositionTracker(chunkSegments, overlap, chunkIndex, startIndex);
+          // Build intelligent context for AI-managed overlap
+          const { contextInfo, overlapSegments } = buildChunkContext(
+            chunkSegments, 
+            previousChunkResult, 
+            overlap, 
+            chunkIndex, 
+            options
+          );
           
-          // Use simplified prompts - AI focuses only on formatting
-          const chunkSystemPrompt = buildSimpleChunkPrompt(systemPrompt, chunkIndex, totalChunks);
+          // Get the non-overlap segments for processing
+          const newContentSegments = chunkIndex === 0 
+            ? chunkSegments 
+            : chunkSegments.slice(overlap);
+          const chunkContent = formatTranscriptForAI(newContentSegments, options);
+          
+          // Use context-aware prompts that help AI understand continuity
+          const chunkSystemPrompt = buildContextAwareChunkPrompt(
+            systemPrompt, 
+            chunkIndex, 
+            totalChunks, 
+            contextInfo
+          );
           const prompts = buildPrompt(options);
           const userPrompt = prompts.user + chunkContent;
           
@@ -278,14 +327,19 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
           // Clean the chunk output to remove any AI commentary
           chunkOutput = cleanAIOutput(chunkOutput);
           
-          // Store for precise overlap removal
-          processedResults.push({ content: chunkOutput, positionTracker });
-          
-          // For first chunk, stream immediately. For subsequent chunks, remove overlap first
+          // Use AI to intelligently resolve any overlaps and ensure continuity
           let finalOutput = chunkOutput;
-          if (chunkIndex > 0) {
-            finalOutput = removeOverlapPrecisely(chunkOutput, positionTracker, options);
+          if (chunkIndex > 0 && previousChunkResult) {
+            finalOutput = await resolveOverlapWithAI(
+              chunkOutput, 
+              previousChunkResult, 
+              overlapSegments, 
+              options
+            );
           }
+          
+          // Store this result for the next chunk's context
+          previousChunkResult = (previousChunkResult || '') + (finalOutput ? '\n' + finalOutput : '');
           
           controller.enqueue(encoder.encode(finalOutput));
           

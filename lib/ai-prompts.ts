@@ -239,3 +239,42 @@ CRITICAL OUTPUT REQUIREMENTS:
 
 IMPORTANT: Your job is ONLY formatting - overlap removal will be handled separately. Process everything given to you.`;
 }
+
+// Context-aware chunk prompts for AI-managed overlap and continuity
+export function buildContextAwareChunkPrompt(
+  baseSystem: string,
+  chunkIndex: number,
+  totalChunks: number,
+  contextInfo: string
+): string {
+  
+  let chunkInstructions = '';
+  
+  if (chunkIndex === 0) {
+    chunkInstructions = `FIRST CHUNK: Start the transcript with full formatting and detail.`;
+  } else if (chunkIndex === totalChunks - 1) {
+    chunkInstructions = `FINAL CHUNK: Complete the transcript, ensuring smooth continuation from previous content.`;
+  } else {
+    chunkInstructions = `MIDDLE CHUNK: Continue the transcript smoothly from the previous chunk.`;
+  }
+    
+  return `${baseSystem}
+
+CONTEXT INFORMATION:
+${contextInfo}
+
+CHUNK INSTRUCTIONS:
+${chunkInstructions}
+
+FORMATTING REQUIREMENTS:
+- Process ALL content provided to you completely
+- Ensure seamless continuation from any previous content
+- EXACTLY this format: [timestamp] text content
+- Each [timestamp] MUST be on same line as its text
+- Maintain chronological timestamp order
+- NO commentary, explanations, or meta-text
+- Start immediately with formatted content
+- If continuing from previous content, ensure smooth flow
+
+CONTINUITY FOCUS: Your primary goal is creating a seamless, continuous transcript that flows naturally from chunk to chunk.`;
+}
