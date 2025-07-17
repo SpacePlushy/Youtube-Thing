@@ -277,18 +277,8 @@ export function getOptimalChunkConfig(transcriptLength: number): SplitterConfig 
   const avgCharsPerSegment = 80;
   const totalChars = transcriptLength * avgCharsPerSegment;
   
-  // Handle very short videos that still need chunking
-  if (totalChars < 4000) { // ~1 min videos
-    return { chunkSize: 3000, chunkOverlap: 100 };
-  } else if (totalChars < 20000) { // ~5 min videos
-    return { chunkSize: 8000, chunkOverlap: 200 };
-  } else if (totalChars < 60000) { // ~15 min videos  
-    return { chunkSize: 12000, chunkOverlap: 400 };
-  } else if (totalChars < 120000) { // ~30 min videos
-    return { chunkSize: 16000, chunkOverlap: 800 };
-  } else { // Long videos
-    return { chunkSize: 20000, chunkOverlap: 1000 };
-  }
+  // Use consistent 4000 char chunks for better AI processing
+  return { chunkSize: 4000, chunkOverlap: 200 };
 }
 
 /**
