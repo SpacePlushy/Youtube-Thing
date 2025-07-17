@@ -354,7 +354,7 @@ export default function Home() {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="YouTube URL or video ID"
-                  className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-sm"
+                  className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-base"
                   disabled={loading}
                 />
                 
@@ -362,7 +362,7 @@ export default function Home() {
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-base"
                     disabled={loading}
                   >
                     <option value="en">English</option>
@@ -382,7 +382,7 @@ export default function Home() {
                   <select
                     value={transcriptOrigin}
                     onChange={(e) => setTranscriptOrigin(e.target.value as 'auto_generated' | 'uploader_provided')}
-                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-base"
                     disabled={loading}
                   >
                     <option value="auto_generated">Auto-generated</option>
@@ -445,7 +445,7 @@ export default function Home() {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="YouTube URL or video ID"
-                  className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-sm"
+                  className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-base"
                   disabled={loading}
                 />
                 
@@ -453,7 +453,7 @@ export default function Home() {
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-base"
                     disabled={loading}
                   >
                     <option value="en">English</option>
@@ -473,7 +473,7 @@ export default function Home() {
                   <select
                     value={transcriptOrigin}
                     onChange={(e) => setTranscriptOrigin(e.target.value as 'auto_generated' | 'uploader_provided')}
-                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
+                    className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-base"
                     disabled={loading}
                   >
                     <option value="auto_generated">Auto-generated</option>
