@@ -7,7 +7,7 @@ import { FormatOptions } from '@/components/format-options';
 import { SmoothProgressBar } from '@/components/smooth-progress-bar';
 import { TranscriptCache } from '@/lib/transcript-cache';
 import { analytics } from '@/lib/analytics';
-import { Loader2, Trash2, Copy, Download } from 'lucide-react';
+import { Loader2, Copy, Download } from 'lucide-react';
 
 
 export default function Home() {
@@ -415,20 +415,8 @@ export default function Home() {
               )}
               
               {usingCache && (
-                <div className="p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm mt-4 flex items-center justify-between">
+                <div className="p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm mt-4">
                   <span>Using cached transcript</span>
-                  <button
-                    onClick={() => {
-                      TranscriptCache.clearAll();
-                      setUsingCache(false);
-                      analytics.trackCacheAction('clear');
-                      alert('Cache cleared!');
-                    }}
-                    className="text-green-400 hover:text-green-300 transition-colors"
-                    title="Clear cache"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               )}
             
@@ -518,20 +506,8 @@ export default function Home() {
               )}
               
               {usingCache && (
-                <div className="p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm mb-4 flex items-center justify-between">
+                <div className="p-3 bg-green-950/20 border border-green-900/30 text-green-400 rounded text-sm mb-4">
                   <span>Using cached transcript</span>
-                  <button
-                    onClick={() => {
-                      TranscriptCache.clearAll();
-                      setUsingCache(false);
-                      analytics.trackCacheAction('clear');
-                      alert('Cache cleared!');
-                    }}
-                    className="text-green-400 hover:text-green-300 transition-colors"
-                    title="Clear cache"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               )}
               
