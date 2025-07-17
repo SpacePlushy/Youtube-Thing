@@ -157,26 +157,15 @@ export async function fixTimestampContinuity(
   const timeRangeContext = chunkTimeRange ? 
     `\nVIDEO TIME BOUNDARIES:\n- Full video: ${chunkTimeRange.videoStart} to ${chunkTimeRange.videoEnd}\n- Expected chunk range: ${chunkTimeRange.start} to ${chunkTimeRange.end}\n` : '';
   
-  const continuityPrompt = `You are a timestamp continuity expert. Fix timestamp sequence in this transcript chunk using rolling window context.
+  // Simplified prompt to reduce token usage and improve reliability
+  const continuityPrompt = `Fix timestamp sequence to continue from ${context.lastTimestamp}.
 
-ROLLING WINDOW CONTEXT (last 2 chunks):
-${windowContext}
-
-LAST TIMESTAMP FROM CONTEXT: ${context.lastTimestamp}
-LAST CONTENT LINES: "${lastLines}"${timeRangeContext}
-
-CURRENT CHUNK WITH POTENTIALLY BROKEN TIMESTAMPS:
+Current chunk:
 ${formattedChunk}
 
-YOUR TASK:
-1. Check if timestamps in current chunk continue properly from ${context.lastTimestamp}
-2. If timestamps restart incorrectly (like [0:01] instead of continuing), fix ALL timestamps
-3. Timestamps should stay within the expected chunk range and video boundaries
-4. Maintain exact same content and formatting
-5. Only modify timestamps to ensure sequential continuity
-6. Consider the rolling context to understand the content flow
+If timestamps restart at [0:01] instead of continuing from ${context.lastTimestamp}, fix them to be sequential. Keep all text identical, only change timestamps.
 
-CRITICAL: Return ONLY the corrected transcript chunk. No explanations or commentary.`;
+Return only the corrected chunk:`;
 
   try {
     const result = await streamText({

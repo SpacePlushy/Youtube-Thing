@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { buildPrompt } from '@/lib/ai-prompts';
-import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking, fixTimestampContinuity, createProcessingContext } from '@/lib/langchain-splitter';
+import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
 import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
 
@@ -70,18 +70,43 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Format transcript text for AI processing
+// Format transcript text for AI processing (text only, no timestamps)
 function formatTranscriptForAI(transcript: any[], options: any): string {
+  // Always send text-only to AI for cleaner processing
   return transcript
-    .map((segment, index) => {
-      if (options.includeTimestamps) {
-        const prefix = index === 0 ? '' : '\n';
-        return `${prefix}[${segment.timestamp}] ${segment.text}`;
-      }
-      return segment.text;
+    .map(segment => segment.text)
+    .join(' ');
+}
+
+// Merge AI-formatted text back with original timestamps
+function mergeTimestampsWithFormattedText(
+  aiFormattedText: string, 
+  originalTranscript: any[], 
+  options: any
+): string {
+  if (!options.includeTimestamps) {
+    return aiFormattedText;
+  }
+  
+  // Split AI formatted text into sentences/paragraphs
+  const formattedParagraphs = aiFormattedText
+    .split(/\n\s*\n/)  // Split on paragraph breaks
+    .filter(p => p.trim().length > 0);
+  
+  if (formattedParagraphs.length === 0) {
+    return aiFormattedText;
+  }
+  
+  // Calculate timestamps per paragraph based on content distribution
+  const segmentsPerParagraph = Math.ceil(originalTranscript.length / formattedParagraphs.length);
+  
+  return formattedParagraphs
+    .map((paragraph, index) => {
+      const segmentIndex = index * segmentsPerParagraph;
+      const timestamp = originalTranscript[segmentIndex]?.timestamp || '0:00';
+      return `[${timestamp}] ${paragraph.trim()}`;
     })
-    .join(options.includeTimestamps ? ' ' : ' ')
-    .replace(/\n /g, '\n');
+    .join('\n\n');
 }
 
 async function formatWithGroqStreamText(transcript: any[], options: any) {
@@ -134,8 +159,9 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
       if (!cleaningApplied && accumulatedOutput.length > 100) {
         const cleaned = cleanAIOutput(accumulatedOutput);
         if (cleaned !== accumulatedOutput) {
-          // Commentary was removed - send the cleaned version
-          controller.enqueue(encoder.encode(cleaned));
+          // Commentary was removed - merge with timestamps and send
+          const withTimestamps = mergeTimestampsWithFormattedText(cleaned, transcript, options);
+          controller.enqueue(encoder.encode(withTimestamps));
           accumulatedOutput = '';
           cleaningApplied = true;
           return;
@@ -153,7 +179,8 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
       // Handle any remaining accumulated output
       if (!cleaningApplied && accumulatedOutput) {
         const cleaned = cleanAIOutput(accumulatedOutput);
-        controller.enqueue(encoder.encode(cleaned));
+        const withTimestamps = mergeTimestampsWithFormattedText(cleaned, transcript, options);
+        controller.enqueue(encoder.encode(withTimestamps));
       }
       
       // Send completion progress
@@ -184,12 +211,10 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
     const totalChunks = chunks.length;
     let processedChunks = 0;
     
-    // Initialize rolling window context for timestamp continuity
-    const processingContext = createProcessingContext(3); // Window size of 3 chunks
-    
-    // Get transcript time boundaries for AI context
+    // Get transcript time boundaries for debugging
     const firstTimestamp = transcript[0]?.timestamp || '0:00';
     const lastTimestamp = transcript[transcript.length - 1]?.timestamp || '0:00';
+    console.log(`Video duration: ${firstTimestamp} to ${lastTimestamp}`);
     
     // Create streaming response for clean LangChain chunks
     const stream = new ReadableStream({
@@ -234,30 +259,9 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             // Clean AI commentary
             let finalOutput = cleanAIOutput(chunkOutput);
             
-            // Apply AI timestamp continuity fix for sequential chunks
-            // TEMPORARILY DISABLED FOR DEBUGGING
-            if (false && options.includeTimestamps && envConfig.groqApiKey) {
-              try {
-                console.log(`Applying timestamp continuity for chunk ${i + 1}, range: ${chunkStartTime} to ${chunkEndTime}`);
-                const timeRange = {
-                  start: chunkStartTime,
-                  end: chunkEndTime,
-                  videoStart: firstTimestamp,
-                  videoEnd: lastTimestamp
-                };
-                
-                // Only apply timestamp continuity if we have reasonable content
-                if (finalOutput.trim().length > 10 && envConfig.groqApiKey) {
-                  finalOutput = await fixTimestampContinuity(finalOutput, processingContext, envConfig.groqApiKey!, timeRange);
-                  console.log(`Timestamp continuity completed for chunk ${i + 1}`);
-                } else {
-                  console.log(`Skipping timestamp continuity for chunk ${i + 1} - insufficient content or missing API key`);
-                }
-              } catch (error) {
-                console.error('Timestamp continuity fix failed for chunk', i, error);
-                // Continue without timestamp fix if it fails
-              }
-            }
+            // Merge timestamps back with AI-formatted content
+            finalOutput = mergeTimestampsWithFormattedText(finalOutput, chunk, options);
+            console.log(`Merged timestamps for chunk ${i + 1}`);
             
             // Stream the result
             controller.enqueue(encoder.encode(finalOutput));
