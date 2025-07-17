@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { constructYouTubeUrl } from '@/lib/youtube';
 
 interface OxylabsResponse {
   results: Array<{
@@ -31,7 +32,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
+    // Construct a clean YouTube URL from the video ID
+    const youtubeUrl = constructYouTubeUrl(videoId);
+    
     console.log('[Oxylabs] Extracting transcript for video:', videoId);
+    console.log('[Oxylabs] Using URL:', youtubeUrl);
     console.log('[Oxylabs] Language:', language);
     console.log('[Oxylabs] Transcript origin:', transcriptOrigin);
 
@@ -57,7 +62,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         source: 'youtube_transcript',
-        query: videoId,
+        query: youtubeUrl,  // Use the clean URL instead of just video ID
         context: [
           {
             key: 'language_code',
@@ -93,7 +98,7 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             source: 'youtube_transcript',
-            query: videoId,
+            query: youtubeUrl,  // Use the clean URL
             context: [
               {
                 key: 'language_code',
@@ -121,7 +126,7 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             source: 'youtube_transcript',
-            query: videoId,
+            query: youtubeUrl,  // Use the clean URL
             context: [
               {
                 key: 'language_code',
@@ -182,7 +187,7 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
               source: 'youtube_transcript',
-              query: videoId,
+              query: youtubeUrl,  // Use the clean URL
               context: [
                 {
                   key: 'language_code',
@@ -237,7 +242,7 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
               source: 'youtube_transcript',
-              query: videoId,
+              query: youtubeUrl,  // Use the clean URL
               context: [
                 {
                   key: 'language_code',

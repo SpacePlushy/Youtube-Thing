@@ -68,7 +68,7 @@ export default function Home() {
     
     const videoId = extractVideoId(url);
     if (!videoId) {
-      setError('Invalid YouTube URL');
+      setError('Invalid YouTube URL. Please enter a valid YouTube video URL (e.g., youtube.com/watch?v=... or youtu.be/...)');
       return;
     }
     

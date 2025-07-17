@@ -1,16 +1,59 @@
-// YouTube URL parsing
+import getVideoId from 'get-video-id';
+
+// YouTube URL parsing with robust handling of various formats
 export function extractVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/shorts\/([^&\n?#]+)/
-  ];
-  
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
+  try {
+    // First, try to normalize the URL if it's missing protocol
+    let normalizedUrl = url.trim();
+    
+    // Add protocol if missing
+    if (!normalizedUrl.match(/^https?:\/\//i)) {
+      // Check if it starts with youtube.com or youtu.be
+      if (normalizedUrl.match(/^(www\.)?(youtube\.com|youtu\.be)/i)) {
+        normalizedUrl = 'https://' + normalizedUrl;
+      } else if (normalizedUrl.match(/^youtube\.com|^youtu\.be/i)) {
+        normalizedUrl = 'https://' + normalizedUrl;
+      }
+    }
+    
+    // Use get-video-id library for robust parsing
+    const result = getVideoId(normalizedUrl);
+    
+    // Only return if it's a YouTube video
+    if (result.service === 'youtube' && result.id) {
+      console.log('[YouTube] Successfully extracted video ID:', result.id, 'from URL:', normalizedUrl);
+      return result.id;
+    }
+    
+    // Fallback to custom patterns for edge cases the library might miss
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/shorts\/([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/,
+      /youtube\.com\/live\/([^&\n?#]+)/,
+      /youtube\.com\/clip\/([^&\n?#]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = normalizedUrl.match(pattern);
+      if (match && match[1]) {
+        console.log('[YouTube] Extracted video ID using fallback pattern:', match[1]);
+        return match[1];
+      }
+    }
+    
+    console.error('[YouTube] Could not extract video ID from URL:', url);
+    return null;
+  } catch (error) {
+    console.error('[YouTube] Error parsing URL:', error);
+    return null;
   }
-  
-  return null;
+}
+
+// Construct a clean YouTube URL from video ID for API consumption
+export function constructYouTubeUrl(videoId: string): string {
+  // Always return the standard watch URL format which is most compatible
+  return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
 interface TranscriptOptions {
