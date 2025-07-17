@@ -51,6 +51,8 @@ async function waitForTokens(maxRetries = 10): Promise<boolean> {
  * Fetch wrapper that ensures BotID is ready
  */
 export async function botIdFetch(url: string, options?: RequestInit): Promise<Response> {
+  console.log('[BotID Fetch] Starting protected request to:', url);
+  
   // First ensure BotID is initialized
   await initializeBotId();
   
@@ -59,6 +61,10 @@ export async function botIdFetch(url: string, options?: RequestInit): Promise<Re
   
   if (!hasTokens) {
     console.warn('[BotID] Proceeding without tokens - may be blocked');
+    // On mobile, this is likely the issue
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      console.error('[BotID] Mobile browser failed to generate tokens');
+    }
   }
   
   // Log the final request state

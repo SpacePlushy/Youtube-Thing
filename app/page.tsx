@@ -26,12 +26,20 @@ export default function Home() {
   const [usingCache, setUsingCache] = useState(false);
   const [copyNotification, setCopyNotification] = useState<string | null>(null);
   const [botIdReady, setBotIdReady] = useState(false);
+  const [botIdStatus, setBotIdStatus] = useState('Initializing security...');
 
   // Initialize BotID on component mount
   useEffect(() => {
+    setBotIdStatus('Initializing BotID security...');
     initializeBotId().then(() => {
       setBotIdReady(true);
+      setBotIdStatus('Security ready');
       console.log('[BotID] Client ready for API calls');
+      // Auto-hide status after 2 seconds
+      setTimeout(() => setBotIdStatus(''), 2000);
+    }).catch(err => {
+      setBotIdStatus('Security initialization failed');
+      console.error('[BotID] Init failed:', err);
     });
   }, []);
 
@@ -86,11 +94,20 @@ export default function Home() {
     // Ensure BotID is ready before making API calls
     if (!botIdReady) {
       console.log('[BotID] Waiting for initialization before API call...');
-      setError('Initializing security... Please try again in a moment.');
+      setError('Security initializing... Please wait a moment and try again.');
+      setBotIdStatus('Waiting for BotID tokens...');
       // Try to initialize again
-      await initializeBotId();
-      setBotIdReady(true);
-      setError('');
+      try {
+        await initializeBotId();
+        setBotIdReady(true);
+        setError('');
+        setBotIdStatus('Security ready - try again now');
+        setTimeout(() => setBotIdStatus(''), 2000);
+      } catch (err) {
+        setError('Security initialization failed. Please refresh the page.');
+        setBotIdStatus('Failed to initialize');
+      }
+      return;
     }
     
     setLoading(true);
@@ -347,6 +364,23 @@ export default function Home() {
           >
             <div className="bg-card border border-border rounded-lg px-6 py-3 shadow-lg">
               <p className="text-base text-card-foreground font-medium">{copyNotification}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* BotID Status notification */}
+      <AnimatePresence>
+        {botIdStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
+          >
+            <div className="bg-yellow-950/90 border border-yellow-900/50 rounded-lg px-4 py-2 shadow-lg">
+              <p className="text-sm text-yellow-200">{botIdStatus}</p>
             </div>
           </motion.div>
         )}
