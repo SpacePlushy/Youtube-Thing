@@ -247,11 +247,11 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
                 };
                 
                 // Only apply timestamp continuity if we have reasonable content
-                if (finalOutput.trim().length > 10) {
-                  finalOutput = await fixTimestampContinuity(finalOutput, processingContext, envConfig.groqApiKey, timeRange);
+                if (finalOutput.trim().length > 10 && envConfig.groqApiKey) {
+                  finalOutput = await fixTimestampContinuity(finalOutput, processingContext, envConfig.groqApiKey!, timeRange);
                   console.log(`Timestamp continuity completed for chunk ${i + 1}`);
                 } else {
-                  console.log(`Skipping timestamp continuity for chunk ${i + 1} - insufficient content`);
+                  console.log(`Skipping timestamp continuity for chunk ${i + 1} - insufficient content or missing API key`);
                 }
               } catch (error) {
                 console.error('Timestamp continuity fix failed for chunk', i, error);
