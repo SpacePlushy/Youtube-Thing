@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-// import { checkBotId } from 'botid/server'; // Temporarily disabled
+import { checkBotId } from 'botid/server';
 import { extractVideoId } from '@/lib/youtube';
 
 interface OxylabsResponse {
@@ -23,13 +23,8 @@ interface TranscriptSegment {
 
 export async function POST(request: NextRequest) {
   try {
-    // BotID verification - TEMPORARILY DISABLED due to false positives
-    // TODO: Re-enable once CSP frame-ancestors conflict is resolved
-    // BotID is incorrectly flagging legitimate users as bots
-    console.log('[BotID] Bot protection temporarily disabled - allowing all requests');
-    
-    // Keep this code for when we re-enable BotID:
-    /*
+    // BotID verification - protect against automated transcript extraction
+    // Enhanced with proper error handling and CSP-compatible configuration
     try {
       console.log('[BotID] Starting bot verification...');
       const botVerification = await checkBotId();
@@ -41,19 +36,19 @@ export async function POST(request: NextRequest) {
         env: process.env.NODE_ENV 
       });
       
-      if (botVerification.isBot) {
-        console.log('[BotID] Bot detected, blocking transcript extraction request');
+      // Only block if definitively identified as a malicious bot
+      // Allow good bots (search engines, etc.) and humans
+      if (botVerification.isBot && !botVerification.isGoodBot) {
+        console.log('[BotID] Malicious bot detected, blocking transcript extraction request');
         return NextResponse.json({ 
           error: 'Access denied' 
         }, { status: 403 });
       }
-      console.log('[BotID] Request verified as human');
+      console.log('[BotID] Request verified as legitimate');
     } catch (botError) {
-      console.warn('[BotID] Bot verification failed, allowing request to proceed:', botError instanceof Error ? botError.message : 'Unknown error');
-      console.warn('[BotID] Error details:', botError);
-      // Continue with the request even if BotID fails
+      console.warn('[BotID] Bot verification failed, allowing request to proceed (graceful degradation):', botError instanceof Error ? botError.message : 'Unknown error');
+      // Continue with the request even if BotID fails - this ensures legitimate users are never blocked
     }
-    */
 
     const { videoId: videoIdOrUrl, language = 'en', transcriptOrigin = 'auto_generated' } = await request.json() as { 
       videoId: string;

@@ -15,12 +15,12 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
-    connect-src 'self' https://*.youtube.com https://*.googleapis.com https://*.vercel.app wss://*.vercel.app https://generativelanguage.googleapis.com https://api.botid.com;
+    connect-src 'self' https://*.youtube.com https://*.googleapis.com https://*.vercel.app wss://*.vercel.app https://generativelanguage.googleapis.com https://api.botid.com https://api.vercel.com;
     media-src 'self';
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-    frame-ancestors 'none';
+    frame-ancestors 'self';
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
 
@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
   // Security headers
   const securityHeaders = {
     'Content-Security-Policy': cspHeader,
-    'X-Frame-Options': 'DENY',
+    'X-Frame-Options': 'SAMEORIGIN',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'X-XSS-Protection': '1; mode=block',

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
-// import { checkBotId } from 'botid/server'; // Temporarily disabled
+import { checkBotId } from 'botid/server';
 import { buildPrompt } from '@/lib/ai-prompts';
 import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
@@ -55,13 +55,8 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    // BotID verification - TEMPORARILY DISABLED due to false positives
-    // TODO: Re-enable once CSP frame-ancestors conflict is resolved
-    // BotID is incorrectly flagging legitimate users as bots
-    console.log('[BotID] Bot protection temporarily disabled - allowing all requests');
-    
-    // Keep this code for when we re-enable BotID:
-    /*
+    // BotID verification - protect against automated AI formatting abuse
+    // Enhanced with proper error handling and CSP-compatible configuration
     try {
       console.log('[BotID] Starting bot verification for AI formatting...');
       const botVerification = await checkBotId();
@@ -73,8 +68,10 @@ export async function POST(request: NextRequest) {
         env: process.env.NODE_ENV 
       });
       
-      if (botVerification.isBot) {
-        console.log('[BotID] Bot detected, blocking AI formatting request');
+      // Only block if definitively identified as a malicious bot
+      // Allow good bots (search engines, etc.) and humans
+      if (botVerification.isBot && !botVerification.isGoodBot) {
+        console.log('[BotID] Malicious bot detected, blocking AI formatting request');
         return new Response(
           JSON.stringify({ error: 'Access denied' }),
           { 
@@ -83,13 +80,11 @@ export async function POST(request: NextRequest) {
           }
         );
       }
-      console.log('[BotID] AI formatting request verified as human');
+      console.log('[BotID] Request verified as legitimate');
     } catch (botError) {
-      console.warn('[BotID] Bot verification failed, allowing request to proceed:', botError instanceof Error ? botError.message : 'Unknown error');
-      console.warn('[BotID] Error details:', botError);
-      // Continue with the request even if BotID fails
+      console.warn('[BotID] Bot verification failed, allowing request to proceed (graceful degradation):', botError instanceof Error ? botError.message : 'Unknown error');
+      // Continue with the request even if BotID fails - this ensures legitimate users are never blocked
     }
-    */
 
     const { transcript, options } = await request.json();
     
