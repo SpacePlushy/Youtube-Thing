@@ -68,36 +68,23 @@ export async function POST(request: NextRequest) {
         env: process.env.NODE_ENV 
       });
       
-      // BotID check with mobile consideration
-      // Mobile browsers may not have BotID client fully initialized
-      const userAgent = request.headers.get('user-agent') || '';
-      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-      
+      // Strict BotID check - no bypasses
       if (botVerification.isBot && !botVerification.isGoodBot) {
-        // Log additional context for debugging
-        console.log('[BotID] Bot detection triggered:', {
+        const userAgent = request.headers.get('user-agent') || '';
+        console.log('[BotID] Bot detected, blocking request:', {
           isBot: botVerification.isBot,
           isHuman: botVerification.isHuman,
           isGoodBot: botVerification.isGoodBot,
           bypassed: botVerification.bypassed,
-          isMobile,
           userAgent: userAgent.substring(0, 150)
         });
-        
-        // For now, if it's a mobile browser, log warning but allow
-        if (isMobile) {
-          console.warn('[BotID] Mobile browser flagged as bot - possible BotID initialization issue');
-          // Continue processing instead of blocking
-        } else {
-          console.log('[BotID] Desktop bot detected, blocking request');
-          return new Response(
-            JSON.stringify({ error: 'Access denied' }),
-            { 
-              status: HTTP_CONFIG.STATUS_CODES.FORBIDDEN, 
-              headers: HTTP_CONFIG.HEADERS.JSON 
-            }
-          );
-        }
+        return new Response(
+          JSON.stringify({ error: 'Access denied' }),
+          { 
+            status: HTTP_CONFIG.STATUS_CODES.FORBIDDEN, 
+            headers: HTTP_CONFIG.HEADERS.JSON 
+          }
+        );
       }
       console.log('[BotID] Request verified as legitimate');
     } catch (botError) {

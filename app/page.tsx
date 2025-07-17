@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractVideoId, extractTranscript } from '@/lib/youtube';
 import { FormatOptions } from '@/components/format-options';
@@ -8,6 +8,7 @@ import { SmoothProgressBar } from '@/components/smooth-progress-bar';
 import { TranscriptCache } from '@/lib/transcript-cache';
 import { analytics } from '@/lib/analytics';
 import { Loader2, Copy, Download } from 'lucide-react';
+import { initializeBotId } from '@/lib/botid-init';
 
 
 export default function Home() {
@@ -23,6 +24,15 @@ export default function Home() {
   const [formattingProgress, setFormattingProgress] = useState<{ message: string; progress: number } | null>(null);
   const [usingCache, setUsingCache] = useState(false);
   const [copyNotification, setCopyNotification] = useState<string | null>(null);
+  const [botIdReady, setBotIdReady] = useState(false);
+
+  // Initialize BotID on component mount
+  useEffect(() => {
+    initializeBotId().then(() => {
+      setBotIdReady(true);
+      console.log('[BotID] Client ready for API calls');
+    });
+  }, []);
 
   // Helper function to copy with notification
   const copyToClipboard = async (text: string, label: string) => {
@@ -70,6 +80,16 @@ export default function Home() {
     if (!videoId) {
       setError('Invalid input. Please enter a YouTube video URL (e.g., youtube.com/watch?v=...) or just the video ID');
       return;
+    }
+
+    // Ensure BotID is ready before making API calls
+    if (!botIdReady) {
+      console.log('[BotID] Waiting for initialization before API call...');
+      setError('Initializing security... Please try again in a moment.');
+      // Try to initialize again
+      await initializeBotId();
+      setBotIdReady(true);
+      setError('');
     }
     
     setLoading(true);
@@ -143,6 +163,16 @@ export default function Home() {
   };
   
   const handleFormat = async (options: any) => {
+    // Ensure BotID is ready before making API calls
+    if (!botIdReady) {
+      console.log('[BotID] Waiting for initialization before format API call...');
+      setError('Initializing security... Please try again in a moment.');
+      await initializeBotId();
+      setBotIdReady(true);
+      setError('');
+      return;
+    }
+
     setIsFormatting(true);
     setFormattedTranscript('');
     setError('');
