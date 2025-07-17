@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { extractVideoId, extractTranscript } from '@/lib/youtube';
 import { FormatOptions } from '@/components/format-options';
 import { TranscriptCache } from '@/lib/transcript-cache';
@@ -203,11 +204,26 @@ export default function Home() {
           </h1>
         </div>
         
-        {/* Main content - conditional layout based on transcript */}
-        {transcript.length === 0 ? (
-          /* Centered layout when no transcript */
-          <div className="flex-1 flex items-start justify-center pt-8">
-            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 w-full max-w-xl">
+        {/* Main content - animated layout based on transcript */}
+        <div className="flex-1 relative">
+          <AnimatePresence mode="wait">
+            {transcript.length === 0 ? (
+              /* Centered layout when no transcript */
+              <motion.div
+                key="centered"
+                className="absolute inset-0 flex items-start justify-center pt-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <motion.div 
+                  layoutId="input-card"
+                  className="bg-card rounded-lg border border-border p-4 lg:p-6 w-full max-w-xl"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
               <form onSubmit={handleExtract} className="space-y-3">
                 <input
                   type="url"
@@ -292,13 +308,25 @@ export default function Home() {
                 </div>
               )}
             
-            </div>
-          </div>
-        ) : (
-          /* Two-panel layout when transcript exists */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 flex-1 min-h-0 overflow-hidden">
-            {/* Left Panel - Input Controls and Raw Transcript */}
-            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-[calc(50vh-4rem)] lg:h-auto">
+                </motion.div>
+              </motion.div>
+            ) : (
+              /* Two-panel layout when transcript exists */
+              <motion.div
+                key="panels"
+                className="absolute inset-0 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 min-h-0 overflow-hidden"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Left Panel - Input Controls and Raw Transcript */}
+                <motion.div 
+                  layoutId="input-card"
+                  className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-[calc(50vh-4rem)] lg:h-auto"
+                  initial={false}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                >
               <form onSubmit={handleExtract} className="space-y-3 mb-4">
                 <input
                   type="url"
@@ -433,10 +461,15 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
             
             {/* Right Panel - AI Formatting Options and Formatted Transcript */}
-            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-[calc(50vh-4rem)] lg:h-auto">
+            <motion.div 
+              className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-[calc(50vh-4rem)] lg:h-auto"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+            >
               <div className="overflow-y-auto">
                 <FormatOptions 
                   transcriptLength={transcript.length}
@@ -511,9 +544,11 @@ export default function Home() {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
