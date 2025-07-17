@@ -234,12 +234,10 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
                 ];
                 
                 let splitIndex = -1;
-                let foundPattern = '';
                 
                 for (const pattern of timestampPatterns) {
                   splitIndex = chunkOutput.indexOf(pattern);
                   if (splitIndex !== -1) {
-                    foundPattern = pattern;
                     break;
                   }
                 }
