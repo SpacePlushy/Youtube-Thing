@@ -156,6 +156,67 @@ export default function Home() {
       const decoder = new TextDecoder();
       let accumulatedText = '';
       let progressData = { current: 0, total: 1 };
+      let targetProgress = 0;
+      let displayProgress = 0;
+      let animationFrameId: number | null = null;
+      let progressTimer: NodeJS.Timeout | null = null;
+      
+      // Smooth progress animation
+      const animateProgress = () => {
+        if (displayProgress < targetProgress) {
+          displayProgress = Math.min(displayProgress + 1, targetProgress);
+          const message = progressData.total > 1 
+            ? `Formatting transcript... (chunk ${progressData.current} of ${progressData.total})`
+            : 'Formatting transcript...';
+          setFormattingProgress({ message, progress: displayProgress });
+          
+          // Continue animating if not reached target
+          if (displayProgress < targetProgress) {
+            animationFrameId = requestAnimationFrame(animateProgress);
+          }
+        }
+      };
+      
+      // Estimate time per chunk based on transcript length (3-10 seconds per chunk)
+      const estimatedTimePerChunk = Math.min(10000, Math.max(3000, transcript.length * 2));
+      
+      // Start smooth progress increment
+      const startSmoothProgress = (currentChunk: number, totalChunks: number) => {
+        if (progressTimer) {
+          clearInterval(progressTimer);
+          progressTimer = null;
+        }
+        
+        const startProgress = (currentChunk / totalChunks) * 100;
+        const endProgress = ((currentChunk + 1) / totalChunks) * 100;
+        const increment = (endProgress - startProgress) / (estimatedTimePerChunk / 100);
+        
+        progressTimer = setInterval(() => {
+          if (targetProgress < endProgress - 1) {
+            targetProgress = Math.min(targetProgress + increment, endProgress - 1);
+            animateProgress();
+          } else {
+            clearInterval(progressTimer!);
+            progressTimer = null;
+          }
+        }, 100);
+      };
+      
+      // Cleanup function
+      const cleanupProgress = () => {
+        if (progressTimer) {
+          clearInterval(progressTimer);
+          progressTimer = null;
+        }
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      };
+      
+      // Start initial progress animation to show activity
+      targetProgress = 5;
+      animateProgress();
       
       while (true) {
         const { done, value } = await reader.read();
@@ -169,7 +230,32 @@ export default function Home() {
         const progressMatch = textChunk.match(/__PROGRESS__:({.*?})\n/);
         if (progressMatch) {
           try {
-            progressData = JSON.parse(progressMatch[1]);
+            const newProgressData = JSON.parse(progressMatch[1]);
+            
+            // If starting a new chunk, begin smooth progress
+            if (newProgressData.current !== progressData.current && newProgressData.current < newProgressData.total) {
+              startSmoothProgress(newProgressData.current, newProgressData.total);
+            }
+            
+            // For single chunk transcripts, start smooth progress immediately
+            if (progressData.current === 0 && progressData.total === 1 && newProgressData.total === 1) {
+              targetProgress = 10;
+              animateProgress();
+              startSmoothProgress(0, 1);
+            }
+            
+            // If chunk completed, jump to actual progress
+            if (newProgressData.current > progressData.current) {
+              if (progressTimer) {
+                clearInterval(progressTimer);
+                progressTimer = null;
+              }
+              targetProgress = Math.round((newProgressData.current / newProgressData.total) * 100);
+              animateProgress();
+            }
+            
+            progressData = newProgressData;
+            
             // Remove progress marker from output
             const cleanedChunk = textChunk.replace(/__PROGRESS__:.*?\n/g, '');
             accumulatedText += cleanedChunk;
@@ -182,16 +268,6 @@ export default function Home() {
         }
         
         setFormattedTranscript(accumulatedText.replace(/__PROGRESS__:.*?\n/g, ''));
-        
-        // Calculate truly accurate progress based on chunks completed
-        const progress = progressData.total > 0 
-          ? Math.round((progressData.current / progressData.total) * 100)
-          : 0;
-        
-        const message = progressData.total > 1 
-          ? `Formatting transcript... (chunk ${progressData.current} of ${progressData.total})`
-          : 'Formatting transcript...';
-        setFormattingProgress({ message, progress });
       }
       
       // Decode any remaining bytes without the stream flag
@@ -204,8 +280,25 @@ export default function Home() {
       const cleanedTranscript = accumulatedText.replace(/__PROGRESS__:.*?\n/g, '');
       setFormattedTranscript(cleanedTranscript);
       
-      setFormattingProgress({ message: 'Complete!', progress: 100 });
-      setTimeout(() => setFormattingProgress(null), 1000);
+      // Cleanup timers and animate to 100%
+      cleanupProgress();
+      targetProgress = 100;
+      displayProgress = Math.max(displayProgress, 95); // Jump to at least 95% if we're behind
+      
+      // Animate final progress to 100%
+      const finalAnimation = () => {
+        if (displayProgress < 100) {
+          displayProgress = Math.min(displayProgress + 1, 100);
+          setFormattingProgress({ message: 'Formatting transcript...', progress: displayProgress });
+          if (displayProgress < 100) {
+            requestAnimationFrame(finalAnimation);
+          } else {
+            setFormattingProgress({ message: 'Complete!', progress: 100 });
+            setTimeout(() => setFormattingProgress(null), 1000);
+          }
+        }
+      };
+      finalAnimation();
       
       // Track successful formatting
       analytics.trackFormatting({
