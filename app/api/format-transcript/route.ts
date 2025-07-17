@@ -42,8 +42,8 @@ function findNonOverlappingContent(
   const allMatches = Array.from(chunkOutput.matchAll(timestampRegex));
   
   if (allMatches.length > 1) {
-    // Calculate expected break point based on overlap ratio
-    const overlapRatio = overlap / chunkSegments.length;
+    // Calculate expected break point based on overlap ratio, but be more conservative
+    const overlapRatio = Math.min(0.3, overlap / chunkSegments.length); // Cap at 30%
     const expectedBreakPoint = Math.floor(chunkOutput.length * overlapRatio);
     
     // Find the first timestamp that appears after our expected break point
@@ -63,9 +63,9 @@ function findNonOverlappingContent(
     const timestampLines = lines.filter(line => /^\[[\d:]+\]/.test(line.trim()));
     
     if (timestampLines.length > 0) {
-      // Find a good break point by analyzing timestamp progression
-      const midPoint = Math.floor(timestampLines.length / 2);
-      const targetLine = timestampLines[midPoint];
+      // Find a good break point by analyzing timestamp progression - use earlier point to preserve content
+      const quarterPoint = Math.floor(timestampLines.length / 4); // Use 1/4 instead of 1/2
+      const targetLine = timestampLines[quarterPoint];
       const lineIndex = chunkOutput.indexOf(targetLine);
       
       if (lineIndex !== -1) {
@@ -82,12 +82,12 @@ function findNonOverlappingContent(
     }
   }
 
-  // Strategy 4: Conservative fallback - use later portion to minimize duplication
-  // This is better than losing content entirely
-  const conservativeStart = Math.floor(chunkOutput.length * 0.6);
+  // Strategy 4: Conservative fallback - prefer content preservation over perfect deduplication
+  // Use a much smaller skip to avoid losing significant content
+  const conservativeStart = Math.floor(chunkOutput.length * 0.25);
   const fallbackContent = chunkOutput.substring(conservativeStart);
   
-  console.warn('Using conservative overlap detection fallback');
+  console.warn('Using conservative overlap detection fallback - preserving more content');
   return fallbackContent;
 }
 
