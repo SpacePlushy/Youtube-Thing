@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkBotId } from 'botid/server';
 import { extractVideoId } from '@/lib/youtube';
 
 interface OxylabsResponse {
@@ -22,6 +23,16 @@ interface TranscriptSegment {
 
 export async function POST(request: NextRequest) {
   try {
+    // BotID verification - protect against automated transcript extraction
+    const botVerification = await checkBotId();
+    if (botVerification.isBot) {
+      console.log('[BotID] Bot detected, blocking transcript extraction request');
+      return NextResponse.json({ 
+        error: 'Access denied' 
+      }, { status: 403 });
+    }
+    console.log('[BotID] Request verified as human');
+
     const { videoId: videoIdOrUrl, language = 'en', transcriptOrigin = 'auto_generated' } = await request.json() as { 
       videoId: string;
       language?: string;

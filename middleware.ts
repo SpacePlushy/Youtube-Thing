@@ -11,11 +11,11 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
   
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""};
+    script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""} https://*.vercel.app;
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
-    connect-src 'self' https://*.youtube.com https://*.googleapis.com https://*.vercel.app wss://*.vercel.app https://generativelanguage.googleapis.com;
+    connect-src 'self' https://*.youtube.com https://*.googleapis.com https://*.vercel.app wss://*.vercel.app https://generativelanguage.googleapis.com https://api.botid.com;
     media-src 'self';
     object-src 'none';
     base-uri 'self';

@@ -21,16 +21,25 @@ This document provides the complete technology stack and file tree structure for
 - **Groq LPU™** - Ultra-fast AI formatting service
 - **Vercel AI SDK** - Unified streaming for AI responses
 - **get-video-id** - Robust YouTube URL parsing library
+- **YouTube Transcript** - Direct transcript extraction library
+- **ytdl-core** - YouTube video metadata extraction
+- **Deepgram SDK** - Speech-to-text API integration
 
 ### Rate Limiting & Caching
 - **Upstash Redis** - Distributed rate limiting (1 request per 10 seconds)
 - **Browser localStorage** - Client-side transcript caching (7-day TTL)
+- **LRU Cache** - In-memory caching with automatic eviction
+
+### Data Validation & Utilities
+- **Zod** - Runtime type validation and schema validation
+- **AI SDK** - Groq and OpenAI integrations with streaming support
 
 ### Development & Quality Tools
 - **ESLint** - Code linting and quality checks
 - **Prettier** - Code formatting (assumed)
 - **TypeScript** - Static type checking
 - **npm** - Package management
+- **Vercel Analytics** - Usage analytics and performance monitoring
 
 ## Complete Project Structure
 
@@ -51,6 +60,8 @@ Youtube-Thing/
 │   ├── layout.tsx                      # Root layout component
 │   ├── page.tsx                        # Main application page
 │   ├── globals.css                     # Global styles
+│   ├── sitemap.ts                      # SEO sitemap generation
+│   ├── icon.svg                        # Custom app icon (SVG)
 │   └── api/                            # API routes
 │       ├── transcript-oxylabs/         # Oxylabs API integration
 │       │   └── route.ts                # Oxylabs transcript extraction
@@ -118,7 +129,8 @@ Youtube-Thing/
 │   └── open-issues/                    # Open issues tracking
 │       └── example-api-performance-issue.md # Performance issue example
 ├── public/                             # Static assets
-│   └── favicon.ico                     # Website favicon
+│   ├── favicon.ico                     # Website favicon
+│   └── robots.txt                      # SEO robots configuration
 ├── logs/                               # Application logs directory
 ├── MCP-ASSISTANT-RULES.md              # MCP assistant configuration
 ├── OXYLABS_SETUP.md                    # Oxylabs setup instructions
@@ -138,6 +150,9 @@ Youtube-Thing/
 - Proprietary service names hidden from client-side code
 - Generic error messages for user-facing responses
 - Detailed server-side logging for debugging
+- Webpack DefinePlugin prevents environment variable exposure to client
+- Comprehensive security headers via middleware (CSP, HSTS, X-Frame-Options)
+- Rate limiting prevents API abuse and DDoS attacks
 
 ### Performance Optimization
 - Browser-based caching with 7-day TTL
@@ -149,6 +164,18 @@ Youtube-Thing/
 - React hooks for local component state
 - Browser localStorage for transcript caching
 - Real-time progress tracking with smooth animations
+
+### SEO Infrastructure
+- **Dynamic Sitemap Generation** - Automated SEO sitemap via app/sitemap.ts
+- **Comprehensive Metadata** - Next.js 15 Metadata API with OpenGraph and Twitter Cards
+- **Structured Data** - JSON-LD implementation for search engine rich snippets
+- **Mobile Optimization** - Viewport configuration and responsive design patterns
+- **Custom Branding** - SVG favicon with YT brand identity
+
+### Authentication Model
+- **Public Access** - No authentication required for end users
+- **Open Platform** - Site accessible to all users without login barriers
+- **API Protection** - Rate limiting provides security without blocking legitimate use
 
 ---
 

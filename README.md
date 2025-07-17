@@ -13,12 +13,14 @@ A modern YouTube transcript extraction tool built with Next.js and Oxylabs API. 
 - 🤖 **AI Formatting** - Format transcripts with AI (clean, summarize, chapters, bullets)
 - 🚀 **Ultra-Fast Processing** - Advanced AI integration for lightning-fast formatting
 - 💰 **Free AI Tier** - Generous free tier for transcript formatting
+- 🛡️ **Bot Protection** - Advanced bot detection with Vercel BotID
 
 ## Tech Stack
 
 - **Frontend**: Next.js 15.3, React, TypeScript
 - **Styling**: Tailwind CSS
-- **API**: Oxylabs Web Scraper API
+- **API**: Oxylabs Web Scraper API, Groq AI
+- **Security**: Vercel BotID, Rate Limiting (Upstash Redis)
 - **Deployment**: Vercel
 
 ## Getting Started
@@ -54,6 +56,10 @@ OXYLABS_PASSWORD=your_password
 
 # AI Formatting (required for AI features)
 GROQ_API_KEY=your_groq_api_key     # Get free at https://console.groq.com/keys
+
+# Bot Protection (automatically configured on Vercel)
+# BotID is configured automatically when deployed to Vercel
+# No additional environment variables needed
 ```
 
 ### Development
@@ -80,7 +86,10 @@ npm start
 3. Add environment variables in Vercel dashboard:
    - `OXYLABS_USERNAME`
    - `OXYLABS_PASSWORD`
+   - `GROQ_API_KEY` (for AI formatting)
 4. Deploy!
+
+**Note**: BotID protection is automatically enabled on Vercel with no additional configuration required.
 
 ## Usage
 
@@ -94,8 +103,9 @@ The app will automatically fall back to available transcripts if your preferred 
 
 ## API Routes
 
-- `/api/transcript-oxylabs` - Main transcript extraction endpoint
-- `/api/format-transcript` - AI-powered transcript formatting endpoint
+- `/api/transcript-oxylabs` - Main transcript extraction endpoint (protected by BotID)
+- `/api/transcript-primary` - Proxied transcript endpoint (protected by BotID)
+- `/api/format-transcript` - AI-powered transcript formatting endpoint (protected by BotID)
 
 ## Environment Variables
 
@@ -104,6 +114,13 @@ The app will automatically fall back to available transcripts if your preferred 
 | `OXYLABS_USERNAME` | Your Oxylabs username | Yes |
 | `OXYLABS_PASSWORD` | Your Oxylabs password | Yes |
 | `GROQ_API_KEY` | Groq API key for AI formatting | For AI features |
+
+## Security Features
+
+- **Bot Protection**: Vercel BotID automatically protects all API endpoints from automated abuse
+- **Rate Limiting**: Upstash Redis-based rate limiting (1 request per 10 seconds)
+- **CSP Headers**: Comprehensive Content Security Policy
+- **Environment Protection**: Server-side environment variables never exposed to client
 
 ## License
 

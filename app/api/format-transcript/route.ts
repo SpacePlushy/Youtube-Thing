@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
+import { checkBotId } from 'botid/server';
 import { buildPrompt } from '@/lib/ai-prompts';
 import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
@@ -54,6 +55,20 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
+    // BotID verification - protect against automated AI formatting abuse
+    const botVerification = await checkBotId();
+    if (botVerification.isBot) {
+      console.log('[BotID] Bot detected, blocking AI formatting request');
+      return new Response(
+        JSON.stringify({ error: 'Access denied' }),
+        { 
+          status: HTTP_CONFIG.STATUS_CODES.FORBIDDEN, 
+          headers: HTTP_CONFIG.HEADERS.JSON 
+        }
+      );
+    }
+    console.log('[BotID] AI formatting request verified as human');
+
     const { transcript, options } = await request.json();
     
     // Process the request

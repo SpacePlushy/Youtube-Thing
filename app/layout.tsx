@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
+import { BotIdClient } from 'botid/client'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -94,6 +95,12 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+        <BotIdClient protect={[
+          { path: '/api/transcript-oxylabs', method: 'POST' },
+          { path: '/api/transcript-primary', method: 'POST' },
+          { path: '/api/format-transcript', method: 'POST' },
+          { path: '/api/transcript', method: 'POST' }
+        ]} />
         {children}
         <Analytics />
       </body>
