@@ -50,7 +50,8 @@ async function waitForTokens(maxRetries = 10): Promise<boolean> {
 /**
  * Fetch wrapper that ensures BotID is ready
  */
-export async function botIdFetch(url: string, options?: RequestInit): Promise<Response> {
+export async function botIdFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
   console.log('[BotID Fetch] Starting protected request to:', url);
   
   // First ensure BotID is initialized
@@ -75,11 +76,11 @@ export async function botIdFetch(url: string, options?: RequestInit): Promise<Re
   });
   
   // Make the actual fetch request
-  return fetch(url, {
-    ...options,
+  return fetch(input, {
+    ...init,
     credentials: 'include', // Ensure cookies are sent
     headers: {
-      ...options?.headers,
+      ...init?.headers,
       // Some implementations might need explicit headers
       'X-Requested-With': 'XMLHttpRequest'
     }
