@@ -81,16 +81,16 @@ export async function extractTranscript(
     let apiUrl = '/api/transcript'; // Default endpoint
     
     if (provider === 'primary') {
-      apiUrl = '/api/transcript-oxylabs';
+      apiUrl = '/api/transcript-primary';
       console.log('[Frontend] Using primary transcript API');
     } else if (provider === 'alt3') {
-      apiUrl = '/api/transcript-brightdata-proxy';
+      apiUrl = '/api/transcript-alt3';
       console.log('[Frontend] Using alternative API 3');
     } else if (provider === 'alt2') {
-      apiUrl = '/api/transcript-brightdata';
+      apiUrl = '/api/transcript-alt2';
       console.log('[Frontend] Using alternative API 2');
     } else if (provider === 'alt1') {
-      apiUrl = '/api/transcript-deepgram';
+      apiUrl = '/api/transcript-alt1';
       console.log('[Frontend] Using alternative API 1');
     } else if (process.env.NEXT_PUBLIC_WORKER_URL) {
       apiUrl = process.env.NEXT_PUBLIC_WORKER_URL;

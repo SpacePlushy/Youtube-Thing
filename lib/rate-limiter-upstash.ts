@@ -17,6 +17,10 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
     requests: 10,
     window: '1 s', // 10 requests per second
   },
+  '/api/transcript-primary': {
+    requests: 10,
+    window: '1 s', // 10 requests per second (proxy to oxylabs)
+  },
   '/api/format-transcript': {
     requests: 10,
     window: '1 s', // 10 requests per second
