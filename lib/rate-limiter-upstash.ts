@@ -1,10 +1,14 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
+// Duration type from Upstash
+type Unit = "ms" | "s" | "m" | "h" | "d";
+type Duration = `${number} ${Unit}` | `${number}${Unit}`;
+
 // Rate limiter configuration
 interface RateLimitConfig {
   requests: number;
-  window: string;
+  window: Duration;
 }
 
 // Define rate limits for different endpoints
