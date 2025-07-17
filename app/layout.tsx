@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { BotIdClient } from 'botid/client'
 import { Analytics } from '@vercel/analytics/react'
 import './globals.css'
 
@@ -53,20 +52,6 @@ export const viewport: Viewport = {
   userScalable: false,
 }
 
-const protectedRoutes = [
-  {
-    path: '/api/*',
-    method: 'POST',
-  },
-  {
-    path: '/api/*',
-    method: 'PUT',
-  },
-  {
-    path: '/api/*',
-    method: 'DELETE',
-  },
-]
 
 export default function RootLayout({
   children,
@@ -103,8 +88,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Temporarily disabled BotID until properly configured */}
-        {/* <BotIdClient protect={protectedRoutes} /> */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
