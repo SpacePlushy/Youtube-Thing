@@ -199,8 +199,10 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
           controller.enqueue(encoder.encode(`__PROGRESS__:${JSON.stringify({ current: 0, total: totalChunks })}\n`));
           
           // Process each LangChain chunk sequentially with timestamp continuity
+          console.log(`Processing ${totalChunks} chunks for transcript formatting`);
           for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
+            console.log(`Processing chunk ${i + 1}/${totalChunks}, segments: ${chunk.length}`);
             const chunkContent = formatTranscriptForAI(chunk, options);
             
             // Get chunk time boundaries for AI context
@@ -233,15 +235,24 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             let finalOutput = cleanAIOutput(chunkOutput);
             
             // Apply AI timestamp continuity fix for sequential chunks
-            if (options.includeTimestamps && envConfig.groqApiKey) {
+            // TEMPORARILY DISABLED FOR DEBUGGING
+            if (false && options.includeTimestamps && envConfig.groqApiKey) {
               try {
+                console.log(`Applying timestamp continuity for chunk ${i + 1}, range: ${chunkStartTime} to ${chunkEndTime}`);
                 const timeRange = {
                   start: chunkStartTime,
                   end: chunkEndTime,
                   videoStart: firstTimestamp,
                   videoEnd: lastTimestamp
                 };
-                finalOutput = await fixTimestampContinuity(finalOutput, processingContext, envConfig.groqApiKey, timeRange);
+                
+                // Only apply timestamp continuity if we have reasonable content
+                if (finalOutput.trim().length > 10) {
+                  finalOutput = await fixTimestampContinuity(finalOutput, processingContext, envConfig.groqApiKey, timeRange);
+                  console.log(`Timestamp continuity completed for chunk ${i + 1}`);
+                } else {
+                  console.log(`Skipping timestamp continuity for chunk ${i + 1} - insufficient content`);
+                }
               } catch (error) {
                 console.error('Timestamp continuity fix failed for chunk', i, error);
                 // Continue without timestamp fix if it fails

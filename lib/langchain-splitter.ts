@@ -142,9 +142,12 @@ export async function fixTimestampContinuity(
   
   // If this is the first chunk, initialize window and return as-is
   if (!context.lastTimestamp || context.windowBuffer.length === 0) {
+    console.log('First chunk - initializing rolling window, no timestamp fix needed');
     updateRollingWindow(context, formattedChunk);
     return formattedChunk;
   }
+  
+  console.log(`AI timestamp continuity: processing chunk with last timestamp ${context.lastTimestamp}`);
   
   // Build context from rolling window (last 2-3 chunks for efficiency)
   const windowContext = context.windowBuffer.slice(-2).join('\n\n');
@@ -181,7 +184,7 @@ CRITICAL: Return ONLY the corrected transcript chunk. No explanations or comment
       system: 'You are a precise timestamp continuity fixer for long video transcripts. Use rolling window context efficiently.',
       prompt: continuityPrompt,
       temperature: 0.05, // Very low temperature for timestamp precision
-      maxTokens: 12000, // Increased for longer chunks
+      maxTokens: 50000, // Match main processing token limit
     });
     
     let correctedChunk = '';
@@ -278,6 +281,7 @@ export function getOptimalChunkConfig(transcriptLength: number): SplitterConfig 
  * Check if transcript should use chunking or single processing
  */
 export function shouldUseChunking(transcriptLength: number): boolean {
-  // Use chunking for videos longer than ~20 minutes
-  return transcriptLength > 600; // 600 segments ≈ 20 minutes
+  // Use chunking for videos longer than ~10 minutes to ensure robustness
+  console.log(`Transcript length: ${transcriptLength} segments, using chunking: ${transcriptLength > 300}`);
+  return transcriptLength > 300; // 300 segments ≈ 10 minutes
 }
