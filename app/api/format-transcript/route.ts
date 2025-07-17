@@ -266,16 +266,80 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
           // Process each LangChain chunk sequentially with timestamp continuity
           console.log(`Processing ${totalChunks} chunks for transcript formatting`);
           let successfulChunks = 0;
+          let accumulatedSegments: any[] = []; // Accumulate segments from skipped chunks
           
           for (let i = 0; i < chunks.length; i++) {
             try {
               const chunk = chunks[i];
-              console.log(`Processing chunk ${i + 1}/${totalChunks}, segments: ${chunk.length}, first timestamp: ${chunk[0]?.timestamp}, last timestamp: ${chunk[chunk.length-1]?.timestamp}`);
-              const chunkContent = formatTranscriptForAI(chunk, options);
+              
+              // Validate chunk before processing
+              if (!chunk || chunk.length === 0) {
+                console.warn(`Chunk ${i + 1} is empty, skipping`);
+                continue;
+              }
+              
+              // Merge with accumulated segments from previous invalid chunks
+              const mergedChunk = [...accumulatedSegments, ...chunk];
+              const previousAccumulated = accumulatedSegments.length;
+              accumulatedSegments = []; // Reset accumulator
+              
+              console.log(`[DEBUG] Chunk ${i + 1} - Original segments: ${chunk.length}, Previously accumulated: ${previousAccumulated}, Merged total: ${mergedChunk.length}`);
+              
+              // Debug: Show first few segments
+              if (mergedChunk.length > 0) {
+                console.log(`[DEBUG] First segment: timestamp="${mergedChunk[0]?.timestamp}", text="${mergedChunk[0]?.text?.substring(0, 50)}..."`);
+                console.log(`[DEBUG] Last segment: timestamp="${mergedChunk[mergedChunk.length-1]?.timestamp}", text="${mergedChunk[mergedChunk.length-1]?.text?.substring(0, 50)}..."`);
+              }
+              
+              // Check for valid timestamps in chunk
+              const validTimestamps = mergedChunk.filter(seg => 
+                seg.timestamp && 
+                seg.timestamp !== '__' && 
+                /^\d{1,2}:\d{2}(?::\d{2})?$/.test(seg.timestamp)
+              );
+              
+              const invalidTimestamps = mergedChunk.filter(seg => 
+                seg.timestamp && 
+                (seg.timestamp === '__' || !/^\d{1,2}:\d{2}(?::\d{2})?$/.test(seg.timestamp))
+              );
+              
+              console.log(`[DEBUG] Valid timestamps: ${validTimestamps.length}, Invalid timestamps: ${invalidTimestamps.length}`);
+              
+              if (invalidTimestamps.length > 0) {
+                console.log(`[DEBUG] Invalid timestamp examples:`, invalidTimestamps.slice(0, 3).map(seg => seg.timestamp));
+              }
+              
+              if (validTimestamps.length === 0 && options.includeTimestamps) {
+                console.warn(`[WARNING] Chunk ${i + 1} has no valid timestamps, accumulating ${mergedChunk.length} segments for next chunk`);
+                // Accumulate segments for next chunk
+                accumulatedSegments = mergedChunk;
+                continue;
+              }
+              
+              // Clean invalid timestamps from the chunk
+              const cleanedChunk = mergedChunk.map(seg => {
+                if (seg.timestamp && (seg.timestamp === '__' || !/^\d{1,2}:\d{2}(?::\d{2})?$/.test(seg.timestamp))) {
+                  console.warn(`[CLEAN] Replacing invalid timestamp: "${seg.timestamp}" -> "0:00"`);
+                  return { ...seg, timestamp: '0:00' }; // Default to 0:00 for invalid timestamps
+                }
+                return seg;
+              });
+              
+              console.log(`Processing chunk ${i + 1}/${totalChunks}, segments: ${cleanedChunk.length}, first timestamp: ${cleanedChunk[0]?.timestamp}, last timestamp: ${cleanedChunk[cleanedChunk.length-1]?.timestamp}`);
+              const chunkContent = formatTranscriptForAI(cleanedChunk, options);
+              
+              console.log(`[DEBUG] Chunk ${i + 1} content length: ${chunkContent.length} chars`);
+              console.log(`[DEBUG] Chunk ${i + 1} content preview: "${chunkContent.substring(0, 100)}..."`);
+              
+              // Validate chunk content
+              if (!chunkContent || chunkContent.trim().length === 0) {
+                console.warn(`[ERROR] Chunk ${i + 1} produced empty content, skipping`);
+                continue;
+              }
             
             // Get chunk time boundaries for AI context
-            const chunkStartTime = chunk[0]?.timestamp || '0:00';
-            const chunkEndTime = chunk[chunk.length - 1]?.timestamp || '0:00';
+            const chunkStartTime = cleanedChunk[0]?.timestamp || '0:00';
+            const chunkEndTime = cleanedChunk[cleanedChunk.length - 1]?.timestamp || '0:00';
             
             // Build prompts for this chunk with timestamp context
             const prompts = buildPrompt(options);
@@ -295,17 +359,32 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             
             // Collect chunk output
             let chunkOutput = '';
+            let streamPartCount = 0;
+            console.log(`[DEBUG] Starting to collect AI response for chunk ${i + 1}...`);
+            
             for await (const textPart of result.textStream) {
               chunkOutput += textPart;
+              streamPartCount++;
+              if (streamPartCount <= 3) {
+                console.log(`[DEBUG] Stream part ${streamPartCount}: ${textPart.length} chars`);
+              }
             }
+            
+            console.log(`[DEBUG] AI response complete - Total parts: ${streamPartCount}, Total length: ${chunkOutput.length} chars`);
             
             // Clean AI commentary
             let finalOutput = cleanAIOutput(chunkOutput);
+            console.log(`[DEBUG] After cleaning - Final output length: ${finalOutput.length} chars`);
             console.log(`Processed chunk ${i + 1} with AI formatting, output length: ${finalOutput.length} chars`);
             
             // Validate output before streaming
             if (!finalOutput || finalOutput.trim().length === 0) {
-              console.error(`WARNING: Chunk ${i + 1} produced empty output`);
+              console.error(`[ERROR] Chunk ${i + 1} produced empty output`);
+              console.error(`[DEBUG] Original AI output was: "${chunkOutput.substring(0, 200)}..."`);
+              console.error(`[DEBUG] User prompt length: ${userPrompt.length}, System prompt length: ${systemPrompt.length}`);
+              
+              // Try to accumulate this chunk for retry with next chunk
+              accumulatedSegments = cleanedChunk;
               continue;
             }
             
@@ -328,6 +407,37 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
               console.error(`Error processing chunk ${i + 1}:`, chunkError);
               // Continue with next chunk instead of failing entirely
               controller.enqueue(encoder.encode(`\n[Error processing chunk ${i + 1}]\n`));
+            }
+          }
+          
+          // Handle any remaining accumulated segments
+          if (accumulatedSegments.length > 0) {
+            console.log(`Processing remaining accumulated segments: ${accumulatedSegments.length} segments`);
+            try {
+              const finalContent = formatTranscriptForAI(accumulatedSegments, options);
+              if (finalContent && finalContent.trim()) {
+                const prompts = buildPrompt(options);
+                const result = await streamText({
+                  model: groq(envConfig.aiModel),
+                  system: systemPrompt,
+                  prompt: prompts.user + finalContent,
+                  temperature: envConfig.aiTemperature,
+                  maxTokens: envConfig.aiMaxTokensChunk,
+                });
+                
+                let finalOutput = '';
+                for await (const textPart of result.textStream) {
+                  finalOutput += textPart;
+                }
+                
+                const cleaned = cleanAIOutput(finalOutput);
+                if (cleaned.trim()) {
+                  controller.enqueue(encoder.encode(cleaned));
+                  successfulChunks++;
+                }
+              }
+            } catch (error) {
+              console.error('Error processing accumulated segments:', error);
             }
           }
           

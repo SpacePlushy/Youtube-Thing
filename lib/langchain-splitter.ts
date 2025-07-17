@@ -119,10 +119,32 @@ function parseTextChunkToSegments(chunk: string, includeTimestamps: boolean): Tr
   
   while ((match = timestampPattern.exec(chunk)) !== null) {
     const [, timestamp, text] = match;
-    if (text.trim()) {
+    
+    // Validate timestamp format
+    if (timestamp && timestamp !== '__' && text.trim()) {
+      // Basic timestamp validation - should be in format like "1:23" or "01:23:45"
+      const isValidTimestamp = /^\d{1,2}:\d{2}(?::\d{2})?$/.test(timestamp);
+      
+      if (isValidTimestamp) {
+        segments.push({
+          timestamp,
+          text: text.trim()
+        });
+      } else {
+        console.warn(`Invalid timestamp format: "${timestamp}", skipping segment`);
+      }
+    }
+  }
+  
+  // If no valid segments found, try to salvage the text content
+  if (segments.length === 0 && chunk.trim()) {
+    console.warn('No valid timestamp segments found in chunk, extracting text only');
+    // Remove all timestamp-like patterns and return as single segment
+    const textOnly = chunk.replace(/\[[^\]]*\]/g, '').trim();
+    if (textOnly) {
       segments.push({
-        timestamp,
-        text: text.trim()
+        timestamp: '0:00', // Default timestamp
+        text: textOnly
       });
     }
   }
