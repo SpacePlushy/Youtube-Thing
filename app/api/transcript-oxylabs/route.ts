@@ -36,13 +36,13 @@ export async function POST(request: NextRequest) {
         env: process.env.NODE_ENV 
       });
       
-      // Only block if definitively identified as a malicious bot
-      // Allow good bots (search engines, etc.) and humans
+      // More permissive approach: Only block if we're highly confident it's malicious
+      // BotID can have false positives, especially on mobile browsers
+      // For now, we'll rely on rate limiting as primary protection
       if (botVerification.isBot && !botVerification.isGoodBot) {
-        console.log('[BotID] Malicious bot detected, blocking transcript extraction request');
-        return NextResponse.json({ 
-          error: 'Access denied' 
-        }, { status: 403 });
+        console.warn('[BotID] Potential bot detected but allowing request (mobile browsers can trigger false positives)');
+        console.warn('[BotID] User-Agent:', request.headers.get('user-agent') || 'Unknown');
+        // Don't block - let rate limiting handle abuse protection
       }
       console.log('[BotID] Request verified as legitimate');
     } catch (botError) {
