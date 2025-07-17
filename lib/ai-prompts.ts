@@ -43,7 +43,7 @@ function getLengthConfig(length: string): string {
 
 function buildUserPrompt(includeTimestamps: boolean): string {
   return includeTimestamps 
-    ? 'IMPORTANT: Format timestamps exactly as shown in the input - each timestamp on its own line followed by text. Maintain this format:\n[timestamp]\ntext content here\n[timestamp]\nmore text content\n\nFormat this transcript:\n\n'
+    ? 'IMPORTANT: Format timestamps exactly as shown in the input - keep timestamps on the same line as the text. Maintain this format:\n[0:01] text content here\n[0:24] more text content\n\nFormat this transcript:\n\n'
     : 'Format this transcript:\n\n';
 }
 
@@ -55,7 +55,7 @@ function buildCleanPrompt(includeTimestamps: boolean): string {
 - Organizing into clear paragraphs
 - Maintaining the speaker's voice and meaning
 - Making it easy to read while preserving accuracy
-${includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`;
+${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}`;
 }
 
 function buildSummaryPrompt(includeTimestamps: boolean): string {
@@ -64,7 +64,7 @@ function buildSummaryPrompt(includeTimestamps: boolean): string {
 - Organizes information logically
 - Uses clear, professional language
 - Maintains accuracy to the original content
-${includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`;
+${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}`;
 }
 
 function buildChaptersPrompt(includeTimestamps: boolean): string {
@@ -73,7 +73,7 @@ function buildChaptersPrompt(includeTimestamps: boolean): string {
 - Creating descriptive chapter titles
 - Organizing content under each chapter
 - Adding brief introductions to each section
-${includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`;
+${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}`;
 }
 
 function buildBulletsPrompt(includeTimestamps: boolean): string {
@@ -82,20 +82,17 @@ function buildBulletsPrompt(includeTimestamps: boolean): string {
 - Group related points together
 - Use clear, concise language
 - Maintain logical flow
-${includeTimestamps ? '- IMPORTANT: Format timestamps exactly like this:\n[0:01]\nText content here\n[0:24]\nMore text content' : ''}`;
+${includeTimestamps ? '- IMPORTANT: Keep timestamps on the same line as text exactly like this:\n[0:01] Text content here\n[0:24] More text content' : ''}`;
 }
 
 function buildTimestampsPrompt(): string {
   return `You are a transcript formatter. Format this transcript EXACTLY like this example:
-[0:01]
-We may look on our time as the moment civilization was transformed...
-
-[0:24]
-The technology known as a chatbot is only one of the recent breakthroughs...
+[0:01] We may look on our time as the moment civilization was transformed...
+[0:24] The technology known as a chatbot is only one of the recent breakthroughs...
 
 RULES:
-- Each timestamp [HH:MM:SS] or [MM:SS] MUST be on its own line
-- Text follows immediately on the next line
+- Each timestamp [HH:MM:SS] or [MM:SS] MUST be on the same line as the text
+- Format as: [timestamp] text content
 - No extra spacing or formatting
 - Maintain chronological order`;
 }
