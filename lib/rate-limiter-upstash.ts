@@ -40,13 +40,9 @@ const redis = Redis.fromEnv();
 // Create rate limiters for each endpoint
 const rateLimiters: Record<string, Ratelimit> = {};
 
-// Global daily rate limiter for Oxylabs API usage
-const globalDailyLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(1000, '24 h'), // 1000 requests per 24 hours
-  prefix: '@upstash/ratelimit:global-daily-oxylabs',
-  analytics: true,
-});
+// Simple counter key for global daily usage
+const GLOBAL_DAILY_KEY = 'oxylabs:daily:usage';
+const GLOBAL_DAILY_LIMIT = 1000;
 
 // Initialize rate limiters
 Object.entries(RATE_LIMITS).forEach(([endpoint, config]) => {
@@ -68,6 +64,31 @@ export interface RateLimitResult {
   globalDailyReset?: number; // When global daily limit resets
 }
 
+// Simple helper to get/increment daily usage
+async function incrementDailyUsage(): Promise<{ count: number; resetAt: number }> {
+  const now = Date.now();
+  const todayKey = `${GLOBAL_DAILY_KEY}:${new Date().toISOString().split('T')[0]}`;
+  
+  // Increment and get new count
+  const count = await redis.incr(todayKey);
+  
+  // Set expiry to end of day (+ 1 hour buffer)
+  if (count === 1) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const ttl = Math.ceil((tomorrow.getTime() - now) / 1000) + 3600; // +1 hour buffer
+    await redis.expire(todayKey, ttl);
+  }
+  
+  // Calculate reset time (midnight)
+  const resetAt = new Date();
+  resetAt.setDate(resetAt.getDate() + 1);
+  resetAt.setHours(0, 0, 0, 0);
+  
+  return { count, resetAt: resetAt.getTime() };
+}
+
 export async function checkRateLimit(
   identifier: string,
   endpoint: string
@@ -75,55 +96,43 @@ export async function checkRateLimit(
   // Check if this endpoint has a global daily limit
   const config = RATE_LIMITS[endpoint] || RATE_LIMITS.default;
   
-  // If endpoint has global daily limit, check it first
+  // Check global daily limit first
   if (config.globalDailyLimit) {
-    const globalResult = await globalDailyLimiter.limit('global-oxylabs-daily');
+    const todayKey = `${GLOBAL_DAILY_KEY}:${new Date().toISOString().split('T')[0]}`;
+    const currentCount = (await redis.get(todayKey) as number) || 0;
     
-    if (!globalResult.success) {
-      console.log(`[Rate Limit] Global daily limit reached: ${globalResult.remaining}/${globalResult.limit}`);
+    console.log(`[Rate Limit] Checking global daily - Key: ${todayKey}, Count: ${currentCount}/${GLOBAL_DAILY_LIMIT}`);
+    
+    if (currentCount >= GLOBAL_DAILY_LIMIT) {
+      console.log(`[Rate Limit] Global daily limit reached: ${currentCount}/${GLOBAL_DAILY_LIMIT}`);
+      const resetAt = new Date();
+      resetAt.setDate(resetAt.getDate() + 1);
+      resetAt.setHours(0, 0, 0, 0);
+      
       return {
         success: false,
-        limit: globalResult.limit,
+        limit: GLOBAL_DAILY_LIMIT,
         remaining: 0,
-        reset: globalResult.reset,
-        pending: globalResult.pending,
-        globalDailyRemaining: globalResult.remaining,
-        globalDailyReset: globalResult.reset,
+        reset: resetAt.getTime(),
+        pending: Promise.resolve(),
+        globalDailyRemaining: 0,
+        globalDailyReset: resetAt.getTime(),
       };
     }
   }
   
-  // Get the appropriate rate limiter or use default
-  const limiter = rateLimiters[endpoint] || rateLimiters.default;
-  
   // Check per-user rate limit
+  const limiter = rateLimiters[endpoint] || rateLimiters.default;
   const result = await limiter.limit(identifier);
   
-  // Get current global daily stats for response headers
-  let globalDailyRemaining: number | undefined;
-  let globalDailyReset: number | undefined;
-  
-  if (config.globalDailyLimit) {
-    try {
-      // Get current global state without incrementing
-      const key = '@upstash/ratelimit:global-daily-oxylabs:global-oxylabs-daily';
-      const currentCount = await redis.get(key) as number || 0;
-      globalDailyRemaining = Math.max(0, config.globalDailyLimit - currentCount);
-      globalDailyReset = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
-    } catch (error) {
-      console.warn('[Rate Limit] Could not get global daily stats:', error);
-    }
+  // If per-user limit passed and this endpoint counts toward global limit, increment it
+  if (result.success && config.globalDailyLimit) {
+    const { count, resetAt } = await incrementDailyUsage();
+    result.globalDailyRemaining = Math.max(0, GLOBAL_DAILY_LIMIT - count);
+    result.globalDailyReset = resetAt;
   }
   
-  return {
-    success: result.success,
-    limit: result.limit,
-    remaining: result.remaining,
-    reset: result.reset,
-    pending: result.pending,
-    globalDailyRemaining,
-    globalDailyReset,
-  };
+  return result;
 }
 
 // Helper to get client identifier
@@ -177,24 +186,22 @@ export async function getGlobalDailyUsage(): Promise<{
   resetTime: number;
 }> {
   try {
-    // Use the analytics feature to get the current state
-    // The getRemaining method gets the remaining count without incrementing
-    const identifier = 'global-oxylabs-daily';
-    const remaining = await globalDailyLimiter.getRemaining(identifier);
+    // Simply read today's counter
+    const todayKey = `${GLOBAL_DAILY_KEY}:${new Date().toISOString().split('T')[0]}`;
+    const used = (await redis.get(todayKey) as number) || 0;
     
-    const limit = 1000;
-    const used = limit - remaining;
+    console.log(`[Admin Usage] Reading key: ${todayKey}, Value: ${used}`);
     
-    // For sliding window, the reset time is always 24 hours from the oldest request
-    // Since we don't have access to the exact reset time without incrementing,
-    // we'll estimate it as 24 hours from now
-    const resetTime = Date.now() + (24 * 60 * 60 * 1000);
+    // Calculate reset time (midnight)
+    const resetAt = new Date();
+    resetAt.setDate(resetAt.getDate() + 1);
+    resetAt.setHours(0, 0, 0, 0);
     
     return {
       used,
-      remaining,
-      limit,
-      resetTime,
+      remaining: Math.max(0, GLOBAL_DAILY_LIMIT - used),
+      limit: GLOBAL_DAILY_LIMIT,
+      resetTime: resetAt.getTime(),
     };
   } catch (error) {
     console.error('[Rate Limit] Error getting global daily usage:', error);
