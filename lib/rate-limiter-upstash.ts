@@ -177,14 +177,21 @@ export async function getGlobalDailyUsage(): Promise<{
   resetTime: number;
 }> {
   try {
-    const key = '@upstash/ratelimit:global-daily-oxylabs:global-oxylabs-daily';
-    const currentCount = await redis.get(key) as number || 0;
+    // Use the analytics feature to get the current state
+    // The getRemaining method gets the remaining count without incrementing
+    const identifier = 'global-oxylabs-daily';
+    const remaining = await globalDailyLimiter.getRemaining(identifier);
+    
     const limit = 1000;
-    const remaining = Math.max(0, limit - currentCount);
-    const resetTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
+    const used = limit - remaining;
+    
+    // For sliding window, the reset time is always 24 hours from the oldest request
+    // Since we don't have access to the exact reset time without incrementing,
+    // we'll estimate it as 24 hours from now
+    const resetTime = Date.now() + (24 * 60 * 60 * 1000);
     
     return {
-      used: currentCount,
+      used,
       remaining,
       limit,
       resetTime,
