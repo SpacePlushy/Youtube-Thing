@@ -41,8 +41,8 @@ export const metadata: Metadata = {
     canonical: 'https://youtubething.com',
   },
   other: {
-    'theme-color': '#141414',
-    'msapplication-TileColor': '#141414',
+    'theme-color': 'hsl(0 0% 8%)',
+    'msapplication-TileColor': 'hsl(0 0% 8%)',
   },
 }
 
