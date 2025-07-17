@@ -97,7 +97,10 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   const prompts = buildPrompt(options);
   
   // Check if chunking is needed using LangChain approach
-  if (shouldUseChunking(transcript.length)) {
+  const useChunking = shouldUseChunking(transcript.length);
+  console.log(`Transcript length: ${transcript.length} segments, using chunking: ${useChunking}`);
+  
+  if (useChunking) {
     return formatWithLangChainChunking(transcript, options, prompts.system);
   }
   
@@ -200,10 +203,13 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
           
           // Process each LangChain chunk sequentially with timestamp continuity
           console.log(`Processing ${totalChunks} chunks for transcript formatting`);
+          let successfulChunks = 0;
+          
           for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            console.log(`Processing chunk ${i + 1}/${totalChunks}, segments: ${chunk.length}`);
-            const chunkContent = formatTranscriptForAI(chunk, options);
+            try {
+              const chunk = chunks[i];
+              console.log(`Processing chunk ${i + 1}/${totalChunks}, segments: ${chunk.length}, first timestamp: ${chunk[0]?.timestamp}, last timestamp: ${chunk[chunk.length-1]?.timestamp}`);
+              const chunkContent = formatTranscriptForAI(chunk, options);
             
             // Get chunk time boundaries for AI context
             const chunkStartTime = chunk[0]?.timestamp || '0:00';
@@ -233,12 +239,19 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             
             // Clean AI commentary
             let finalOutput = cleanAIOutput(chunkOutput);
-            console.log(`Processed chunk ${i + 1} with AI formatting`);
+            console.log(`Processed chunk ${i + 1} with AI formatting, output length: ${finalOutput.length} chars`);
+            
+            // Validate output before streaming
+            if (!finalOutput || finalOutput.trim().length === 0) {
+              console.error(`WARNING: Chunk ${i + 1} produced empty output`);
+              continue;
+            }
             
             // Stream the result
             controller.enqueue(encoder.encode(finalOutput));
             
             processedChunks++;
+            successfulChunks++;
             
             // Send progress update
             controller.enqueue(encoder.encode(`\n__PROGRESS__:${JSON.stringify({ current: processedChunks, total: totalChunks })}\n`));
@@ -248,7 +261,15 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
               const separator = options.includeTimestamps ? '\n' : '\n\n';
               controller.enqueue(encoder.encode(separator));
             }
+            
+            } catch (chunkError) {
+              console.error(`Error processing chunk ${i + 1}:`, chunkError);
+              // Continue with next chunk instead of failing entirely
+              controller.enqueue(encoder.encode(`\n[Error processing chunk ${i + 1}]\n`));
+            }
           }
+          
+          console.log(`Completed processing ${successfulChunks}/${totalChunks} chunks successfully`);
           
           controller.close();
         } catch (error) {
