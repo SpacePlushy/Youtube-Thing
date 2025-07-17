@@ -93,6 +93,8 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
     throw new Error(ERROR_MESSAGES.SERVICE_NOT_CONFIGURED);
   }
   
+  try {
+  
   // Get prompts from secure module
   const prompts = buildPrompt(options);
   
@@ -105,9 +107,12 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   }
   
   // For smaller transcripts, use single request with progress
+  console.log(`Processing short video with single request, segments: ${transcript.length}`);
   const formattedTranscript = formatTranscriptForAI(transcript, options);
+  console.log(`Formatted transcript length: ${formattedTranscript.length} chars`);
   const userPrompt = prompts.user + formattedTranscript;
   
+  console.log(`Calling AI with model: ${envConfig.aiModel}, maxTokens: ${envConfig.aiMaxTokens}`);
   const result = streamText({
     model: groq(envConfig.aiModel),
     system: prompts.system,
@@ -123,17 +128,25 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   let accumulatedOutput = '';
   let cleaningApplied = false;
   
+  let totalChunksReceived = 0;
+  
   const transformStream = new TransformStream({
     async transform(chunk, controller) {
       // Send initial progress on first chunk
       if (firstChunk) {
         controller.enqueue(encoder.encode(`__PROGRESS__:${JSON.stringify({ current: 0, total: 1 })}\n`));
+        console.log('Starting single transcript processing stream');
         firstChunk = false;
       }
       
       // Accumulate chunks to apply cleaning to the beginning
       const chunkText = decoder.decode(chunk, { stream: true });
       accumulatedOutput += chunkText;
+      totalChunksReceived++;
+      
+      if (totalChunksReceived === 1) {
+        console.log(`Received first AI chunk, length: ${chunkText.length}`);
+      }
       
       // Apply cleaning to remove commentary only at the beginning
       if (!cleaningApplied && accumulatedOutput.length > 100) {
@@ -155,9 +168,12 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
     },
     
     flush(controller) {
+      console.log(`Stream flush: Total chunks received: ${totalChunksReceived}, Total output: ${accumulatedOutput.length} chars`);
+      
       // Handle any remaining accumulated output
       if (!cleaningApplied && accumulatedOutput) {
         const cleaned = cleanAIOutput(accumulatedOutput);
+        console.log(`Flushing cleaned output: ${cleaned.length} chars`);
         controller.enqueue(encoder.encode(cleaned));
       }
       
@@ -169,6 +185,11 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   return new Response(result.textStream.pipeThrough(transformStream), {
     headers: HTTP_CONFIG.HEADERS.STREAMING
   });
+  
+  } catch (error) {
+    console.error('Error in formatWithGroqStreamText:', error);
+    throw error;
+  }
 }
 
 // LangChain-powered chunking with clean boundaries

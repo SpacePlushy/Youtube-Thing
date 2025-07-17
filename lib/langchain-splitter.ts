@@ -255,7 +255,10 @@ export function getOptimalChunkConfig(transcriptLength: number): SplitterConfig 
   const avgCharsPerSegment = 80;
   const totalChars = transcriptLength * avgCharsPerSegment;
   
-  if (totalChars < 20000) { // ~5 min videos
+  // Handle very short videos that still need chunking
+  if (totalChars < 4000) { // ~1 min videos
+    return { chunkSize: 3000, chunkOverlap: 100 };
+  } else if (totalChars < 20000) { // ~5 min videos
     return { chunkSize: 8000, chunkOverlap: 200 };
   } else if (totalChars < 60000) { // ~15 min videos  
     return { chunkSize: 12000, chunkOverlap: 400 };
@@ -270,7 +273,11 @@ export function getOptimalChunkConfig(transcriptLength: number): SplitterConfig 
  * Check if transcript should use chunking or single processing
  */
 export function shouldUseChunking(transcriptLength: number): boolean {
-  // Use chunking for videos longer than ~10 minutes to ensure robustness
-  console.log(`Transcript length: ${transcriptLength} segments, using chunking: ${transcriptLength > 300}`);
-  return transcriptLength > 300; // 300 segments ≈ 10 minutes
+  // More dynamic threshold based on actual transcript size
+  // Very short videos (< 2 min) should definitely not use chunking
+  // Medium videos (2-5 min) can handle single processing
+  // Longer videos benefit from chunking for reliability
+  const threshold = 150; // ~5 minutes worth of segments
+  console.log(`Transcript length: ${transcriptLength} segments, using chunking: ${transcriptLength > threshold}`);
+  return transcriptLength > threshold;
 }
