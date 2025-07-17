@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NextFetchEvent } from 'next/server';
+import { checkRateLimit, getClientIdentifier, createRateLimitHeaders } from './lib/rate-limiter-upstash';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest, context: NextFetchEvent) {
   
   // Content Security Policy - production-ready for Next.js
   // In production, Next.js requires 'unsafe-eval' for certain optimizations
@@ -43,9 +45,43 @@ export function middleware(request: NextRequest) {
     requestHeaders.set(key, value);
   });
 
-  // Rate limiting check (basic implementation)
-  const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
-  const rateKey = `rate-limit:${ip}`;
+  // Check if this is an API route
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith('/api/')) {
+    // Get client identifier and check rate limit
+    const clientId = getClientIdentifier(request);
+    const rateLimitResult = await checkRateLimit(clientId, pathname);
+    
+    // If rate limit exceeded, return 429 response
+    if (!rateLimitResult.success) {
+      const response = NextResponse.json(
+        {
+          error: 'Too Many Requests',
+          message: 'Rate limit exceeded. Please try again later.',
+          retryAfter: rateLimitResult.reset,
+        },
+        { 
+          status: 429,
+          headers: createRateLimitHeaders(rateLimitResult),
+        }
+      );
+      
+      // Apply security headers to rate limit response
+      Object.entries(securityHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      
+      return response;
+    }
+    
+    // Handle analytics with waitUntil
+    context.waitUntil(rateLimitResult.pending);
+    
+    // Add rate limit headers to successful requests
+    Object.entries(createRateLimitHeaders(rateLimitResult)).forEach(([key, value]) => {
+      requestHeaders.set(key, value);
+    });
+  }
   
   // Create response with security headers
   const response = NextResponse.next({
