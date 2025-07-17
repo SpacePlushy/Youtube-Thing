@@ -5,13 +5,13 @@ import { checkRateLimit, getClientIdentifier, createRateLimitHeaders } from './l
 export async function middleware(request: NextRequest, context: NextFetchEvent) {
   
   // Content Security Policy - production-ready for Next.js
-  // In production, Next.js requires 'unsafe-eval' for certain optimizations
-  // and 'unsafe-inline' for hydration scripts
+  // 'unsafe-eval' required for: Next.js optimizations + BotID bot detection
+  // 'unsafe-inline' required for: Next.js hydration scripts
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""} https://*.vercel.app;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel.app;
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
