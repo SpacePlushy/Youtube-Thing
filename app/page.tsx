@@ -34,6 +34,28 @@ export default function Home() {
     }
   };
 
+  // Helper function to parse formatted transcript into timestamp/text pairs
+  const parseFormattedTranscript = (text: string): { timestamp: string; text: string }[] => {
+    const lines = text.split('\n');
+    const parsed: { timestamp: string; text: string }[] = [];
+    
+    for (const line of lines) {
+      // Match [timestamp] text pattern
+      const match = line.match(/^\[([^\]]+)\]\s*(.+)$/);
+      if (match) {
+        const [, timestamp, text] = match;
+        parsed.push({ timestamp: timestamp.trim(), text: text.trim() });
+      } else if (line.trim()) {
+        // Handle text without timestamp (continuation)
+        if (parsed.length > 0) {
+          parsed[parsed.length - 1].text += ' ' + line.trim();
+        }
+      }
+    }
+    
+    return parsed;
+  };
+
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -690,12 +712,22 @@ export default function Home() {
                   </div>
                   
                   <div className="bg-secondary/50 rounded p-4 flex-1 overflow-y-auto border border-border">
-                    <pre className="whitespace-pre-wrap text-sm text-card-foreground">
-                      {formattedTranscript}
+                    <div className="space-y-2">
+                      {parseFormattedTranscript(formattedTranscript).map((item, index) => (
+                        <div key={index} className="flex gap-3">
+                          <span className="text-sm text-muted-foreground min-w-[60px] font-mono">
+                            {item.timestamp}
+                          </span>
+                          <p className="text-sm text-card-foreground">{item.text}</p>
+                        </div>
+                      ))}
                       {isFormatting && (
-                        <span className="animate-pulse">▊</span>
+                        <div className="flex gap-3">
+                          <span className="text-sm text-muted-foreground min-w-[60px] font-mono"></span>
+                          <span className="text-sm text-card-foreground animate-pulse">▊</span>
+                        </div>
                       )}
-                    </pre>
+                    </div>
                   </div>
                 </div>
               )}
