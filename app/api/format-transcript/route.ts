@@ -5,6 +5,92 @@ import { buildPrompt, getChunkConfig, buildChunkPrompt } from '@/lib/ai-prompts'
 import { envConfig } from '@/lib/env-config';
 import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
 
+// Advanced overlap detection using multiple strategies
+function findNonOverlappingContent(
+  chunkOutput: string, 
+  chunkSegments: any[], 
+  overlap: number, 
+  includeTimestamps: boolean
+): string {
+  if (!includeTimestamps) {
+    // For non-timestamp content, use conservative text-based splitting
+    return chunkOutput.substring(Math.floor(chunkOutput.length * 0.4));
+  }
+
+  // Strategy 1: Find target timestamp from original segments
+  const targetSegmentIndex = Math.min(overlap, chunkSegments.length - 1);
+  const targetTimestamp = chunkSegments[targetSegmentIndex]?.timestamp;
+  
+  if (targetTimestamp) {
+    // Look for exact timestamp match with various formatting
+    const timestampPatterns = [
+      `\n[${targetTimestamp}]`,      // Newline + timestamp (most common)
+      `[${targetTimestamp}]`,        // Start of chunk
+      `\n\n[${targetTimestamp}]`,    // Double newline + timestamp
+    ];
+    
+    for (const pattern of timestampPatterns) {
+      const splitIndex = chunkOutput.indexOf(pattern);
+      if (splitIndex !== -1) {
+        return chunkOutput.substring(splitIndex);
+      }
+    }
+  }
+
+  // Strategy 2: Parse all timestamps and find logical break point
+  const timestampRegex = /(\n?)(\[[\d:]+\])/g;
+  const allMatches = Array.from(chunkOutput.matchAll(timestampRegex));
+  
+  if (allMatches.length > 1) {
+    // Calculate expected break point based on overlap ratio
+    const overlapRatio = overlap / chunkSegments.length;
+    const expectedBreakPoint = Math.floor(chunkOutput.length * overlapRatio);
+    
+    // Find the first timestamp that appears after our expected break point
+    const validMatch = allMatches.find(match => 
+      match.index !== undefined && match.index >= expectedBreakPoint
+    );
+    
+    if (validMatch && validMatch.index !== undefined) {
+      return chunkOutput.substring(validMatch.index);
+    }
+  }
+
+  // Strategy 3: Intelligent content-based overlap detection
+  if (allMatches.length > 0) {
+    // Look for repeating patterns that might indicate overlap
+    const lines = chunkOutput.split('\n');
+    const timestampLines = lines.filter(line => /^\[[\d:]+\]/.test(line.trim()));
+    
+    if (timestampLines.length > 0) {
+      // Find a good break point by analyzing timestamp progression
+      const midPoint = Math.floor(timestampLines.length / 2);
+      const targetLine = timestampLines[midPoint];
+      const lineIndex = chunkOutput.indexOf(targetLine);
+      
+      if (lineIndex !== -1) {
+        // Find the start of this line (include any preceding newline)
+        let startIndex = lineIndex;
+        while (startIndex > 0 && chunkOutput[startIndex - 1] !== '\n') {
+          startIndex--;
+        }
+        if (startIndex > 0 && chunkOutput[startIndex - 1] === '\n') {
+          startIndex--; // Include the newline
+        }
+        return chunkOutput.substring(startIndex);
+      }
+    }
+  }
+
+  // Strategy 4: Conservative fallback - use later portion to minimize duplication
+  // This is better than losing content entirely
+  const conservativeStart = Math.floor(chunkOutput.length * 0.6);
+  const fallbackContent = chunkOutput.substring(conservativeStart);
+  
+  console.warn('Using conservative overlap detection fallback');
+  return fallbackContent;
+}
+
 // Clean AI output by removing common commentary patterns
 function cleanAIOutput(output: string): string {
   // Common patterns that AI might add before the actual content
@@ -217,77 +303,14 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
             // First chunk: output everything
             controller.enqueue(encoder.encode(chunkOutput));
           } else {
-            // For subsequent chunks, remove the overlapping content
-            if (options.includeTimestamps) {
-              // Calculate where the new content should start
-              // The original segments have overlap from the previous chunk
-              // We want to find where the truly new content begins
-              const nonOverlapStartIndex = overlap;
-              const firstNewSegment = chunkSegments[nonOverlapStartIndex];
-              
-              if (firstNewSegment) {
-                // Look for this timestamp in the AI output to find where new content starts
-                const targetTimestamp = firstNewSegment.timestamp;
-                const timestampPatterns = [
-                  `\n[${targetTimestamp}]`,      // Most common case
-                  `[${targetTimestamp}]`,        // At start of output
-                ];
-                
-                let splitIndex = -1;
-                for (const pattern of timestampPatterns) {
-                  splitIndex = chunkOutput.indexOf(pattern);
-                  if (splitIndex !== -1) {
-                    break;
-                  }
-                }
-                
-                if (splitIndex !== -1) {
-                  // Found the exact split point - use it
-                  const newContent = chunkOutput.substring(splitIndex);
-                  controller.enqueue(encoder.encode(newContent));
-                } else {
-                  // Couldn't find exact timestamp - use a safer approach
-                  // Look for any timestamp that appears later in the output
-                  const allTimestamps = Array.from(chunkOutput.matchAll(/\n?(\[[\d:]+\])/g));
-                  
-                  if (allTimestamps.length > 0) {
-                    // Find the timestamp that appears roughly where we expect new content
-                    // This should be after the overlap portion
-                    const expectedNewContentRatio = overlap / chunkSegments.length;
-                    const targetCharPosition = Math.floor(chunkOutput.length * expectedNewContentRatio);
-                    
-                    // Find the first timestamp at or after this position
-                    const laterTimestamp = allTimestamps.find(match => 
-                      match.index !== undefined && match.index >= targetCharPosition
-                    );
-                    
-                    if (laterTimestamp && laterTimestamp.index !== undefined) {
-                      const newContent = chunkOutput.substring(laterTimestamp.index);
-                      controller.enqueue(encoder.encode(newContent));
-                    } else {
-                      // Last resort: use middle of the output to avoid most duplication
-                      const middlePoint = Math.floor(chunkOutput.length * 0.5);
-                      const newContent = chunkOutput.substring(middlePoint);
-                      controller.enqueue(encoder.encode(newContent));
-                      console.warn(`Could not find reliable split point for chunk ${chunkIndex}, using middle split`);
-                    }
-                  } else {
-                    // No timestamps found at all - output whole chunk with warning
-                    controller.enqueue(encoder.encode(chunkOutput));
-                    console.warn(`No timestamps found in chunk ${chunkIndex} output`);
-                  }
-                }
-              } else {
-                // No clear non-overlap segment - output everything
-                controller.enqueue(encoder.encode(chunkOutput));
-              }
-            } else {
-              // No timestamps - use simple text-based deduplication
-              // Skip first 1/3 of the output to avoid overlap
-              const skipAmount = Math.floor(chunkOutput.length * 0.33);
-              const newContent = chunkOutput.substring(skipAmount);
-              controller.enqueue(encoder.encode(newContent));
-            }
+            // For subsequent chunks, use advanced overlap detection
+            const deduplicatedContent = findNonOverlappingContent(
+              chunkOutput, 
+              chunkSegments, 
+              overlap, 
+              options.includeTimestamps
+            );
+            controller.enqueue(encoder.encode(deduplicatedContent));
           }
           
           processedChunks++;
