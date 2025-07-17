@@ -14,20 +14,20 @@ interface RateLimitConfig {
 // Define rate limits for different endpoints
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   '/api/transcript-oxylabs': {
-    requests: 10,
-    window: '1 s', // 10 requests per second
+    requests: 1,
+    window: '10 s', // 1 request every 10 seconds
   },
   '/api/transcript-primary': {
-    requests: 10,
-    window: '1 s', // 10 requests per second (proxy to oxylabs)
+    requests: 1,
+    window: '10 s', // 1 request every 10 seconds (proxy to oxylabs)
   },
   '/api/format-transcript': {
-    requests: 10,
-    window: '1 s', // 10 requests per second
+    requests: 1,
+    window: '10 s', // 1 request every 10 seconds
   },
   'default': {
-    requests: 20,
-    window: '1 s', // 20 requests per second
+    requests: 1,
+    window: '10 s', // 1 request every 10 seconds
   },
 };
 
