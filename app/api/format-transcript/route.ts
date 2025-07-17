@@ -150,18 +150,41 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
           firstChunk = false;
         }
         
-        // Accumulate chunks to apply cleaning to the beginning
-        const chunkText = decoder.decode(chunk, { stream: true });
+        // Validate chunk before processing
+        if (!chunk) {
+          console.log('Received null/undefined chunk');
+          return;
+        }
+        
+        // Log chunk type for debugging
+        console.log(`Chunk type: ${typeof chunk}, constructor: ${chunk.constructor.name}`);
+        
+        let chunkText = '';
+        
+        // Handle different chunk types
+        if (typeof chunk === 'string') {
+          chunkText = chunk;
+        } else if (chunk instanceof Uint8Array || chunk instanceof ArrayBuffer || ArrayBuffer.isView(chunk)) {
+          chunkText = decoder.decode(chunk, { stream: true });
+        } else {
+          console.error(`Unexpected chunk type: ${typeof chunk}`);
+          return;
+        }
+        
         accumulatedOutput += chunkText;
         totalChunksReceived++;
         
         if (totalChunksReceived === 1) {
           console.log(`Received first AI chunk, length: ${chunkText.length}`);
+          console.log(`First chunk content: "${chunkText.substring(0, 100)}"`);
           streamStarted = true;
           clearTimeout(streamTimeout);
+        } else if (totalChunksReceived <= 5) {
+          console.log(`Chunk ${totalChunksReceived}: ${chunkText.length} chars`);
         }
       } catch (error) {
         console.error('Error in transform stream:', error);
+        console.error('Error details:', (error as Error).stack);
         clearTimeout(streamTimeout);
         controller.error(error);
       }
