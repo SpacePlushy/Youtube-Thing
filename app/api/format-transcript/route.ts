@@ -218,68 +218,88 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
             controller.enqueue(encoder.encode(chunkOutput));
           } else {
             // For subsequent chunks, remove the overlapping content
-            // Find the actual start of non-overlapping content based on timestamps
-            const overlapSegmentCount = Math.min(overlap, chunkSegments.length);
-            
-            if (overlapSegmentCount > 0 && options.includeTimestamps) {
-              // Find the timestamp that should start the non-overlapping portion
-              const nonOverlapStart = chunkSegments[overlapSegmentCount];
+            if (options.includeTimestamps) {
+              // Find the first timestamp in this chunk that should start the non-overlapping content
+              // This is the timestamp at position 'overlap' in the original segments
+              const targetSegmentIndex = Math.min(overlap, chunkSegments.length - 1);
+              const targetTimestamp = chunkSegments[targetSegmentIndex]?.timestamp;
               
-              if (nonOverlapStart) {
-                // Try multiple timestamp format patterns to find the split point
-                const possiblePatterns = [
-                  `[${nonOverlapStart.timestamp}]`,
-                  `[${nonOverlapStart.timestamp}] `,
-                  `\n[${nonOverlapStart.timestamp}]`,
-                  `\n[${nonOverlapStart.timestamp}] `
+              if (targetTimestamp) {
+                // Look for this exact timestamp as the start of new content
+                // Try different patterns to find the timestamp
+                const timestampPatterns = [
+                  `\n[${targetTimestamp}]`,      // Most common: newline + timestamp
+                  `[${targetTimestamp}]`,        // Start of chunk
+                  `\n\n[${targetTimestamp}]`,    // Double newline + timestamp
                 ];
                 
-                let timestampIndex = -1;
-                for (const pattern of possiblePatterns) {
-                  timestampIndex = chunkOutput.indexOf(pattern);
-                  if (timestampIndex !== -1) {
-                    // If found with newline prefix, include the newline
-                    const adjustedIndex = pattern.startsWith('\n') ? timestampIndex : timestampIndex;
-                    const nonOverlapOutput = chunkOutput.substring(adjustedIndex);
-                    controller.enqueue(encoder.encode(nonOverlapOutput));
+                let splitIndex = -1;
+                let foundPattern = '';
+                
+                for (const pattern of timestampPatterns) {
+                  splitIndex = chunkOutput.indexOf(pattern);
+                  if (splitIndex !== -1) {
+                    foundPattern = pattern;
                     break;
                   }
                 }
                 
-                // If no timestamp pattern found, use a fallback approach
-                if (timestampIndex === -1) {
-                  console.warn(`Could not find timestamp ${nonOverlapStart.timestamp} in chunk output for deduplication`);
-                  
-                  // Try to find any timestamp pattern in the output as a fallback
-                  const timestampRegex = /\[[\d:]+\]/g;
+                if (splitIndex !== -1) {
+                  // Found the target timestamp - output from this point
+                  const deduplicatedOutput = chunkOutput.substring(splitIndex);
+                  controller.enqueue(encoder.encode(deduplicatedOutput));
+                } else {
+                  // Fallback: find the last occurrence of any timestamp in the first 60% of content
+                  // This helps avoid outputting content that's likely overlapping
+                  const timestampRegex = /(\n?)(\[[\d:]+\])/g;
                   const matches = Array.from(chunkOutput.matchAll(timestampRegex));
                   
-                  if (matches.length > 0) {
-                    // Use the timestamp that appears after the midpoint
-                    const midPoint = chunkOutput.length / 2;
-                    const laterMatch = matches.find(match => match.index && match.index > midPoint);
+                  if (matches.length > 1) {
+                    // Find a good split point - usually around 60% through the overlap region
+                    const targetPosition = Math.floor(chunkOutput.length * 0.6);
+                    const laterMatches = matches.filter(match => match.index && match.index >= targetPosition);
                     
-                    if (laterMatch && laterMatch.index !== undefined) {
-                      const fallbackOutput = chunkOutput.substring(laterMatch.index);
-                      controller.enqueue(encoder.encode(fallbackOutput));
+                    if (laterMatches.length > 0) {
+                      const splitMatch = laterMatches[0];
+                      if (splitMatch.index !== undefined) {
+                        const deduplicatedOutput = chunkOutput.substring(splitMatch.index);
+                        controller.enqueue(encoder.encode(deduplicatedOutput));
+                      } else {
+                        // Very conservative fallback - output only last 40% to minimize duplication
+                        const conservativeStart = Math.floor(chunkOutput.length * 0.6);
+                        const conservativeOutput = chunkOutput.substring(conservativeStart);
+                        controller.enqueue(encoder.encode(conservativeOutput));
+                        console.warn('Using conservative deduplication fallback');
+                      }
                     } else {
-                      // Last resort: output the entire chunk with a warning
-                      console.warn('Deduplication failed, outputting entire chunk to prevent data loss');
-                      controller.enqueue(encoder.encode(chunkOutput));
+                      // Use the last timestamp found
+                      const lastMatch = matches[matches.length - 1];
+                      if (lastMatch.index !== undefined) {
+                        const deduplicatedOutput = chunkOutput.substring(lastMatch.index);
+                        controller.enqueue(encoder.encode(deduplicatedOutput));
+                      } else {
+                        // Final fallback - output last 30% of chunk
+                        const finalFallbackStart = Math.floor(chunkOutput.length * 0.7);
+                        const finalFallbackOutput = chunkOutput.substring(finalFallbackStart);
+                        controller.enqueue(encoder.encode(finalFallbackOutput));
+                        console.warn('Using final conservative deduplication fallback');
+                      }
                     }
                   } else {
-                    // No timestamps found at all, output entire chunk
-                    console.warn('No timestamps found in chunk output, outputting entire chunk');
+                    // No reliable timestamps found - output the whole chunk but warn
+                    console.warn('No timestamps found for deduplication, outputting entire chunk');
                     controller.enqueue(encoder.encode(chunkOutput));
                   }
                 }
               } else {
-                // No overlap start found, output entire chunk
+                // No target timestamp found, output entire chunk
                 controller.enqueue(encoder.encode(chunkOutput));
               }
             } else {
-              // If no timestamps or no overlap, output the chunk as-is
-              controller.enqueue(encoder.encode(chunkOutput));
+              // No timestamps available, split text roughly in half to minimize duplication
+              const midPoint = Math.floor(chunkOutput.length / 2);
+              const deduplicatedOutput = chunkOutput.substring(midPoint);
+              controller.enqueue(encoder.encode(deduplicatedOutput));
             }
           }
           
