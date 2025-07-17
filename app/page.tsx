@@ -195,8 +195,8 @@ export default function Home() {
   };
   
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="w-full mx-auto px-4 py-4 lg:py-8 flex-1 flex flex-col max-w-[1600px]">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      <div className="w-full mx-auto px-4 py-4 lg:py-8 flex-1 flex flex-col max-w-[1600px] min-h-0">
         <div className="text-center mb-4 lg:mb-6">
           <h1 className="text-2xl lg:text-4xl font-bold text-foreground">
             YouTube Thing
@@ -296,9 +296,9 @@ export default function Home() {
           </div>
         ) : (
           /* Two-panel layout when transcript exists */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 flex-1 min-h-0 overflow-hidden">
             {/* Left Panel - Input Controls and Raw Transcript */}
-            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col">
+            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-[calc(50vh-4rem)] lg:h-auto">
               <form onSubmit={handleExtract} className="space-y-3 mb-4">
                 <input
                   type="url"
@@ -436,12 +436,14 @@ export default function Home() {
             </div>
             
             {/* Right Panel - AI Formatting Options and Formatted Transcript */}
-            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col">
-              <FormatOptions 
-                transcriptLength={transcript.length}
-                onFormat={handleFormat}
-                isFormatting={isFormatting}
-              />
+            <div className="bg-card rounded-lg border border-border p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden h-[calc(50vh-4rem)] lg:h-auto">
+              <div className="overflow-y-auto">
+                <FormatOptions 
+                  transcriptLength={transcript.length}
+                  onFormat={handleFormat}
+                  isFormatting={isFormatting}
+                />
+              </div>
               
               {formattingProgress && (
                 <div className="mt-4 p-4 bg-secondary/50 rounded-lg border border-border">
