@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { buildPrompt } from '@/lib/ai-prompts';
-import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
+import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking, fixTimestampContinuity, createProcessingContext } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
 import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
 
@@ -184,6 +184,13 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
     const totalChunks = chunks.length;
     let processedChunks = 0;
     
+    // Initialize rolling window context for timestamp continuity
+    const processingContext = createProcessingContext(3); // Window size of 3 chunks
+    
+    // Get transcript time boundaries for AI context
+    const firstTimestamp = transcript[0]?.timestamp || '0:00';
+    const lastTimestamp = transcript[transcript.length - 1]?.timestamp || '0:00';
+    
     // Create streaming response for clean LangChain chunks
     const stream = new ReadableStream({
       async start(controller) {
@@ -191,14 +198,21 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
           // Send initial progress
           controller.enqueue(encoder.encode(`__PROGRESS__:${JSON.stringify({ current: 0, total: totalChunks })}\n`));
           
-          // Process each LangChain chunk sequentially
+          // Process each LangChain chunk sequentially with timestamp continuity
           for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
             const chunkContent = formatTranscriptForAI(chunk, options);
             
-            // Build prompts for this chunk
+            // Get chunk time boundaries for AI context
+            const chunkStartTime = chunk[0]?.timestamp || '0:00';
+            const chunkEndTime = chunk[chunk.length - 1]?.timestamp || '0:00';
+            
+            // Build prompts for this chunk with timestamp context
             const prompts = buildPrompt(options);
-            const userPrompt = prompts.user + chunkContent;
+            const timeContextPrompt = options.includeTimestamps ? 
+              `\n\nTIMESTAMP CONTEXT:\n- Video duration: ${firstTimestamp} to ${lastTimestamp}\n- This chunk covers: ${chunkStartTime} to ${chunkEndTime}\n- Ensure timestamps continue sequentially and stay within these bounds\n` : '';
+            
+            const userPrompt = prompts.user + timeContextPrompt + chunkContent;
             
             // Process chunk with AI
             const result = await streamText({
@@ -216,7 +230,23 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             }
             
             // Clean AI commentary
-            const finalOutput = cleanAIOutput(chunkOutput);
+            let finalOutput = cleanAIOutput(chunkOutput);
+            
+            // Apply AI timestamp continuity fix for sequential chunks
+            if (options.includeTimestamps && envConfig.groqApiKey) {
+              try {
+                const timeRange = {
+                  start: chunkStartTime,
+                  end: chunkEndTime,
+                  videoStart: firstTimestamp,
+                  videoEnd: lastTimestamp
+                };
+                finalOutput = await fixTimestampContinuity(finalOutput, processingContext, envConfig.groqApiKey, timeRange);
+              } catch (error) {
+                console.error('Timestamp continuity fix failed for chunk', i, error);
+                // Continue without timestamp fix if it fails
+              }
+            }
             
             // Stream the result
             controller.enqueue(encoder.encode(finalOutput));

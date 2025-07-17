@@ -1,5 +1,7 @@
-// LangChain-powered text splitter for transcript processing
+// LangChain-powered text splitter for transcript processing with AI timestamp continuity
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
+import { streamText } from 'ai';
+import { groq } from '@ai-sdk/groq';
 
 export interface TranscriptSegment {
   text: string;
@@ -10,6 +12,13 @@ export interface TranscriptSegment {
 export interface SplitterConfig {
   chunkSize: number;
   chunkOverlap: number;
+}
+
+export interface ChunkProcessingContext {
+  lastTimestamp: string | null;
+  previousContent: string | null;
+  windowBuffer: string[]; // Rolling window of recent chunks
+  windowSize: number; // Maximum chunks to keep in window
 }
 
 
@@ -33,7 +42,21 @@ function deduplicateByTimestamp(segments: TranscriptSegment[]): TranscriptSegmen
 }
 
 /**
- * Split transcript segments preserving original timestamps using LangChain principles
+ * Convert transcript segments to text format for LangChain processing
+ */
+function formatTranscriptForSplitting(segments: TranscriptSegment[], includeTimestamps: boolean): string {
+  return segments
+    .map(segment => {
+      if (includeTimestamps) {
+        return `[${segment.timestamp}] ${segment.text}`;
+      }
+      return segment.text;
+    })
+    .join(' ');
+}
+
+/**
+ * Split transcript using LangChain as designed, then use AI to fix timestamp continuity
  */
 export async function splitTranscriptWithLangChain(
   transcript: TranscriptSegment[],
@@ -41,110 +64,195 @@ export async function splitTranscriptWithLangChain(
   includeTimestamps: boolean = true
 ): Promise<TranscriptSegment[][]> {
   
-  // Instead of converting to text and back, we'll chunk the original segments directly
-  // This preserves the original timestamps throughout the process
+  // Use LangChain exactly as designed
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: config.chunkSize,
+    chunkOverlap: config.chunkOverlap,
+    separators: [
+      '\n\n',  // Paragraph breaks
+      '\n',    // Line breaks
+      '. ',    // Sentence endings
+      '? ',    // Questions
+      '! ',    // Exclamations
+      ', ',    // Clause breaks
+      ' ',     // Word boundaries
+      ''       // Character boundaries (fallback)
+    ]
+  });
   
-  const chunks: TranscriptSegment[][] = [];
-  let currentChunk: TranscriptSegment[] = [];
-  let currentChunkSize = 0;
+  // Convert transcript to text format
+  const transcriptText = formatTranscriptForSplitting(transcript, includeTimestamps);
   
-  for (let i = 0; i < transcript.length; i++) {
-    const segment = transcript[i];
+  // Split using LangChain
+  const textChunks = await textSplitter.splitText(transcriptText);
+  
+  // Convert back to segments - this is where we'll apply AI intelligence
+  const segmentChunks: TranscriptSegment[][] = [];
+  
+  for (let i = 0; i < textChunks.length; i++) {
+    const chunk = textChunks[i];
+    const segments = parseTextChunkToSegments(chunk, includeTimestamps);
     
-    // Estimate size of this segment (timestamp + text)
-    const segmentSize = includeTimestamps 
-      ? `[${segment.timestamp}] ${segment.text}`.length
-      : segment.text.length;
-    
-    // Check if adding this segment would exceed chunk size
-    if (currentChunkSize + segmentSize > config.chunkSize && currentChunk.length > 0) {
-      // Find optimal split point using LangChain-inspired boundary detection
-      const splitPoint = findOptimalSplitPoint(currentChunk, config.chunkSize);
-      
-      if (splitPoint > 0 && splitPoint < currentChunk.length) {
-        // Split at optimal point
-        chunks.push(currentChunk.slice(0, splitPoint));
-        
-        // Start new chunk with overlap
-        const overlapStart = Math.max(0, splitPoint - Math.floor(config.chunkOverlap / 100)); // Overlap in segments
-        currentChunk = currentChunk.slice(overlapStart);
-        currentChunkSize = calculateChunkSize(currentChunk, includeTimestamps);
-      } else {
-        // No good split point found, use the full chunk
-        chunks.push([...currentChunk]);
-        currentChunk = [];
-        currentChunkSize = 0;
-      }
+    if (segments.length > 0) {
+      segmentChunks.push(segments);
     }
-    
-    // Add current segment to chunk
-    currentChunk.push(segment);
-    currentChunkSize += segmentSize;
   }
   
-  // Add final chunk if not empty
-  if (currentChunk.length > 0) {
-    chunks.push(currentChunk);
-  }
-  
-  // Deduplicate overlapping segments by timestamp
-  const deduplicatedChunks = chunks.map(chunk => 
-    deduplicateByTimestamp(chunk)
-  ).filter(chunk => chunk.length > 0);
-  
-  return deduplicatedChunks;
+  return segmentChunks;
 }
 
 /**
- * Find optimal split point using LangChain-inspired boundary detection
+ * Parse text chunk back to segments 
  */
-function findOptimalSplitPoint(segments: TranscriptSegment[], targetSize: number): number {
-  if (segments.length <= 1) return segments.length;
+function parseTextChunkToSegments(chunk: string, includeTimestamps: boolean): TranscriptSegment[] {
+  if (!includeTimestamps) {
+    return [{
+      timestamp: '',
+      text: chunk.trim()
+    }];
+  }
   
-  // Look for natural boundaries in the last 20% of segments
-  const searchStart = Math.floor(segments.length * 0.8);
+  // Extract timestamp-text pairs from chunk
+  const timestampPattern = /\[([^\]]+)\]\s*([^[]*?)(?=\[|$)/g;
+  const segments: TranscriptSegment[] = [];
+  let match;
   
-  for (let i = segments.length - 1; i >= searchStart; i--) {
-    const text = segments[i].text;
-    
-    // Priority 1: Paragraph-like breaks (sentences ending with periods)
-    if (text.match(/[.!?]\s*$/) && i < segments.length - 1) {
-      const nextText = segments[i + 1]?.text || '';
-      if (nextText.match(/^[A-Z]/)) {
-        return i + 1;
-      }
-    }
-    
-    // Priority 2: Question or exclamation endings
-    if (text.match(/[!?]\s*$/)) {
-      return i + 1;
-    }
-    
-    // Priority 3: Sentence endings
-    if (text.match(/[.]\s*$/)) {
-      return i + 1;
-    }
-    
-    // Priority 4: Clause breaks
-    if (text.match(/[,:;]\s*$/)) {
-      return i + 1;
+  while ((match = timestampPattern.exec(chunk)) !== null) {
+    const [, timestamp, text] = match;
+    if (text.trim()) {
+      segments.push({
+        timestamp,
+        text: text.trim()
+      });
     }
   }
   
-  // Fallback: split at 80% point
-  return Math.floor(segments.length * 0.8);
+  return segments;
 }
 
 /**
- * Calculate total character size of a chunk
+ * AI-powered timestamp continuity fixer with rolling window for long videos
  */
-function calculateChunkSize(segments: TranscriptSegment[], includeTimestamps: boolean): number {
-  return segments.reduce((total, segment) => {
-    const size = includeTimestamps 
-      ? `[${segment.timestamp}] ${segment.text}`.length
-      : segment.text.length;
-    return total + size;
-  }, 0);
+export async function fixTimestampContinuity(
+  formattedChunk: string,
+  context: ChunkProcessingContext,
+  groqApiKey: string,
+  chunkTimeRange?: { start: string; end: string; videoStart: string; videoEnd: string }
+): Promise<string> {
+  
+  // If this is the first chunk, initialize window and return as-is
+  if (!context.lastTimestamp || context.windowBuffer.length === 0) {
+    updateRollingWindow(context, formattedChunk);
+    return formattedChunk;
+  }
+  
+  // Build context from rolling window (last 2-3 chunks for efficiency)
+  const windowContext = context.windowBuffer.slice(-2).join('\n\n');
+  const lastLines = getLastContentForContext(windowContext) || '';
+  
+  // Add time range context if provided
+  const timeRangeContext = chunkTimeRange ? 
+    `\nVIDEO TIME BOUNDARIES:\n- Full video: ${chunkTimeRange.videoStart} to ${chunkTimeRange.videoEnd}\n- Expected chunk range: ${chunkTimeRange.start} to ${chunkTimeRange.end}\n` : '';
+  
+  const continuityPrompt = `You are a timestamp continuity expert. Fix timestamp sequence in this transcript chunk using rolling window context.
+
+ROLLING WINDOW CONTEXT (last 2 chunks):
+${windowContext}
+
+LAST TIMESTAMP FROM CONTEXT: ${context.lastTimestamp}
+LAST CONTENT LINES: "${lastLines}"${timeRangeContext}
+
+CURRENT CHUNK WITH POTENTIALLY BROKEN TIMESTAMPS:
+${formattedChunk}
+
+YOUR TASK:
+1. Check if timestamps in current chunk continue properly from ${context.lastTimestamp}
+2. If timestamps restart incorrectly (like [0:01] instead of continuing), fix ALL timestamps
+3. Timestamps should stay within the expected chunk range and video boundaries
+4. Maintain exact same content and formatting
+5. Only modify timestamps to ensure sequential continuity
+6. Consider the rolling context to understand the content flow
+
+CRITICAL: Return ONLY the corrected transcript chunk. No explanations or commentary.`;
+
+  try {
+    const result = await streamText({
+      model: groq('llama-3.1-8b-instant'),
+      system: 'You are a precise timestamp continuity fixer for long video transcripts. Use rolling window context efficiently.',
+      prompt: continuityPrompt,
+      temperature: 0.05, // Very low temperature for timestamp precision
+      maxTokens: 12000, // Increased for longer chunks
+    });
+    
+    let correctedChunk = '';
+    for await (const textPart of result.textStream) {
+      correctedChunk += textPart;
+    }
+    
+    const finalChunk = correctedChunk.trim();
+    
+    // Update rolling window with the corrected chunk
+    updateRollingWindow(context, finalChunk);
+    
+    return finalChunk;
+  } catch (error) {
+    console.error('AI timestamp continuity fix failed:', error);
+    // Still update window even on error
+    updateRollingWindow(context, formattedChunk);
+    return formattedChunk; // Fallback to original
+  }
+}
+
+/**
+ * Update rolling window with new chunk, maintaining size limit
+ */
+export function updateRollingWindow(context: ChunkProcessingContext, newChunk: string): void {
+  // Add new chunk to window
+  context.windowBuffer.push(newChunk);
+  
+  // Maintain window size limit
+  if (context.windowBuffer.length > context.windowSize) {
+    context.windowBuffer.shift(); // Remove oldest chunk
+  }
+  
+  // Update context tracking
+  context.lastTimestamp = extractLastTimestamp(newChunk);
+  context.previousContent = getLastContentForContext(newChunk);
+}
+
+/**
+ * Create initial processing context with rolling window
+ */
+export function createProcessingContext(windowSize: number = 3): ChunkProcessingContext {
+  return {
+    lastTimestamp: null,
+    previousContent: null,
+    windowBuffer: [],
+    windowSize: Math.max(2, Math.min(windowSize, 5)) // Limit window size between 2-5
+  };
+}
+
+/**
+ * Extract the last timestamp from formatted content
+ */
+export function extractLastTimestamp(formattedContent: string): string | null {
+  const timestampMatches = formattedContent.match(/\[(\d+:\d+)\]/g);
+  if (timestampMatches && timestampMatches.length > 0) {
+    const lastMatch = timestampMatches[timestampMatches.length - 1];
+    return lastMatch.replace(/[\[\]]/g, '');
+  }
+  return null;
+}
+
+/**
+ * Get the last few lines of content for context
+ */
+export function getLastContentForContext(formattedContent: string): string | null {
+  const lines = formattedContent.split('\n').filter(line => line.trim());
+  if (lines.length === 0) return null;
+  
+  // Return last 1-2 lines for context
+  return lines.slice(-2).join('\n');
 }
 
 /**
