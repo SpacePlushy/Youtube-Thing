@@ -1,160 +1,155 @@
-# Project Structure Template
+# YouTube Thing - Project Structure
 
-This document provides a template for documenting the complete technology stack and file tree structure for your project. **AI agents MUST read this file to understand the project organization before making any changes.**
+This document provides the complete technology stack and file tree structure for the YouTube Thing project. **AI agents MUST read this file to understand the project organization before making any changes.**
 
-## Technology Stack Template
+## Technology Stack
+
+### Frontend Technologies
+- **Next.js 15** with App Router - React framework with server-side rendering
+- **TypeScript** - Type-safe JavaScript development
+- **Tailwind CSS** - Utility-first CSS framework for styling
+- **Framer Motion** - Animation library for smooth progress bars
+- **Lucide React** - Icon library for UI components
 
 ### Backend Technologies
-Document your backend technology choices:
-- **[Language] [Version]** with **[Package Manager]** - Dependency management and packaging
-- **[Web Framework] [Version]** - Web framework with specific features (async, type hints, etc.)
-- **[Server] [Version]** - Application server configuration
-- **[Configuration] [Version]** - Configuration management approach
-
-Example:
-```
-- Python 3.11+ with Poetry - Dependency management and packaging
-- FastAPI 0.115.0+ - Web framework with type hints and async support
-- Uvicorn 0.32.0+ - ASGI server with standard extras
-- Pydantic Settings 2.5.2+ - Configuration management with type validation
-```
+- **Next.js API Routes** - Server-side API endpoints
+- **Node.js** - JavaScript runtime environment
+- **TypeScript** - Type-safe server-side development
 
 ### Integration Services & APIs
-Document external services and integrations:
-- **[Service Name] [API/SDK Version]** - Purpose and usage pattern
-- **[AI Service] [Version]** - AI/ML service integration details
-- **[Database] [Version]** - Data storage and management
-- **[Monitoring] [Version]** - Observability and logging
+- **Oxylabs API** - Primary transcript extraction service
+- **Groq LPU™** - Ultra-fast AI formatting service
+- **Vercel AI SDK** - Unified streaming for AI responses
+- **get-video-id** - Robust YouTube URL parsing library
 
-### Real-time Communication
-Document real-time features:
-- **[WebSocket Library]** - Real-time communication patterns
-- **[HTTP Client]** - Async HTTP communication
-- **[Message Queue]** - Event processing (if applicable)
+### Rate Limiting & Caching
+- **Upstash Redis** - Distributed rate limiting (1 request per 10 seconds)
+- **Browser localStorage** - Client-side transcript caching (7-day TTL)
 
 ### Development & Quality Tools
-Document development toolchain:
-- **[Formatter] [Version]** - Code formatting
-- **[Linter] [Version]** - Code quality and linting
-- **[Type Checker] [Version]** - Static type checking
-- **[Testing Framework] [Version]** - Testing approach
-- **[Task Runner]** - Build automation and task orchestration
+- **ESLint** - Code linting and quality checks
+- **Prettier** - Code formatting (assumed)
+- **TypeScript** - Static type checking
+- **npm** - Package management
 
-### Frontend Technologies (if applicable)
-Document frontend technology stack:
-- **[Language] [Version]** - Frontend development language
-- **[Framework] [Version]** - UI framework
-- **[Build Tool] [Version]** - Development and build tooling
-- **[Deployment] [Version]** - Deployment and hosting approach
-
-### Future Technologies
-Document planned technology additions:
-- **[Planned Technology]** - Future integration plans
-- **[Platform]** - Target platform expansion
-- **[Service]** - Planned service integrations
-
-## Complete Project Structure Template
+## Complete Project Structure
 
 ```
-[PROJECT-NAME]/
+Youtube-Thing/
 ├── README.md                           # Project overview and setup
 ├── CLAUDE.md                           # Master AI context file
-├── [BUILD-FILE]                        # Build configuration (Makefile, package.json, etc.)
+├── package.json                        # Dependencies and scripts
+├── package-lock.json                   # Locked dependency versions
+├── next.config.js                      # Next.js configuration
+├── tailwind.config.ts                  # Tailwind CSS configuration
+├── tsconfig.json                       # TypeScript configuration
+├── postcss.config.mjs                  # PostCSS configuration
+├── vercel.json                         # Vercel deployment configuration
+├── middleware.ts                       # Next.js middleware
 ├── .gitignore                          # Git ignore patterns
-├── .[IDE-CONFIG]/                      # IDE workspace configuration
-│   ├── settings.[ext]                  # IDE settings
-│   ├── extensions.[ext]                # Recommended extensions
-│   └── launch.[ext]                    # Debug configurations
-├── [BACKEND-DIR]/                      # Backend application
-│   ├── CONTEXT.md                      # Backend-specific AI context
-│   ├── src/                            # Source code
-│   │   ├── config/                     # Configuration management
-│   │   │   └── settings.[ext]          # Application settings
-│   │   ├── core/                       # Core business logic
-│   │   │   ├── CONTEXT.md              # Core logic patterns
-│   │   │   ├── services/               # Business services
-│   │   │   │   ├── [service1].[ext]    # Service implementations
-│   │   │   │   └── [service2].[ext]
-│   │   │   ├── models/                 # Data models
-│   │   │   │   ├── [model1].[ext]      # Model definitions
-│   │   │   │   └── [model2].[ext]
-│   │   │   └── utils/                  # Utility functions
-│   │   │       ├── logging.[ext]       # Structured logging
-│   │   │       ├── validation.[ext]    # Input validation
-│   │   │       └── helpers.[ext]       # Helper functions
-│   │   ├── api/                        # API layer
-│   │   │   ├── CONTEXT.md              # API patterns and conventions
-│   │   │   ├── routes/                 # API route definitions
-│   │   │   │   ├── [resource1].[ext]   # Resource-specific routes
-│   │   │   │   └── [resource2].[ext]
-│   │   │   ├── middleware/             # API middleware
-│   │   │   │   ├── auth.[ext]          # Authentication middleware
-│   │   │   │   ├── logging.[ext]       # Request logging
-│   │   │   │   └── validation.[ext]    # Request validation
-│   │   │   └── schemas/                # Request/response schemas
-│   │   │       ├── [schema1].[ext]     # Data schemas
-│   │   │       └── [schema2].[ext]
-│   │   └── integrations/               # External service integrations
-│   │       ├── CONTEXT.md              # Integration patterns
-│   │       ├── [service1]/             # Service-specific integration
-│   │       │   ├── client.[ext]        # API client
-│   │       │   ├── models.[ext]        # Integration models
-│   │       │   └── handlers.[ext]      # Response handlers
-│   │       └── [service2]/
-│   ├── tests/                          # Test suite
-│   │   ├── unit/                       # Unit tests
-│   │   ├── integration/                # Integration tests
-│   │   └── fixtures/                   # Test fixtures and data
-│   ├── [PACKAGE-FILE]                  # Package configuration
-│   └── [ENV-FILE]                      # Environment configuration
-├── [FRONTEND-DIR]/                     # Frontend application (if applicable)
-│   ├── CONTEXT.md                      # Frontend-specific AI context
-│   ├── src/                            # Source code
-│   │   ├── components/                 # UI components
-│   │   │   ├── CONTEXT.md              # Component patterns
-│   │   │   ├── common/                 # Shared components
-│   │   │   └── [feature]/              # Feature-specific components
-│   │   ├── pages/                      # Page components/routes
-│   │   │   ├── [page1].[ext]           # Page implementations
-│   │   │   └── [page2].[ext]
-│   │   ├── stores/                     # State management
-│   │   │   ├── CONTEXT.md              # State management patterns
-│   │   │   ├── [store1].[ext]          # Store implementations
-│   │   │   └── [store2].[ext]
-│   │   ├── api/                        # API client layer
-│   │   │   ├── CONTEXT.md              # Client patterns
-│   │   │   ├── client.[ext]            # HTTP client setup
-│   │   │   └── endpoints/              # API endpoint definitions
-│   │   ├── utils/                      # Utility functions
-│   │   │   ├── logging.[ext]           # Client-side logging
-│   │   │   ├── validation.[ext]        # Form validation
-│   │   │   └── helpers.[ext]           # Helper functions
-│   │   └── assets/                     # Static assets
-│   ├── tests/                          # Frontend tests
-│   ├── [BUILD-CONFIG]                  # Build configuration
-│   └── [PACKAGE-FILE]                  # Package configuration
+├── app/                                # Next.js App Router directory
+│   ├── layout.tsx                      # Root layout component
+│   ├── page.tsx                        # Main application page
+│   ├── globals.css                     # Global styles
+│   └── api/                            # API routes
+│       ├── transcript-oxylabs/         # Oxylabs API integration
+│       │   └── route.ts                # Oxylabs transcript extraction
+│       ├── transcript-primary/         # Primary transcript API (proxy)
+│       │   └── route.ts                # Proxies to Oxylabs
+│       ├── transcript-alt1/            # Alternative API 1 (placeholder)
+│       │   └── route.ts                # Future Deepgram integration
+│       ├── transcript-alt2/            # Alternative API 2 (placeholder)
+│       │   └── route.ts                # Future Brightdata integration
+│       ├── transcript-alt3/            # Alternative API 3 (placeholder)
+│       │   └── route.ts                # Future Brightdata Proxy
+│       ├── format-transcript/          # AI formatting endpoint
+│       │   └── route.ts                # Groq-powered transcript formatting
+│       ├── transcript/                 # Legacy transcript endpoints
+│       │   ├── route.ts                # Original transcript route
+│       │   └── unified-route.ts        # Unified transcript handling
+│       ├── test-env/                   # Environment testing endpoint
+│       ├── test-groq/                  # Groq API testing endpoint
+│       │   └── route.ts                # Groq connectivity test
+│       ├── test-rate-limit/            # Rate limiting testing endpoint
+│       │   └── route.ts                # Rate limit verification
+│       └── v1/                         # Versioned API endpoints
+│           └── process/                # Legacy processing endpoints
+│               ├── route.ts            # Original process route
+│               └── enhanced-route.ts   # Enhanced process route
+├── components/                         # React components
+│   ├── format-options.tsx              # AI formatting options UI
+│   ├── smooth-progress-bar.tsx         # Animated progress bar component
+│   └── transcript-viewer.tsx           # Transcript display component
+├── lib/                                # Utility libraries
+│   ├── youtube.ts                      # YouTube URL parsing and API calls
+│   ├── transcript-cache.ts             # Browser caching implementation
+│   ├── rate-limiter-upstash.ts         # Upstash Redis rate limiting
+│   ├── analytics.ts                    # Usage analytics tracking
+│   ├── ai-prompts.ts                   # AI formatting prompts
+│   ├── api-client.ts                   # API client utilities
+│   ├── constants.ts                    # Application constants
+│   ├── types.ts                        # TypeScript type definitions
+│   ├── env-config.ts                   # Environment configuration
+│   ├── route-config.ts                 # API route configuration
+│   ├── crypto-storage.ts               # Encrypted storage utilities
+│   ├── secure-storage.ts               # Secure storage implementation
+│   ├── youtube-secure.ts               # Secure YouTube processing
+│   └── langchain-splitter.ts           # Text splitting utilities
 ├── docs/                               # Documentation
+│   ├── README.md                       # Documentation overview
+│   ├── ARCHITECTURE-DECISIONS.md       # Architectural decisions record
+│   ├── SECURITY-GUIDE.md               # Security implementation guide
+│   ├── ENHANCED-SECURITY-GUIDE.md      # Enhanced security features
+│   ├── SECURITY-BEST-PRACTICES.md      # Security best practices
+│   ├── VERCEL-ANALYTICS-GUIDE.md       # Vercel analytics integration
+│   ├── rate-limiting.md                # Rate limiting documentation
+│   ├── CONTEXT-tier2-component.md      # Component-level context
+│   ├── CONTEXT-tier3-feature.md        # Feature-specific context
+│   ├── DOCUMENTATION-UPDATE-SUMMARY.md # Documentation update log
 │   ├── ai-context/                     # AI-specific documentation
 │   │   ├── project-structure.md        # This file
 │   │   ├── docs-overview.md            # Documentation architecture
 │   │   ├── system-integration.md       # Integration patterns
-│   │   ├── deployment-infrastructure.md # Infrastructure docs
+│   │   ├── deployment-infrastructure.md # Infrastructure documentation
 │   │   └── handoff.md                  # Task management
-│   ├── api/                            # API documentation
-│   ├── deployment/                     # Deployment guides
-│   └── development/                    # Development guides
-├── scripts/                            # Automation scripts
-│   ├── setup.[ext]                     # Environment setup
-│   ├── deploy.[ext]                    # Deployment scripts
-│   └── maintenance/                    # Maintenance scripts
-├── [INFRASTRUCTURE-DIR]/               # Infrastructure as code (if applicable)
-│   ├── [PROVIDER]/                     # Cloud provider configurations
-│   ├── docker/                         # Container configurations
-│   └── monitoring/                     # Monitoring and alerting
-└── [CONFIG-FILES]                      # Root-level configuration files
+│   ├── specs/                          # Technical specifications
+│   │   ├── example-api-integration-spec.md # API integration example
+│   │   └── example-feature-specification.md # Feature spec example
+│   └── open-issues/                    # Open issues tracking
+│       └── example-api-performance-issue.md # Performance issue example
+├── public/                             # Static assets
+│   └── favicon.ico                     # Website favicon
+├── logs/                               # Application logs directory
+├── MCP-ASSISTANT-RULES.md              # MCP assistant configuration
+├── OXYLABS_SETUP.md                    # Oxylabs setup instructions
+├── next-env.d.ts                       # Next.js TypeScript definitions
+├── tsconfig.tsbuildinfo                # TypeScript build info
+└── node_modules/                       # Node.js dependencies
 ```
 
+## Key Implementation Patterns
+
+### URL/ID Processing
+- Supports both YouTube URLs and plain video IDs (11 characters)
+- Uses `get-video-id` library for robust URL parsing
+- Comprehensive input validation and error handling
+
+### API Security
+- Proprietary service names hidden from client-side code
+- Generic error messages for user-facing responses
+- Detailed server-side logging for debugging
+
+### Performance Optimization
+- Browser-based caching with 7-day TTL
+- Rate limiting (1 request per 10 seconds)
+- Streaming responses for AI formatting
+- Cache clearing disabled to reduce API costs
+
+### State Management
+- React hooks for local component state
+- Browser localStorage for transcript caching
+- Real-time progress tracking with smooth animations
 
 ---
 
-*This template provides a comprehensive foundation for documenting project structure. Adapt it based on your specific technology stack, architecture decisions, and organizational requirements.*
+*This documentation reflects the current state of the YouTube Thing project as of version 1.0.*

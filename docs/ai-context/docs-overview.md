@@ -20,7 +20,8 @@ This hierarchy allows AI agents to load targeted context efficiently while maint
 ## Tier 1: Foundational Documentation (System-Wide)
 
 - **[Master Context](/CLAUDE.md)** - *Essential for every session.* Coding standards, security requirements, MCP server integration patterns, and development protocols
-- **[Project Structure](/docs/ai-context/project-structure.md)** - *REQUIRED reading.* Complete technology stack, file tree, and system architecture. Must be attached to Gemini consultations
+- **[Project Structure](/docs/ai-context/project-structure.md)** - *REQUIRED reading.* Complete technology stack, file tree, and system architecture for YouTube Thing project. Must be attached to Gemini consultations
+- **[Rate Limiting](/docs/rate-limiting.md)** - *API protection.* Rate limiting implementation with Upstash Redis (1 request per 10 seconds)
 - **[System Integration](/docs/ai-context/system-integration.md)** - *For cross-component work.* Communication patterns, data flow, testing strategies, and performance optimization
 - **[Deployment Infrastructure](/docs/ai-context/deployment-infrastructure.md)** - *Infrastructure patterns.* Containerization, monitoring, CI/CD workflows, and scaling strategies
 - **[Task Management](/docs/ai-context/handoff.md)** - *Session continuity.* Current tasks, documentation system progress, and next session goals

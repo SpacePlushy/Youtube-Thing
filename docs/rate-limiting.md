@@ -6,9 +6,10 @@ The application implements rate limiting to prevent API abuse and ensure fair us
 ## Implementation Details
 
 ### Rate Limits by Endpoint
-- **`/api/transcript-oxylabs`**: 10 requests per second
-- **`/api/format-transcript`**: 10 requests per second  
-- **Other API endpoints**: 20 requests per second
+- **`/api/transcript-oxylabs`**: 1 request per 10 seconds
+- **`/api/transcript-primary`**: 1 request per 10 seconds
+- **`/api/format-transcript`**: 1 request per 10 seconds  
+- **Other API endpoints**: 1 request per 10 seconds
 
 ### How It Works
 1. **Client Identification**: Combines IP address and user agent to create unique identifiers
@@ -19,10 +20,10 @@ The application implements rate limiting to prevent API abuse and ensure fair us
 
 ### Rate Limit Headers
 ```
-X-RateLimit-Limit: 10      # Max requests allowed
-X-RateLimit-Remaining: 7   # Requests remaining in window
+X-RateLimit-Limit: 1       # Max requests allowed
+X-RateLimit-Remaining: 0   # Requests remaining in window
 X-RateLimit-Reset: 1234567 # Unix timestamp when limit resets
-Retry-After: 45            # Seconds until next request (only on 429)
+Retry-After: 10            # Seconds until next request (only on 429)
 ```
 
 ### Rate Limit Response (429)
@@ -39,8 +40,8 @@ Edit `lib/rate-limiter-upstash.ts` to adjust rate limits:
 ```typescript
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   '/api/your-endpoint': {
-    requests: 10,    // Max requests allowed
-    window: '1 m',   // Time window (1 minute)
+    requests: 1,      // Max requests allowed
+    window: '10 s',   // Time window (10 seconds)
   },
 };
 ```
