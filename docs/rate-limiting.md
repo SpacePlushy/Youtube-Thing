@@ -6,9 +6,9 @@ The application implements rate limiting to prevent API abuse and ensure fair us
 ## Implementation Details
 
 ### Rate Limits by Endpoint
-- **`/api/transcript-oxylabs`**: 60 requests per minute (1 per second)
-- **`/api/format-transcript`**: 60 requests per minute (1 per second)  
-- **Other API endpoints**: 120 requests per minute (2 per second)
+- **`/api/transcript-oxylabs`**: 10 requests per second
+- **`/api/format-transcript`**: 10 requests per second  
+- **Other API endpoints**: 20 requests per second
 
 ### How It Works
 1. **Client Identification**: Combines IP address and user agent to create unique identifiers
