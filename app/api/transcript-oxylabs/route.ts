@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { constructYouTubeUrl } from '@/lib/youtube';
+import { extractVideoId } from '@/lib/youtube';
 
 interface OxylabsResponse {
   results: Array<{
@@ -22,21 +22,30 @@ interface TranscriptSegment {
 
 export async function POST(request: NextRequest) {
   try {
-    const { videoId, language = 'en', transcriptOrigin = 'auto_generated' } = await request.json() as { 
+    const { videoId: videoIdOrUrl, language = 'en', transcriptOrigin = 'auto_generated' } = await request.json() as { 
       videoId: string;
       language?: string;
       transcriptOrigin?: 'auto_generated' | 'uploader_provided';
     };
     
-    if (!videoId) {
-      return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
+    if (!videoIdOrUrl) {
+      return NextResponse.json({ error: 'Video ID or URL is required' }, { status: 400 });
     }
 
-    // Construct a clean YouTube URL from the video ID
-    const youtubeUrl = constructYouTubeUrl(videoId);
+    // Handle both video ID and full URLs
+    let videoId = videoIdOrUrl;
     
+    // Check if it's a URL (contains youtube.com, youtu.be, or http)
+    if (videoIdOrUrl.includes('youtube.com') || videoIdOrUrl.includes('youtu.be') || videoIdOrUrl.includes('http')) {
+      const extractedId = extractVideoId(videoIdOrUrl);
+      if (!extractedId) {
+        return NextResponse.json({ error: 'Invalid YouTube URL' }, { status: 400 });
+      }
+      videoId = extractedId;
+      console.log('[Oxylabs] Extracted video ID from URL:', videoIdOrUrl, '->', videoId);
+    }
+
     console.log('[Oxylabs] Extracting transcript for video:', videoId);
-    console.log('[Oxylabs] Using URL:', youtubeUrl);
     console.log('[Oxylabs] Language:', language);
     console.log('[Oxylabs] Transcript origin:', transcriptOrigin);
 
@@ -62,7 +71,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         source: 'youtube_transcript',
-        query: youtubeUrl,  // Use the clean URL instead of just video ID
+        query: videoId,
         context: [
           {
             key: 'language_code',
@@ -98,7 +107,7 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             source: 'youtube_transcript',
-            query: youtubeUrl,  // Use the clean URL
+            query: videoId,
             context: [
               {
                 key: 'language_code',
@@ -126,7 +135,7 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             source: 'youtube_transcript',
-            query: youtubeUrl,  // Use the clean URL
+            query: videoId,
             context: [
               {
                 key: 'language_code',
@@ -194,7 +203,7 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
               source: 'youtube_transcript',
-              query: youtubeUrl,  // Use the clean URL
+              query: videoId,
               context: [
                 {
                   key: 'language_code',
@@ -249,7 +258,7 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
               source: 'youtube_transcript',
-              query: youtubeUrl,  // Use the clean URL
+              query: videoId,
               context: [
                 {
                   key: 'language_code',
