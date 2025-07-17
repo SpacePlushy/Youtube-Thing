@@ -126,13 +126,20 @@ export async function checkRateLimit(
   const result = await limiter.limit(identifier);
   
   // If per-user limit passed and this endpoint counts toward global limit, increment it
+  let globalDailyRemaining: number | undefined;
+  let globalDailyReset: number | undefined;
+  
   if (result.success && config.globalDailyLimit) {
     const { count, resetAt } = await incrementDailyUsage();
-    result.globalDailyRemaining = Math.max(0, GLOBAL_DAILY_LIMIT - count);
-    result.globalDailyReset = resetAt;
+    globalDailyRemaining = Math.max(0, GLOBAL_DAILY_LIMIT - count);
+    globalDailyReset = resetAt;
   }
   
-  return result;
+  return {
+    ...result,
+    globalDailyRemaining,
+    globalDailyReset,
+  };
 }
 
 // Helper to get client identifier
