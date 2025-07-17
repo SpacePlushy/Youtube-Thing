@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
-import { checkBotId } from 'botid/server';
+// import { checkBotId } from 'botid/server'; // Temporarily disabled
 import { buildPrompt } from '@/lib/ai-prompts';
 import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
@@ -55,8 +55,13 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    // BotID verification - protect against automated AI formatting abuse
-    // Graceful degradation: if BotID fails, allow the request to proceed
+    // BotID verification - TEMPORARILY DISABLED due to false positives
+    // TODO: Re-enable once CSP frame-ancestors conflict is resolved
+    // BotID is incorrectly flagging legitimate users as bots
+    console.log('[BotID] Bot protection temporarily disabled - allowing all requests');
+    
+    // Keep this code for when we re-enable BotID:
+    /*
     try {
       console.log('[BotID] Starting bot verification for AI formatting...');
       const botVerification = await checkBotId();
@@ -84,6 +89,7 @@ export async function POST(request: NextRequest) {
       console.warn('[BotID] Error details:', botError);
       // Continue with the request even if BotID fails
     }
+    */
 
     const { transcript, options } = await request.json();
     

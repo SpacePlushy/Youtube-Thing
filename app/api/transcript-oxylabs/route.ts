@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkBotId } from 'botid/server';
+// import { checkBotId } from 'botid/server'; // Temporarily disabled
 import { extractVideoId } from '@/lib/youtube';
 
 interface OxylabsResponse {
@@ -23,8 +23,13 @@ interface TranscriptSegment {
 
 export async function POST(request: NextRequest) {
   try {
-    // BotID verification - protect against automated transcript extraction
-    // Graceful degradation: if BotID fails, allow the request to proceed
+    // BotID verification - TEMPORARILY DISABLED due to false positives
+    // TODO: Re-enable once CSP frame-ancestors conflict is resolved
+    // BotID is incorrectly flagging legitimate users as bots
+    console.log('[BotID] Bot protection temporarily disabled - allowing all requests');
+    
+    // Keep this code for when we re-enable BotID:
+    /*
     try {
       console.log('[BotID] Starting bot verification...');
       const botVerification = await checkBotId();
@@ -48,6 +53,7 @@ export async function POST(request: NextRequest) {
       console.warn('[BotID] Error details:', botError);
       // Continue with the request even if BotID fails
     }
+    */
 
     const { videoId: videoIdOrUrl, language = 'en', transcriptOrigin = 'auto_generated' } = await request.json() as { 
       videoId: string;
