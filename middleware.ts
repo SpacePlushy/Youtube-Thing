@@ -95,8 +95,12 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
     response.headers.set(key, value);
   });
 
-  // Remove powered-by header
+  // Remove powered-by header and any potential environment leaks
   response.headers.delete('x-powered-by');
+  response.headers.delete('x-vercel-env');
+  response.headers.delete('x-vercel-deployment-url');
+  response.headers.delete('x-vercel-cache');
+  response.headers.delete('server');
   
   // Add custom security headers
   response.headers.set('X-Request-ID', crypto.randomUUID());
