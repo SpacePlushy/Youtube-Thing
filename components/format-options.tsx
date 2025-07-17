@@ -51,22 +51,6 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
           </p>
         </div>
 
-        {/* AI Processing Info */}
-        <div className="p-4 bg-secondary rounded-lg border border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                AI Processing
-              </h4>
-              <p className="text-sm text-muted-foreground">⚡ Fast processing with advanced AI</p>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-muted-foreground">Processing ready</div>
-            </div>
-          </div>
-        </div>
-
         {/* Additional Options */}
         <div className="space-y-3">
           <label className="flex items-center gap-2 cursor-pointer">
