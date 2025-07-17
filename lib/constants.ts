@@ -17,10 +17,10 @@ export const API_ROUTE_CONFIG = {
 export const AI_PROCESSING = {
   // Dynamic chunk sizes based on transcript length
   CHUNK_SIZES: {
-    SMALL: 100,    // For videos < 30 min
-    MEDIUM: 200,   // For videos 30 min - 1 hour
-    LARGE: 300,    // For videos 1-2 hours
-    XLARGE: 500,   // For videos > 2 hours
+    SMALL: 300,    // For videos < 30 min
+    MEDIUM: 500,   // For videos 30 min - 1 hour
+    LARGE: 800,    // For videos 1-2 hours
+    XLARGE: 1200,  // For videos > 2 hours
   },
   
   // Overlap between chunks to preserve context
@@ -30,7 +30,7 @@ export const AI_PROCESSING = {
   TOKENS_PER_SEGMENT_ESTIMATE: 20,
   
   // Threshold for enabling sequential processing
-  SEQUENTIAL_PROCESSING_THRESHOLD: 100, // Start chunking at ~5-6 min videos
+  SEQUENTIAL_PROCESSING_THRESHOLD: 500, // Start chunking at ~25-30 min videos
   
   // Maximum tokens for single request processing
   MAX_TOKENS_SINGLE_REQUEST: 100000,

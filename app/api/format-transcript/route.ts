@@ -346,14 +346,16 @@ async function formatWithGroqSequential(transcript: any[], options: any, systemP
           
           // Use AI to intelligently resolve any overlaps and ensure continuity
           let finalOutput = chunkOutput;
-          if (chunkIndex > 0 && previousChunkResult) {
-            finalOutput = await resolveOverlapWithAI(
-              chunkOutput, 
-              previousChunkResult, 
-              overlapSegments, 
-              options
-            );
-          }
+          // TEMPORARILY DISABLED: AI overlap resolution is cutting too much content
+          // Prioritizing content preservation over perfect deduplication
+          // if (chunkIndex > 0 && previousChunkResult) {
+          //   finalOutput = await resolveOverlapWithAI(
+          //     chunkOutput, 
+          //     previousChunkResult, 
+          //     overlapSegments, 
+          //     options
+          //   );
+          // }
           
           // Store this result for the next chunk's context
           previousChunkResult = maintainContextWindow(previousChunkResult, finalOutput || '');
