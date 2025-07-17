@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
             match: pattern,
             count: 100
           });
-          cursor = result[0];
+          cursor = Number(result[0]);
           allKeys.push(...(result[1] || []));
         } while (cursor !== 0);
       } catch (e) {
