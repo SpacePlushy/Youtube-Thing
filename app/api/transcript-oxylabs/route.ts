@@ -148,12 +148,19 @@ export async function POST(request: NextRequest) {
       
       if (oxylabsResponse.status === 404) {
         return NextResponse.json({ 
-          error: 'No transcript available for this video in any language' 
+          error: 'No transcript available for this video' 
         }, { status: 404 });
       }
       
+      if (oxylabsResponse.status === 400) {
+        // Invalid video ID or URL
+        return NextResponse.json({ 
+          error: 'Invalid YouTube video. Please check the URL and try again.' 
+        }, { status: 400 });
+      }
+      
       return NextResponse.json({ 
-        error: `Oxylabs API error: ${oxylabsResponse.status}` 
+        error: 'Failed to fetch transcript. Please try again later.' 
       }, { status: 500 });
     }
 

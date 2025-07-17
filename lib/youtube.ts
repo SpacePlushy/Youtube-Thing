@@ -71,32 +71,32 @@ interface TranscriptOptions {
 // Call our API endpoint to extract transcript server-side
 export async function extractTranscript(
   videoId: string, 
-  provider: 'youtube-transcript' | 'deepgram' | 'brightdata' | 'brightdata-proxy' | 'oxylabs' = 'oxylabs',
+  provider: 'default' | 'alt1' | 'alt2' | 'alt3' | 'primary' = 'primary',
   options: TranscriptOptions = {}
 ) {
   try {
     console.log('[Frontend] Requesting transcript for video ID:', videoId);
     
     // Choose which API to use
-    let apiUrl = '/api/transcript'; // Default to youtube-transcript library
+    let apiUrl = '/api/transcript'; // Default endpoint
     
-    if (provider === 'oxylabs') {
+    if (provider === 'primary') {
       apiUrl = '/api/transcript-oxylabs';
-      console.log('[Frontend] Using Oxylabs API');
-    } else if (provider === 'brightdata-proxy') {
+      console.log('[Frontend] Using primary transcript API');
+    } else if (provider === 'alt3') {
       apiUrl = '/api/transcript-brightdata-proxy';
-      console.log('[Frontend] Using Bright Data Proxy API');
-    } else if (provider === 'brightdata') {
+      console.log('[Frontend] Using alternative API 3');
+    } else if (provider === 'alt2') {
       apiUrl = '/api/transcript-brightdata';
-      console.log('[Frontend] Using Bright Data API');
-    } else if (provider === 'deepgram') {
+      console.log('[Frontend] Using alternative API 2');
+    } else if (provider === 'alt1') {
       apiUrl = '/api/transcript-deepgram';
-      console.log('[Frontend] Using Deepgram API');
+      console.log('[Frontend] Using alternative API 1');
     } else if (process.env.NEXT_PUBLIC_WORKER_URL) {
       apiUrl = process.env.NEXT_PUBLIC_WORKER_URL;
-      console.log('[Frontend] Using Cloudflare Worker');
+      console.log('[Frontend] Using worker API');
     } else {
-      console.log('[Frontend] Using Vercel API with youtube-transcript');
+      console.log('[Frontend] Using default API');
     }
     
     const response = await fetch(apiUrl, {

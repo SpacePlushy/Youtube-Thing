@@ -101,7 +101,7 @@ export default function Home() {
         });
         analytics.trackCacheAction('hit');
       } else {
-        const result = await extractTranscript(videoId, 'oxylabs', { language, transcriptOrigin });
+        const result = await extractTranscript(videoId, 'primary', { language, transcriptOrigin });
         
         // Cache the result
         if (result.transcript && result.transcript.length > 0) {
