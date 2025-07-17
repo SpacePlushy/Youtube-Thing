@@ -27,7 +27,7 @@ function buildChunkContext(
   let previousContext = '';
   if (previousChunkResult) {
     const previousLines = previousChunkResult.split('\n').filter(line => line.trim());
-    const lastFewLines = previousLines.slice(-3).join('\n'); // Last 3 lines of previous chunk
+    const lastFewLines = previousLines.slice(-10).join('\n'); // Last 10 lines of previous chunk for better context
     previousContext = `PREVIOUS CHUNK ENDED WITH:\n${lastFewLines}`;
   }
   
@@ -80,7 +80,7 @@ function cleanAIOutput(output: string): string {
 }
 
 // Rolling context window to prevent memory overflow with long transcripts
-function maintainContextWindow(previousResult: string | null, newContent: string, maxLines: number = 50): string {
+function maintainContextWindow(previousResult: string | null, newContent: string, maxLines: number = 1000): string {
   if (!previousResult) {
     return newContent;
   }
@@ -88,7 +88,7 @@ function maintainContextWindow(previousResult: string | null, newContent: string
   const combined = previousResult + '\n' + newContent;
   const lines = combined.split('\n').filter(line => line.trim());
   
-  // Keep only the last N lines for context - this ensures constant memory usage
+  // Keep the last N lines for comprehensive context while preventing infinite growth
   if (lines.length > maxLines) {
     return lines.slice(-maxLines).join('\n');
   }
@@ -112,7 +112,7 @@ async function resolveOverlapWithAI(
   const resolutionPrompt = `You are an expert transcript continuity manager. Your task is to ensure seamless flow between transcript chunks.
 
 PREVIOUS CHUNK ENDED WITH:
-${previousChunkResult.split('\n').slice(-3).join('\n')}
+${previousChunkResult.split('\n').slice(-10).join('\n')}
 
 OVERLAP CONTENT (for reference):
 ${overlapContext}
