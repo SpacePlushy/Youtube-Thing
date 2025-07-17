@@ -27,6 +27,17 @@ export async function POST(request: NextRequest) {
     // Enhanced with proper error handling and CSP-compatible configuration
     try {
       console.log('[BotID] Starting bot verification...');
+      
+      // Log request headers for debugging
+      const headers = Object.fromEntries(request.headers.entries());
+      console.log('[BotID] Request headers:', {
+        'user-agent': headers['user-agent'],
+        'x-botid-token': headers['x-botid-token'] || 'NOT PRESENT',
+        'x-botid-session': headers['x-botid-session'] || 'NOT PRESENT',
+        'referer': headers['referer'],
+        'origin': headers['origin']
+      });
+      
       const botVerification = await checkBotId();
       console.log('[BotID] Verification result:', { 
         isBot: botVerification.isBot,

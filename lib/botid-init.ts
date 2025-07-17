@@ -27,9 +27,26 @@ export async function waitForBotId(): Promise<void> {
       // Check if BotID has injected its scripts/tokens
       // This is a heuristic - we're looking for signs that BotID is active
       const hasScripts = document.querySelector('script[src*="botid"]') || 
-                        document.querySelector('script[src*="149e9513-01fa-4fb0-aad4-566afd725d1b"]');
+                        document.querySelector('script[src*="149e9513-01fa-4fb0-aad4-566afd725d1b"]') ||
+                        document.querySelector('script[src*="api.vercel.com/bot-protection"]');
       
-      if (hasScripts || botIdReady) {
+      // Also check for BotID-related window properties (from type definitions)
+      const hasBotIdWindow = !!(window as any).KPSDK || 
+                            !!(window as any).V_C ||
+                            !!(window as any).IS_HUMAN_INITIALIZED ||
+                            !!(window as any)._KPSDK_LOAD_PROMISE ||
+                            !!(window as any).pRoutes;
+      
+      console.log('[BotID] Checking initialization:', {
+        hasScripts: !!hasScripts,
+        hasBotIdWindow: !!hasBotIdWindow,
+        KPSDK: !!(window as any).KPSDK,
+        IS_HUMAN_INITIALIZED: !!(window as any).IS_HUMAN_INITIALIZED,
+        scriptsFound: document.querySelectorAll('script').length,
+        isMobile: isMobileDevice()
+      });
+      
+      if (hasScripts || hasBotIdWindow || botIdReady) {
         botIdReady = true;
         console.log('[BotID] Client initialized and ready');
         resolve();
@@ -68,9 +85,15 @@ export function isMobileDevice(): boolean {
 export async function initializeBotId(): Promise<void> {
   if (isMobileDevice()) {
     console.log('[BotID] Mobile device detected - waiting for initialization');
-    // Mobile devices may need extra time
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Mobile devices need more time for scripts to load and execute
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
   await waitForBotId();
+  
+  // Additional wait after detection to ensure tokens are set
+  if (isMobileDevice()) {
+    console.log('[BotID] Additional mobile wait for token generation');
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
 }
