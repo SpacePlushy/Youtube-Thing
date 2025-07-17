@@ -20,6 +20,19 @@ export default function Home() {
   const [isFormatting, setIsFormatting] = useState(false);
   const [formattingProgress, setFormattingProgress] = useState<{ message: string; progress: number } | null>(null);
   const [usingCache, setUsingCache] = useState(false);
+  const [copyNotification, setCopyNotification] = useState<string | null>(null);
+
+  // Helper function to copy with notification
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyNotification(`${label} copied to clipboard!`);
+      setTimeout(() => setCopyNotification(null), 2000);
+    } catch (err) {
+      setCopyNotification('Failed to copy');
+      setTimeout(() => setCopyNotification(null), 2000);
+    }
+  };
 
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,9 +166,17 @@ export default function Home() {
         accumulatedText += textChunk;
         setFormattedTranscript(accumulatedText);
         
-        // Update progress based on content length (simple heuristic)
-        const progress = Math.min(90, 30 + (accumulatedText.length / 50));
+        // Update progress based on estimated output size (improved heuristic)
+        const estimatedFinalSize = transcript.length * 40; // Better estimate based on transcript length
+        const progress = Math.min(90, 30 + (accumulatedText.length / estimatedFinalSize) * 60);
         setFormattingProgress({ message: 'Formatting transcript...', progress });
+      }
+      
+      // Decode any remaining bytes without the stream flag
+      const finalChunk = decoder.decode();
+      if (finalChunk) {
+        accumulatedText += finalChunk;
+        setFormattedTranscript(accumulatedText);
       }
       
       setFormattingProgress({ message: 'Complete!', progress: 100 });
@@ -197,6 +218,23 @@ export default function Home() {
   
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Copy notification toast */}
+      <AnimatePresence>
+        {copyNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
+          >
+            <div className="bg-card border border-border rounded-lg px-4 py-2 shadow-lg">
+              <p className="text-sm text-card-foreground">{copyNotification}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       <div className="w-full mx-auto px-4 py-4 lg:py-8 flex-1 flex flex-col max-w-[1600px] min-h-0">
         <div className="text-center mb-4 lg:mb-6">
           <h1 className="text-2xl lg:text-4xl font-bold text-foreground">
@@ -419,9 +457,8 @@ export default function Home() {
                     <button
                       onClick={async () => {
                         const fullText = transcript.map(item => `[${item.timestamp}] ${item.text}`).join('\n');
-                        await navigator.clipboard.writeText(fullText);
+                        await copyToClipboard(fullText, 'Transcript');
                         analytics.trackExport('copy', 'raw');
-                        alert('Copied to clipboard!');
                       }}
                       className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity text-sm"
                     >
@@ -506,8 +543,8 @@ export default function Home() {
                     </h3>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(formattedTranscript);
+                        onClick={async () => {
+                          await copyToClipboard(formattedTranscript, 'Formatted transcript');
                           analytics.trackExport('copy', 'formatted');
                         }}
                         className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity text-sm"

@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { buildPrompt, getChunkConfig, buildChunkPrompt } from '@/lib/ai-prompts';
 import { envConfig } from '@/lib/env-config';
-import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES } from '@/lib/constants';
+import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
 
 /**
  * Route segment configuration for streaming AI responses
@@ -60,7 +60,7 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   const chunkConfig = getChunkConfig(transcript.length);
   
   if (chunkConfig.useParallel) {
-    return formatWithGroqParallel(transcript, options, prompts.system, chunkConfig.chunkSize);
+    return formatWithGroqSequential(transcript, options, prompts.system, chunkConfig.chunkSize);
   }
   
   // For smaller transcripts, use single request
@@ -80,63 +80,61 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   });
 }
 
-// Parallel processing for long transcripts
-async function formatWithGroqParallel(transcript: any[], options: any, systemPrompt: string, chunkSize: number) {
-  const chunks = [];
-  
-  // Split transcript into chunks
-  for (let i = 0; i < transcript.length; i += chunkSize) {
-    const chunkSegments = transcript.slice(i, i + chunkSize);
-    const chunkContent = formatTranscriptForAI(chunkSegments, options);
-    
-    chunks.push({
-      index: i / chunkSize,
-      content: chunkContent,
-      segments: chunkSegments.length
-    });
-  }
-  
-  // Process chunks in parallel
-  const processChunk = async (chunk: any) => {
-    const chunkSystemPrompt = buildChunkPrompt(systemPrompt, chunk.index, chunks.length);
-    const prompts = buildPrompt(options);
-    const userPrompt = prompts.user + chunk.content;
-    
-    const result = await streamText({
-      model: groq(envConfig.aiModel),
-      system: chunkSystemPrompt,
-      prompt: userPrompt,
-      temperature: envConfig.aiTemperature,
-      maxTokens: envConfig.aiMaxTokensChunk,
-    });
-    
-    // Convert stream to text for parallel processing
-    let text = '';
-    for await (const textPart of result.textStream) {
-      text += textPart;
-    }
-    
-    return {
-      index: chunk.index,
-      content: text
-    };
-  };
-  
-  // Execute all chunks in parallel
-  const chunkResults = await Promise.all(chunks.map(processChunk));
-  
-  // Sort and merge results
-  chunkResults.sort((a, b) => a.index - b.index);
-  const mergedContent = chunkResults
-    .map(result => result.content)
-    .join(options.includeTimestamps ? '\n' : '\n\n');
-  
-  // Return as text stream response
+// Sequential processing for long transcripts with proper streaming
+async function formatWithGroqSequential(transcript: any[], options: any, systemPrompt: string, chunkSize: number) {
   const encoder = new TextEncoder();
+  let processedChunks = 0;
+  // Scale overlap based on chunk size (5% of chunk size, min 10, max 50)
+  const overlap = Math.min(50, Math.max(10, Math.floor(chunkSize * 0.05)));
+  const effectiveChunkSize = chunkSize - overlap; // Adjust for overlap
+  const totalChunks = Math.ceil(transcript.length / effectiveChunkSize);
+  
+  // Create a streaming response that processes chunks sequentially
   const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(mergedContent));
-      controller.close();
+    async start(controller) {
+      try {
+        // Process each chunk sequentially with overlap
+        for (let i = 0; i < transcript.length; i += effectiveChunkSize) {
+          // Include overlap from previous chunk (except for first chunk)
+          const startIndex = i === 0 ? 0 : Math.max(0, i - overlap);
+          const endIndex = Math.min(transcript.length, i + chunkSize);
+          const chunkSegments = transcript.slice(startIndex, endIndex);
+          const chunkContent = formatTranscriptForAI(chunkSegments, options);
+          const chunkIndex = Math.floor(i / effectiveChunkSize); // Fix: Use Math.floor for proper integer index
+          
+          // Build prompts for this chunk
+          const chunkSystemPrompt = buildChunkPrompt(systemPrompt, chunkIndex, totalChunks);
+          const prompts = buildPrompt(options);
+          const userPrompt = prompts.user + chunkContent;
+          
+          // Stream process this chunk
+          const result = await streamText({
+            model: groq(envConfig.aiModel),
+            system: chunkSystemPrompt,
+            prompt: userPrompt,
+            temperature: envConfig.aiTemperature,
+            maxTokens: envConfig.aiMaxTokensChunk,
+          });
+          
+          // Stream each chunk's output as it arrives
+          for await (const textPart of result.textStream) {
+            controller.enqueue(encoder.encode(textPart));
+          }
+          
+          // Add separator between chunks if needed
+          processedChunks++;
+          if (processedChunks < totalChunks) {
+            const separator = options.includeTimestamps ? '\n' : '\n\n';
+            controller.enqueue(encoder.encode(separator));
+          }
+        }
+        
+        // Close the stream when done
+        controller.close();
+      } catch (error) {
+        console.error('Error in sequential processing:', error);
+        controller.error(error);
+      }
     }
   });
   

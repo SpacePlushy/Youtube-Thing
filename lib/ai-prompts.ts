@@ -100,17 +100,30 @@ RULES:
 - Maintain chronological order`;
 }
 
-// Chunk configuration for parallel processing
+// Dynamic chunk configuration based on transcript length
 export function getChunkConfig(transcriptLength: number): {
   chunkSize: number;
   useParallel: boolean;
 } {
-  const estimatedTokens = transcriptLength * AI_PROCESSING.TOKENS_PER_SEGMENT_ESTIMATE;
+  // Determine appropriate chunk size based on video length
+  let chunkSize: number;
+  
+  if (transcriptLength < 450) { // ~30 min
+    chunkSize = AI_PROCESSING.CHUNK_SIZES.SMALL;
+  } else if (transcriptLength < 900) { // ~1 hour
+    chunkSize = AI_PROCESSING.CHUNK_SIZES.MEDIUM;
+  } else if (transcriptLength < 1800) { // ~2 hours
+    chunkSize = AI_PROCESSING.CHUNK_SIZES.LARGE;
+  } else { // > 2 hours
+    chunkSize = AI_PROCESSING.CHUNK_SIZES.XLARGE;
+  }
+  
+  // Use sequential processing for videos longer than ~5-6 minutes
+  const useSequential = transcriptLength > AI_PROCESSING.SEQUENTIAL_PROCESSING_THRESHOLD;
   
   return {
-    chunkSize: AI_PROCESSING.DEFAULT_CHUNK_SIZE,
-    useParallel: estimatedTokens > AI_PROCESSING.PARALLEL_PROCESSING_TOKEN_THRESHOLD || 
-                 transcriptLength > AI_PROCESSING.DEFAULT_CHUNK_SIZE
+    chunkSize,
+    useParallel: useSequential // Note: This is now actually sequential processing
   };
 }
 

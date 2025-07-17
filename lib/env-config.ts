@@ -17,9 +17,9 @@ export const envConfig = {
   aiMaxTokensChunk: parseInt(process.env.AI_MAX_TOKENS_CHUNK || String(AI_PROCESSING.MAX_TOKENS_PER_CHUNK)),
   
   // Processing Configuration
-  chunkSize: parseInt(process.env.CHUNK_SIZE || String(AI_PROCESSING.DEFAULT_CHUNK_SIZE)),
+  chunkSize: parseInt(process.env.CHUNK_SIZE || String(AI_PROCESSING.CHUNK_SIZES.SMALL)),
   tokenEstimatePerSegment: parseInt(process.env.TOKEN_ESTIMATE || String(AI_PROCESSING.TOKENS_PER_SEGMENT_ESTIMATE)),
-  parallelThreshold: parseInt(process.env.PARALLEL_THRESHOLD || String(AI_PROCESSING.PARALLEL_PROCESSING_TOKEN_THRESHOLD)),
+  parallelThreshold: parseInt(process.env.PARALLEL_THRESHOLD || String(AI_PROCESSING.SEQUENTIAL_PROCESSING_THRESHOLD)),
   
   // Response Configuration
   maxDuration: parseInt(process.env.MAX_DURATION || String(API_ROUTE_CONFIG.FORMAT_TRANSCRIPT_MAX_DURATION)),

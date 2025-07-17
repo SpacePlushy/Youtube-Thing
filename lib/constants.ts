@@ -15,19 +15,27 @@ export const API_ROUTE_CONFIG = {
 
 // AI Processing Configuration
 export const AI_PROCESSING = {
-  // Chunk size for parallel processing
-  DEFAULT_CHUNK_SIZE: 100,
+  // Dynamic chunk sizes based on transcript length
+  CHUNK_SIZES: {
+    SMALL: 100,    // For videos < 30 min
+    MEDIUM: 200,   // For videos 30 min - 1 hour
+    LARGE: 300,    // For videos 1-2 hours
+    XLARGE: 500,   // For videos > 2 hours
+  },
+  
+  // Overlap between chunks to preserve context
+  CHUNK_OVERLAP: 10,
   
   // Token estimation multiplier (average tokens per transcript segment)
   TOKENS_PER_SEGMENT_ESTIMATE: 20,
   
-  // Threshold for enabling parallel processing
-  PARALLEL_PROCESSING_TOKEN_THRESHOLD: 6000,
+  // Threshold for enabling sequential processing
+  SEQUENTIAL_PROCESSING_THRESHOLD: 100, // Start chunking at ~5-6 min videos
   
   // Maximum tokens for single request processing
   MAX_TOKENS_SINGLE_REQUEST: 8000,
   
-  // Maximum tokens per chunk in parallel processing
+  // Maximum tokens per chunk in sequential processing
   MAX_TOKENS_PER_CHUNK: 3000,
   
   // Default AI temperature for consistency
