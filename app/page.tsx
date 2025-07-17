@@ -591,8 +591,8 @@ export default function Home() {
               
               {formattedTranscript && (
                 <div className="mt-4 flex-1 flex flex-col min-h-0">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <div className="flex justify-between items-center mb-2 sm:mb-3">
+                    <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
                       Formatted Transcript
                       {isFormatting && (
                         <span className="text-xs text-muted-foreground animate-pulse">
@@ -600,16 +600,16 @@ export default function Home() {
                         </span>
                       )}
                     </h3>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2">
                       <button
                         onClick={async () => {
                           await copyToClipboard(formattedTranscript, 'Formatted transcript');
                           analytics.trackExport('copy', 'formatted');
                         }}
-                        className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity text-sm"
+                        className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity text-xs sm:text-sm"
                       >
                         <Copy className="w-3 h-3" />
-                        <span>Copy</span>
+                        <span className="hidden sm:inline">Copy</span>
                       </button>
                       <button
                         onClick={() => {
@@ -622,28 +622,28 @@ export default function Home() {
                           URL.revokeObjectURL(url);
                           analytics.trackExport('download', 'formatted');
                         }}
-                        className="flex items-center gap-1 px-2 py-1 bg-secondary text-secondary-foreground rounded hover:opacity-90 transition-opacity border border-border text-sm"
+                        className="flex items-center gap-1 px-2 py-1 bg-secondary text-secondary-foreground rounded hover:opacity-90 transition-opacity border border-border text-xs sm:text-sm"
                       >
                         <Download className="w-3 h-3" />
-                        <span>Download</span>
+                        <span className="hidden sm:inline">Download</span>
                       </button>
                     </div>
                   </div>
                   
-                  <div className="bg-secondary/50 rounded p-4 flex-1 overflow-y-auto border border-border max-h-[50vh] lg:max-h-none">
+                  <div className="bg-secondary/50 rounded p-3 sm:p-4 flex-1 overflow-y-auto border border-border max-h-[60vh] sm:max-h-[50vh] lg:max-h-none">
                     <div className="space-y-2">
                       {parseFormattedTranscript(formattedTranscript).map((item, index) => (
-                        <div key={index} className="flex gap-3">
-                          <span className="text-sm text-muted-foreground min-w-[60px] font-mono">
+                        <div key={index} className="flex gap-2 sm:gap-3">
+                          <span className="text-xs sm:text-sm text-muted-foreground min-w-[50px] sm:min-w-[60px] font-mono">
                             {item.timestamp}
                           </span>
-                          <p className="text-sm text-card-foreground">{item.text}</p>
+                          <p className="text-xs sm:text-sm text-card-foreground">{item.text}</p>
                         </div>
                       ))}
                       {isFormatting && (
-                        <div className="flex gap-3">
-                          <span className="text-sm text-muted-foreground min-w-[60px] font-mono"></span>
-                          <span className="text-sm text-card-foreground animate-pulse">▊</span>
+                        <div className="flex gap-2 sm:gap-3">
+                          <span className="text-xs sm:text-sm text-muted-foreground min-w-[50px] sm:min-w-[60px] font-mono"></span>
+                          <span className="text-xs sm:text-sm text-card-foreground animate-pulse">▊</span>
                         </div>
                       )}
                     </div>

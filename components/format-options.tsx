@@ -19,14 +19,14 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3 lg:mb-4">
+      <div className="flex items-center gap-2 mb-2 sm:mb-3 lg:mb-4">
         <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-primary" />
         <h3 className="text-base lg:text-lg font-semibold">AI Formatting</h3>
       </div>
 
-      <div className="space-y-3 lg:space-y-4">
-        {/* Info about what will happen */}
-        <div className="p-2 lg:p-3 bg-secondary/50 rounded-lg">
+      <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+        {/* Info about what will happen - hidden on small iPhone screens */}
+        <div className="hidden sm:block p-2 lg:p-3 bg-secondary/50 rounded-lg">
           <p className="text-xs lg:text-sm text-foreground mb-1 lg:mb-2">
             Your transcript will be cleaned and formatted with:
           </p>
@@ -39,8 +39,8 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
         </div>
 
         {/* Processing Info */}
-        <div className="flex items-center justify-between pt-2 lg:pt-4">
-          <div className="flex items-center gap-2 lg:gap-4 text-xs lg:text-sm text-muted-foreground">
+        <div className="flex items-center justify-between pt-1 sm:pt-2 lg:pt-4">
+          <div className="hidden sm:flex items-center gap-2 lg:gap-4 text-xs lg:text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3 lg:w-4 lg:h-4" />
               <span>~{estimatedMinutes} min</span>
@@ -52,7 +52,7 @@ export function FormatOptions({ transcriptLength, onFormat, isFormatting }: Form
               onFormat({ style, includeTimestamps, paragraphLength });
             }}
             disabled={isFormatting}
-            className="px-4 py-2 lg:px-6 lg:py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
+            className="w-full sm:w-auto px-4 py-2 lg:px-6 lg:py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
           >
             {isFormatting ? 'Formatting...' : 'Format with AI'}
           </button>
