@@ -42,11 +42,17 @@ function getLengthConfig(length: string): string {
 }
 
 function buildUserPrompt(includeTimestamps: boolean): string {
-  const baseInstructions = `CRITICAL: Output ONLY the formatted transcript. Do not include any commentary, explanations, or introductory text like "Here is the formatted output:" or "I've cleaned up the transcript:". Start immediately with the formatted content.`;
+  const baseInstructions = `CRITICAL: Output ONLY the formatted transcript. Do not include any commentary, explanations, or introductory text like "Here is the formatted output:" or "I've cleaned up the transcript:". Start immediately with the formatted content.
+
+PROCESSING REQUIREMENTS:
+- Process ALL content provided to you
+- Do not skip or omit any timestamps or segments  
+- Maintain chronological order throughout
+- Complete processing of the entire input before stopping`;
   
   return includeTimestamps 
-    ? `${baseInstructions}\n\nIMPORTANT: Format timestamps exactly as shown in the input - keep timestamps on the same line as the text. Maintain this format:\n[0:01] text content here\n[0:24] more text content\n\nFormat this transcript:\n\n`
-    : `${baseInstructions}\n\nFormat this transcript:\n\n`;
+    ? `${baseInstructions}\n\nTIMESTAMP FORMAT: Keep timestamps on the same line as text exactly like this:\n[0:01] text content here\n[0:24] more text content\n\nProcess this complete transcript:\n\n`
+    : `${baseInstructions}\n\nProcess this complete transcript:\n\n`;
 }
 
 // Proprietary prompt builders - core business logic
@@ -142,18 +148,31 @@ export function buildChunkPrompt(
   chunkIndex: number,
   totalChunks: number
 ): string {
-  const position = 
-    chunkIndex === 0 ? 'Start naturally without introduction.' :
-    chunkIndex === totalChunks - 1 ? 'End naturally without conclusion.' :
-    'Continue the content seamlessly - no introduction or conclusion needed.';
+  const chunkInstructions = chunkIndex === 0 
+    ? 'Start with the first timestamp and process all content sequentially.' 
+    : `Continue from where the previous chunk ended. This chunk contains some overlapping content from the previous chunk - process ALL timestamps you see, including any that may repeat from previous chunks. The deduplication will be handled automatically.`;
     
-  return `${baseSystem}\n\nIMPORTANT: This is part ${chunkIndex + 1} of ${totalChunks} of a transcript. ${position}
+  const endingInstructions = chunkIndex === totalChunks - 1
+    ? 'Process through to the final timestamp.'
+    : 'Process all timestamps through to the end of this chunk.';
+    
+  return `${baseSystem}
+
+CHUNK PROCESSING INSTRUCTIONS:
+This is chunk ${chunkIndex + 1} of ${totalChunks} total chunks.
+
+${chunkInstructions}
+${endingInstructions}
 
 CRITICAL FORMAT REQUIREMENTS:
-- Maintain EXACT timestamp format: [0:01] text content
-- Each timestamp MUST be on the same line as its text
-- Start your response with the first timestamp you see
-- End naturally at the last timestamp you process
-- NO extra formatting, headers, or separators
-- Keep timestamps in chronological order`;
+- Output EXACTLY in this format: [timestamp] text content
+- Each [timestamp] MUST be on the same line as its text
+- Process EVERY timestamp you see in sequential order
+- Include ALL content - overlap handling is done automatically
+- NO commentary, headers, or explanations
+- NO skipping timestamps to avoid "duplicates" 
+- Start immediately with the first [timestamp] you see
+- End with the last [timestamp] in your input
+
+IMPORTANT: Do not try to detect or skip overlapping content yourself. Process everything sequentially and let the system handle deduplication.`;
 }
