@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkBotId } from 'botid/server';
 import { extractVideoId } from '@/lib/youtube';
-import { shouldBlockRequest } from '@/lib/bot-detection';
 
 interface OxylabsResponse {
   results: Array<{
@@ -37,21 +36,32 @@ export async function POST(request: NextRequest) {
         env: process.env.NODE_ENV 
       });
       
-      // Enhanced bot detection combining BotID with additional checks
+      // BotID check with mobile consideration
+      // Mobile browsers may not have BotID client fully initialized
       const userAgent = request.headers.get('user-agent') || '';
-      const blockDecision = shouldBlockRequest(botVerification, userAgent);
+      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
       
-      console.log('[BotID] Enhanced detection result:', {
-        botIdResult: botVerification,
-        userAgent: userAgent.substring(0, 100),
-        blockDecision
-      });
-      
-      if (blockDecision.block) {
-        console.log('[BotID] Blocking request:', blockDecision.reason);
-        return NextResponse.json({ 
-          error: 'Access denied' 
-        }, { status: 403 });
+      if (botVerification.isBot && !botVerification.isGoodBot) {
+        // Log additional context for debugging
+        console.log('[BotID] Bot detection triggered:', {
+          isBot: botVerification.isBot,
+          isHuman: botVerification.isHuman,
+          isGoodBot: botVerification.isGoodBot,
+          bypassed: botVerification.bypassed,
+          isMobile,
+          userAgent: userAgent.substring(0, 150)
+        });
+        
+        // For now, if it's a mobile browser, log warning but allow
+        if (isMobile) {
+          console.warn('[BotID] Mobile browser flagged as bot - possible BotID initialization issue');
+          // Continue processing instead of blocking
+        } else {
+          console.log('[BotID] Desktop bot detected, blocking request');
+          return NextResponse.json({ 
+            error: 'Access denied' 
+          }, { status: 403 });
+        }
       }
       console.log('[BotID] Request verified as legitimate');
     } catch (botError) {

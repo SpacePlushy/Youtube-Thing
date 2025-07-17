@@ -3,7 +3,6 @@ import { streamText } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { checkBotId } from 'botid/server';
 import { buildPrompt } from '@/lib/ai-prompts';
-import { shouldBlockRequest } from '@/lib/bot-detection';
 import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
 import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
@@ -69,25 +68,36 @@ export async function POST(request: NextRequest) {
         env: process.env.NODE_ENV 
       });
       
-      // Enhanced bot detection combining BotID with additional checks
+      // BotID check with mobile consideration
+      // Mobile browsers may not have BotID client fully initialized
       const userAgent = request.headers.get('user-agent') || '';
-      const blockDecision = shouldBlockRequest(botVerification, userAgent);
+      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
       
-      console.log('[BotID] Enhanced detection result:', {
-        botIdResult: botVerification,
-        userAgent: userAgent.substring(0, 100),
-        blockDecision
-      });
-      
-      if (blockDecision.block) {
-        console.log('[BotID] Blocking request:', blockDecision.reason);
-        return new Response(
-          JSON.stringify({ error: 'Access denied' }),
-          { 
-            status: HTTP_CONFIG.STATUS_CODES.FORBIDDEN, 
-            headers: HTTP_CONFIG.HEADERS.JSON 
-          }
-        );
+      if (botVerification.isBot && !botVerification.isGoodBot) {
+        // Log additional context for debugging
+        console.log('[BotID] Bot detection triggered:', {
+          isBot: botVerification.isBot,
+          isHuman: botVerification.isHuman,
+          isGoodBot: botVerification.isGoodBot,
+          bypassed: botVerification.bypassed,
+          isMobile,
+          userAgent: userAgent.substring(0, 150)
+        });
+        
+        // For now, if it's a mobile browser, log warning but allow
+        if (isMobile) {
+          console.warn('[BotID] Mobile browser flagged as bot - possible BotID initialization issue');
+          // Continue processing instead of blocking
+        } else {
+          console.log('[BotID] Desktop bot detected, blocking request');
+          return new Response(
+            JSON.stringify({ error: 'Access denied' }),
+            { 
+              status: HTTP_CONFIG.STATUS_CODES.FORBIDDEN, 
+              headers: HTTP_CONFIG.HEADERS.JSON 
+            }
+          );
+        }
       }
       console.log('[BotID] Request verified as legitimate');
     } catch (botError) {
