@@ -178,8 +178,38 @@ export default function Home() {
       const decoder = new TextDecoder();
       let accumulatedText = '';
       let progressData = { current: 0, total: 1 };
-      let currentProgress = 0;
-      let lastProgressUpdate = Date.now();
+      let baseProgress = 0;
+      let streamProgress = 0;
+      let lastUpdate = Date.now();
+      let totalBytesReceived = 0;
+      
+      // Helper to calculate overall progress
+      const calculateProgress = () => {
+        // For multi-chunk: base progress from chunks + stream progress within current chunk
+        // For single chunk: just stream progress
+        if (progressData.total > 1) {
+          const chunkProgress = (progressData.current / progressData.total) * 90; // 90% for chunks
+          const intraChunkProgress = streamProgress * 0.1; // 10% for streaming within chunk
+          return Math.min(95, chunkProgress + intraChunkProgress);
+        } else {
+          // Single chunk - use stream progress for smooth progression
+          return Math.min(95, streamProgress * 90); // Cap at 90% until complete
+        }
+      };
+      
+      // Update progress with throttling
+      const updateProgress = () => {
+        const now = Date.now();
+        if (now - lastUpdate > 100) { // Throttle to every 100ms
+          const progress = calculateProgress();
+          const message = progressData.total > 1 
+            ? `Formatting transcript... (chunk ${progressData.current} of ${progressData.total})`
+            : 'Formatting transcript...';
+          
+          setFormattingProgress({ message, progress: Math.round(progress) });
+          lastUpdate = now;
+        }
+      };
       
       while (true) {
         const { done, value } = await reader.read();
@@ -188,24 +218,24 @@ export default function Home() {
         }
         
         const textChunk = decoder.decode(value, { stream: true });
+        totalBytesReceived += value.byteLength;
+        
+        // Estimate stream progress based on bytes received (rough estimate)
+        streamProgress = Math.min(1, totalBytesReceived / 10000); // Assume ~10KB average
         
         // Check for progress markers
         const progressMatch = textChunk.match(/__PROGRESS__:({.*?})\n/);
         if (progressMatch) {
           try {
             const newProgressData = JSON.parse(progressMatch[1]);
+            
+            // Reset stream progress when moving to new chunk
+            if (newProgressData.current > progressData.current) {
+              streamProgress = 0;
+              totalBytesReceived = 0;
+            }
+            
             progressData = newProgressData;
-            
-            // Calculate progress based on chunks completed
-            const targetProgress = Math.round((newProgressData.current / newProgressData.total) * 100);
-            
-            // Update progress with smooth animation handled by the component
-            const message = newProgressData.total > 1 
-              ? `Formatting transcript... (chunk ${newProgressData.current} of ${newProgressData.total})`
-              : 'Formatting transcript...';
-            
-            setFormattingProgress({ message, progress: targetProgress });
-            currentProgress = targetProgress;
             
             // Remove progress marker from output
             const cleanedChunk = textChunk.replace(/__PROGRESS__:.*?\n/g, '');
@@ -216,27 +246,10 @@ export default function Home() {
           }
         } else {
           accumulatedText += textChunk;
-          
-          // Incremental progress based on text accumulation for single chunks
-          if (progressData.total === 1 && currentProgress < 95) {
-            // Update progress every 100ms to avoid too frequent updates
-            const now = Date.now();
-            if (now - lastProgressUpdate > 100) {
-              // Calculate progress based on accumulated text length (estimate)
-              const estimatedProgress = Math.min(90, Math.floor((accumulatedText.length / 5000) * 90));
-              const newProgress = Math.max(currentProgress + 2, estimatedProgress);
-              
-              if (newProgress > currentProgress) {
-                setFormattingProgress({ 
-                  message: 'Formatting transcript...', 
-                  progress: Math.min(95, newProgress)
-                });
-                currentProgress = newProgress;
-                lastProgressUpdate = now;
-              }
-            }
-          }
         }
+        
+        // Always update progress based on current state
+        updateProgress();
         
         setFormattedTranscript(accumulatedText.replace(/__PROGRESS__:.*?\n/g, ''));
       }
