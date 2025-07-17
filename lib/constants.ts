@@ -33,10 +33,10 @@ export const AI_PROCESSING = {
   SEQUENTIAL_PROCESSING_THRESHOLD: 100, // Start chunking at ~5-6 min videos
   
   // Maximum tokens for single request processing
-  MAX_TOKENS_SINGLE_REQUEST: 8000,
+  MAX_TOKENS_SINGLE_REQUEST: 100000,
   
   // Maximum tokens per chunk in sequential processing
-  MAX_TOKENS_PER_CHUNK: 3000,
+  MAX_TOKENS_PER_CHUNK: 50000,
   
   // Default AI temperature for consistency
   DEFAULT_TEMPERATURE: 0.3,
