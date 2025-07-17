@@ -70,44 +70,21 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Format transcript text for AI processing (text only, no timestamps)
+// Format transcript text for AI processing
 function formatTranscriptForAI(transcript: any[], options: any): string {
-  // Always send text-only to AI for cleaner processing
+  if (!options.includeTimestamps) {
+    // Text only for non-timestamp mode
+    return transcript
+      .map(segment => segment.text)
+      .join(' ');
+  }
+  
+  // Include timestamps for AI to process and maintain
   return transcript
-    .map(segment => segment.text)
+    .map(segment => `[${segment.timestamp}] ${segment.text}`)
     .join(' ');
 }
 
-// Merge AI-formatted text back with original timestamps
-function mergeTimestampsWithFormattedText(
-  aiFormattedText: string, 
-  originalTranscript: any[], 
-  options: any
-): string {
-  if (!options.includeTimestamps) {
-    return aiFormattedText;
-  }
-  
-  // Split AI formatted text into sentences/paragraphs
-  const formattedParagraphs = aiFormattedText
-    .split(/\n\s*\n/)  // Split on paragraph breaks
-    .filter(p => p.trim().length > 0);
-  
-  if (formattedParagraphs.length === 0) {
-    return aiFormattedText;
-  }
-  
-  // Calculate timestamps per paragraph based on content distribution
-  const segmentsPerParagraph = Math.ceil(originalTranscript.length / formattedParagraphs.length);
-  
-  return formattedParagraphs
-    .map((paragraph, index) => {
-      const segmentIndex = index * segmentsPerParagraph;
-      const timestamp = originalTranscript[segmentIndex]?.timestamp || '0:00';
-      return `[${timestamp}] ${paragraph.trim()}`;
-    })
-    .join('\n\n');
-}
 
 async function formatWithGroqStreamText(transcript: any[], options: any) {
   const groqApiKey = envConfig.groqApiKey;
@@ -159,9 +136,8 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
       if (!cleaningApplied && accumulatedOutput.length > 100) {
         const cleaned = cleanAIOutput(accumulatedOutput);
         if (cleaned !== accumulatedOutput) {
-          // Commentary was removed - merge with timestamps and send
-          const withTimestamps = mergeTimestampsWithFormattedText(cleaned, transcript, options);
-          controller.enqueue(encoder.encode(withTimestamps));
+          // Commentary was removed - send the cleaned version
+          controller.enqueue(encoder.encode(cleaned));
           accumulatedOutput = '';
           cleaningApplied = true;
           return;
@@ -179,8 +155,7 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
       // Handle any remaining accumulated output
       if (!cleaningApplied && accumulatedOutput) {
         const cleaned = cleanAIOutput(accumulatedOutput);
-        const withTimestamps = mergeTimestampsWithFormattedText(cleaned, transcript, options);
-        controller.enqueue(encoder.encode(withTimestamps));
+        controller.enqueue(encoder.encode(cleaned));
       }
       
       // Send completion progress
@@ -258,10 +233,7 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             
             // Clean AI commentary
             let finalOutput = cleanAIOutput(chunkOutput);
-            
-            // Merge timestamps back with AI-formatted content
-            finalOutput = mergeTimestampsWithFormattedText(finalOutput, chunk, options);
-            console.log(`Merged timestamps for chunk ${i + 1}`);
+            console.log(`Processed chunk ${i + 1} with AI formatting`);
             
             // Stream the result
             controller.enqueue(encoder.encode(finalOutput));
