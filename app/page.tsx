@@ -359,6 +359,7 @@ export default function Home() {
                   placeholder="YouTube URL or video ID"
                   className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-base"
                   disabled={loading}
+                  autoFocus
                 />
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -396,6 +397,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={loading}
+                  autoFocus
                   className="w-full py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -450,6 +452,7 @@ export default function Home() {
                   placeholder="YouTube URL or video ID"
                   className="w-full px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground text-base"
                   disabled={loading}
+                  autoFocus
                 />
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -487,6 +490,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={loading}
+                  autoFocus
                   className="w-full py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
