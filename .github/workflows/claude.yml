@@ -49,16 +49,52 @@ jobs:
           # Optional: Trigger when specific user is assigned to an issue
           # assignee_trigger: "claude-bot"
           
-          # Optional: Allow Claude to run specific commands
-          # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
+          # Allow Claude to run specific commands for testing and validation
+          allowed_tools: |
+            Bash(npm run build)
+            Bash(npm run test)
+            Bash(npm run lint)
+            Bash(npm run typecheck)
+            Bash(npx tsc --noEmit)
+            Bash(npm run dev)
+            Edit
+            MultiEdit
+            Write
+            Read
+            Grep
+            LS
           
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
+          # Custom instructions for YouTube Thing project
+          custom_instructions: |
+            You are working on YouTube Thing, a Next.js 15 app for extracting and formatting YouTube transcripts.
+            
+            **Tech Stack:**
+            - Next.js 15 with App Router
+            - TypeScript with strict mode
+            - Tailwind CSS for styling
+            - Cerebras AI for ultra-fast formatting (2,600+ tokens/sec)
+            - Oxylabs for transcript extraction
+            - Upstash Redis for rate limiting (1 request per 10 seconds)
+            
+            **Key Guidelines:**
+            - Always preserve TypeScript types - avoid 'any'
+            - Keep API keys server-side only (never expose to client)
+            - Follow Next.js App Router patterns
+            - Use streaming responses for long operations
+            - Implement proper error handling with user-friendly messages
+            - Hide proprietary service names in error messages
+            - Consider rate limiting in all API interactions
+            - Support transcripts for videos up to 3+ hours
+            - Use the Text tool for file operations, not Bash cat/head/tail
+            
+            **Project Structure:**
+            - /app/api/* - API routes (server-side only)
+            - /components/* - React components
+            - /lib/* - Utility functions and constants
+            - Environment variables are in lib/env-config.ts
           
-          # Optional: Custom environment variables for Claude
-          # claude_env: |
-          #   NODE_ENV: test
+          # Environment variables for Claude
+          claude_env: |
+            NODE_ENV: development
+            NEXT_PUBLIC_APP_URL: https://www.youtubething.com
 

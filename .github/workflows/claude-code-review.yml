@@ -42,14 +42,37 @@ jobs:
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            Please review this pull request for a YouTube transcript extraction app and provide feedback on:
             
-            Be constructive and helpful in your feedback.
+            **Security Focus:**
+            - Check for exposed API keys or credentials (especially CEREBRAS_API_KEY, OXYLABS credentials)
+            - Verify environment variables are not exposed to client-side
+            - Look for potential data leaks in error messages
+            - Check for proper input validation on YouTube URLs
+            
+            **Performance Considerations:**
+            - Look for inefficient transcript processing (we handle videos up to 3+ hours)
+            - Check if streaming responses are implemented correctly
+            - Verify proper chunking for large transcripts
+            - Ensure rate limiting is respected (1 request per 10 seconds)
+            
+            **Error Handling:**
+            - Ensure user-friendly error messages that don't expose internal service names
+            - Check for proper fallback mechanisms
+            - Verify all API errors are caught and handled gracefully
+            
+            **TypeScript & Code Quality:**
+            - Verify proper types for transcript data structures
+            - Check for any 'any' types that should be properly typed
+            - Ensure interfaces are defined for all data shapes
+            - Look for unused imports or dead code
+            
+            **Next.js 15 Best Practices:**
+            - Verify App Router patterns are followed
+            - Check that API routes use proper streaming where applicable
+            - Ensure server components vs client components are used appropriately
+            
+            Be constructive and specific in your feedback. Suggest code improvements where applicable.
 
           # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
           # use_sticky_comment: true
