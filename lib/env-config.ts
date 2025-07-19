@@ -5,13 +5,13 @@ import { AI_PROCESSING, API_ROUTE_CONFIG } from './constants';
 
 export const envConfig = {
   // API Keys
-  groqApiKey: process.env.GROQ_API_KEY,
+  cerebrasApiKey: process.env.CEREBRAS_API_KEY,
   oxyLabsUsername: process.env.OXYLABS_USERNAME,
   oxyLabsPassword: process.env.OXYLABS_PASSWORD,
   geminiApiKey: process.env.GEMINI_API_KEY,
   
   // AI Model Configuration
-  aiModel: process.env.AI_MODEL || 'llama-3.1-8b-instant',
+  aiModel: process.env.AI_MODEL || 'llama-4-scout-17b-16e-instruct',
   aiTemperature: parseFloat(process.env.AI_TEMPERATURE || String(AI_PROCESSING.DEFAULT_TEMPERATURE)),
   aiMaxTokens: parseInt(process.env.AI_MAX_TOKENS || String(AI_PROCESSING.MAX_TOKENS_SINGLE_REQUEST)),
   aiMaxTokensChunk: parseInt(process.env.AI_MAX_TOKENS_CHUNK || String(AI_PROCESSING.MAX_TOKENS_PER_CHUNK)),
@@ -31,7 +31,7 @@ export const envConfig = {
 
 // Validation function
 export function validateEnvConfig() {
-  const required = ['GROQ_API_KEY'];
+  const required = ['CEREBRAS_API_KEY'];
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {

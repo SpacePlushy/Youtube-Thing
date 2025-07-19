@@ -53,7 +53,7 @@ OXYLABS_USERNAME=your_username
 OXYLABS_PASSWORD=your_password
 
 # AI Formatting (required for AI features)
-GROQ_API_KEY=your_groq_api_key     # Get free at https://console.groq.com/keys
+CEREBRAS_API_KEY=your_cerebras_api_key     # Get at https://cloud.cerebras.ai/
 ```
 
 ### Development
@@ -103,7 +103,7 @@ The app will automatically fall back to available transcripts if your preferred 
 |----------|-------------|----------|
 | `OXYLABS_USERNAME` | Your Oxylabs username | Yes |
 | `OXYLABS_PASSWORD` | Your Oxylabs password | Yes |
-| `GROQ_API_KEY` | Groq API key for AI formatting | For AI features |
+| `CEREBRAS_API_KEY` | Cerebras API key for AI formatting | For AI features |
 
 ## License
 

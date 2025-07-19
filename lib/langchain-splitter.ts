@@ -1,7 +1,7 @@
 // LangChain-powered text splitter for transcript processing with AI timestamp continuity
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { streamText } from 'ai';
-import { groq } from '@ai-sdk/groq';
+import { cerebras } from '@ai-sdk/cerebras';
 
 export interface TranscriptSegment {
   text: string;
@@ -158,7 +158,7 @@ function parseTextChunkToSegments(chunk: string, includeTimestamps: boolean): Tr
 export async function fixTimestampContinuity(
   formattedChunk: string,
   context: ChunkProcessingContext,
-  groqApiKey: string,
+  cerebrasApiKey: string,
   chunkTimeRange?: { start: string; end: string; videoStart: string; videoEnd: string }
 ): Promise<string> {
   
@@ -191,7 +191,7 @@ Return only the corrected chunk:`;
 
   try {
     const result = await streamText({
-      model: groq('llama-3.1-8b-instant'),
+      model: cerebras('llama-4-scout-17b-16e-instruct'),
       system: 'You are a precise timestamp continuity fixer for long video transcripts. Use rolling window context efficiently.',
       prompt: continuityPrompt,
       temperature: 0.05, // Very low temperature for timestamp precision

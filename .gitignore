@@ -43,3 +43,6 @@ CLAUDE.md
 MCP-ASSISTANT-RULES.md
 .claude/
 /docs/ai-context/
+
+# Build artifacts and scripts
+/scripts/
