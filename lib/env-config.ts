@@ -5,7 +5,6 @@ import { AI_PROCESSING, API_ROUTE_CONFIG } from './constants';
 
 export const envConfig = {
   // API Keys
-  groqApiKey: process.env.GROQ_API_KEY,
   cerebrasApiKey: process.env.CEREBRAS_API_KEY,
   oxyLabsUsername: process.env.OXYLABS_USERNAME,
   oxyLabsPassword: process.env.OXYLABS_PASSWORD,
