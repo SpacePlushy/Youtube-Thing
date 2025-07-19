@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
-import { groq } from '@ai-sdk/groq';
+import { cerebras } from '@ai-sdk/cerebras';
 import { buildPrompt } from '@/lib/ai-prompts';
 import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const { transcript, options } = await request.json();
     
     // Process the request
-    return formatWithGroqStreamText(transcript, options);
+    return formatWithCerebrasStreamText(transcript, options);
     
   } catch (error) {
     return new Response(
@@ -86,10 +86,10 @@ function formatTranscriptForAI(transcript: any[], options: any): string {
 }
 
 
-async function formatWithGroqStreamText(transcript: any[], options: any) {
-  const groqApiKey = envConfig.groqApiKey;
+async function formatWithCerebrasStreamText(transcript: any[], options: any) {
+  const cerebrasApiKey = envConfig.cerebrasApiKey;
   
-  if (!groqApiKey) {
+  if (!cerebrasApiKey) {
     throw new Error(ERROR_MESSAGES.SERVICE_NOT_CONFIGURED);
   }
   
@@ -116,7 +116,7 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   console.log(`System prompt length: ${prompts.system.length}, User prompt length: ${userPrompt.length}`);
   
   const result = streamText({
-    model: groq(envConfig.aiModel),
+    model: cerebras(envConfig.aiModel),
     system: prompts.system,
     prompt: userPrompt,
     temperature: envConfig.aiTemperature,
@@ -228,7 +228,7 @@ async function formatWithGroqStreamText(transcript: any[], options: any) {
   });
   
   } catch (error) {
-    console.error('Error in formatWithGroqStreamText:', error);
+    console.error('Error in formatWithCerebrasStreamText:', error);
     throw error;
   }
 }
@@ -350,7 +350,7 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             
             // Process chunk with AI
             const result = await streamText({
-              model: groq(envConfig.aiModel),
+              model: cerebras(envConfig.aiModel),
               system: systemPrompt,
               prompt: userPrompt,
               temperature: envConfig.aiTemperature,
@@ -418,7 +418,7 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
               if (finalContent && finalContent.trim()) {
                 const prompts = buildPrompt(options);
                 const result = await streamText({
-                  model: groq(envConfig.aiModel),
+                  model: cerebras(envConfig.aiModel),
                   system: systemPrompt,
                   prompt: prompts.user + finalContent,
                   temperature: envConfig.aiTemperature,
