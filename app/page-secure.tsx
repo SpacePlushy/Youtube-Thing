@@ -11,8 +11,8 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [transcript, setTranscript] = useState<any[]>([]);
-  const [metadata, setMetadata] = useState<any>(null);
+  const [transcript, setTranscript] = useState<Array<{text: string, timestamp?: string}>>([]);
+  const [metadata, setMetadata] = useState<{duration?: number, language?: string, hadToFallback?: boolean, actualOrigin?: string, actualLanguage?: string} | null>(null);
   const [language, setLanguage] = useState('en');
   const [transcriptType, setTranscriptType] = useState<'auto' | 'manual'>('auto');
   const [formattedTranscript, setFormattedTranscript] = useState<string>('');
@@ -40,8 +40,9 @@ export default function Home() {
       if (sessionToken) {
         const cached = await SecureStorage.get(sessionToken);
         if (cached) {
-          setTranscript(cached.data);
-          setMetadata(cached.metadata);
+          const data = cached as {data: Array<{text: string, timestamp?: string}>, metadata: {duration?: number, language?: string}};
+          setTranscript(data.data);
+          setMetadata(data.metadata);
           setLoading(false);
           return;
         }
@@ -73,7 +74,7 @@ export default function Home() {
     }
   };
   
-  const handleFormat = async (options: any) => {
+  const handleFormat = async (options: {style: string, includeTimestamps?: boolean, paragraphLength?: string}) => {
     setIsFormatting(true);
     setFormattedTranscript('');
     setError('');
@@ -87,7 +88,7 @@ export default function Home() {
         // Handle streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let completedChunks: string[] = [];
+        const completedChunks: string[] = [];
         let currentChunkText = '';
         let currentChunkIndex = -1;
         
@@ -140,7 +141,7 @@ export default function Home() {
                   } else if (data.type === 'error') {
                     throw new Error(data.message);
                   }
-                } catch (e) {
+                } catch {
                   // Silent error handling
                 }
               }

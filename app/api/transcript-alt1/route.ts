@@ -3,9 +3,9 @@
 // export { POST } from '../transcript-deepgram/route';
 
 // Temporary placeholder until Deepgram route is implemented
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   return NextResponse.json({ 
     error: 'Alternative transcript API 1 not yet implemented' 
   }, { status: 501 });

@@ -3,7 +3,7 @@ export class SecureStorage {
   private static readonly STORAGE_KEY = 'app_data';
   
   // Simple interface that hides all caching logic
-  static async get(sessionToken: string): Promise<any | null> {
+  static async get(sessionToken: string): Promise<unknown | null> {
     if (typeof window === 'undefined') return null;
     
     try {
@@ -24,7 +24,7 @@ export class SecureStorage {
     }
   }
   
-  static async set(sessionToken: string, content: any): Promise<void> {
+  static async set(sessionToken: string, content: unknown): Promise<void> {
     if (typeof window === 'undefined') return;
     
     try {

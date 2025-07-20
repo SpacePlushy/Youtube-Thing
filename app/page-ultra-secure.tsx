@@ -13,8 +13,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasData, setHasData] = useState(false);
-  const [displayData, setDisplayData] = useState<any[]>([]);
-  const [metadata, setMetadata] = useState<any>(null);
+  const [displayData, setDisplayData] = useState<Array<{text: string, timestamp?: string}>>([]);
+  const [, setMetadata] = useState<{duration?: number, language?: string} | null>(null);
   const [language, setLanguage] = useState('en');
   const [transcriptType, setTranscriptType] = useState<'auto' | 'manual'>('auto');
   const [formattedContent, setFormattedContent] = useState<string>('');
@@ -53,8 +53,9 @@ export default function Home() {
       if (sessionToken) {
         const cached = await CryptoStorage.get(sessionToken);
         if (cached) {
-          setDisplayData(cached.data);
-          setMetadata(cached.metadata);
+          const data = cached as {data: Array<{text: string, timestamp?: string}>, metadata: {duration?: number, language?: string}};
+          setDisplayData(data.data);
+          setMetadata(data.metadata);
           setHasData(true);
           setSessionActive(true);
           setLoading(false);
@@ -83,7 +84,7 @@ export default function Home() {
           });
         }
       }
-    } catch (err) {
+    } catch {
       // Generic error message
       setError('Unable to process request. Please try again.');
     } finally {
@@ -91,7 +92,7 @@ export default function Home() {
     }
   };
   
-  const handleFormat = async (options: any) => {
+  const handleFormat = async (options: {style: string, includeTimestamps?: boolean, paragraphLength?: string}) => {
     setIsProcessing(true);
     setFormattedContent('');
     setError('');
@@ -134,7 +135,7 @@ export default function Home() {
           }
         }
       }
-    } catch (err) {
+    } catch {
       setError('Formatting failed. Please try again.');
     } finally {
       setIsProcessing(false);

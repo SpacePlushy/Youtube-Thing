@@ -14,8 +14,8 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [transcript, setTranscript] = useState<any[]>([]);
-  const [transcriptMetadata, setTranscriptMetadata] = useState<any>(null);
+  const [transcript, setTranscript] = useState<Array<{text: string, timestamp?: string, start?: number, duration?: number}>>([]);
+  const [transcriptMetadata, setTranscriptMetadata] = useState<{duration?: number, language?: string, hadToFallback?: boolean, actualOrigin?: string, actualLanguage?: string} | null>(null);
   const [language, setLanguage] = useState('en');
   const [transcriptOrigin, setTranscriptOrigin] = useState<'auto_generated' | 'uploader_provided'>('auto_generated');
   const [formattedTranscript, setFormattedTranscript] = useState<string>('');
@@ -30,7 +30,7 @@ export default function Home() {
       await navigator.clipboard.writeText(text);
       setCopyNotification(`${label} copied to clipboard!`);
       setTimeout(() => setCopyNotification(null), 2000);
-    } catch (err) {
+    } catch {
       setCopyNotification('Failed to copy');
       setTimeout(() => setCopyNotification(null), 2000);
     }
@@ -110,7 +110,7 @@ export default function Home() {
             language,
             transcriptOrigin,
             result.transcript,
-            result.metadata
+            result.metadata || {}
           );
         }
         
@@ -142,7 +142,7 @@ export default function Home() {
     }
   };
   
-  const handleFormat = async (options: any) => {
+  const handleFormat = async (options: {style: string, includeTimestamps?: boolean, paragraphLength?: string}) => {
     setIsFormatting(true);
     setFormattedTranscript('');
     setError('');
@@ -178,7 +178,6 @@ export default function Home() {
       const decoder = new TextDecoder();
       let accumulatedText = '';
       let progressData = { current: 0, total: 1 };
-      let baseProgress = 0;
       let streamProgress = 0;
       let lastUpdate = Date.now();
       let totalBytesReceived = 0;
@@ -240,7 +239,7 @@ export default function Home() {
             // Remove progress marker from output
             const cleanedChunk = textChunk.replace(/__PROGRESS__:.*?\n/g, '');
             accumulatedText += cleanedChunk;
-          } catch (e) {
+          } catch {
             // If parsing fails, just add the chunk as-is
             accumulatedText += textChunk;
           }
@@ -272,8 +271,8 @@ export default function Home() {
       analytics.trackFormatting({
         style: options.style,
         transcriptLength: transcript.length,
-        includeTimestamps: options.includeTimestamps,
-        paragraphLength: options.paragraphLength,
+        includeTimestamps: options.includeTimestamps || false,
+        paragraphLength: options.paragraphLength || 'medium',
         duration: Date.now() - startTime,
         error: false
       });
@@ -292,8 +291,8 @@ export default function Home() {
       analytics.trackFormatting({
         style: options.style,
         transcriptLength: transcript.length,
-        includeTimestamps: options.includeTimestamps,
-        paragraphLength: options.paragraphLength,
+        includeTimestamps: options.includeTimestamps || false,
+        paragraphLength: options.paragraphLength || 'medium',
         duration: Date.now() - startTime,
         error: true
       });

@@ -30,7 +30,7 @@ const extractSchema = z.object({
 
 const formatSchema = z.object({
   action: z.literal('format'),
-  data: z.array(z.any()).min(1),
+  data: z.array(z.unknown()).min(1),
   options: z.object({
     style: z.string(),
     includeTimestamps: z.boolean().optional(),
@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
     const data = validated.data;
     
     if (data.action === 'extract') {
-      return await handleSecureExtraction(data.url, data.options, requestId);
+      return await handleSecureExtraction(data.url, data.options || {}, requestId);
     } else {
-      return await handleSecureFormatting(data.data, data.options, requestId, request);
+      return await handleSecureFormatting(data.data, data.options || {style: 'clean'}, requestId, request);
     }
   } catch (error) {
     // Log error internally without exposing details
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 
 async function handleSecureExtraction(
   url: string, 
-  options: any, 
+  options: {language?: string, transcriptType?: string}, 
   requestId: string
 ): Promise<NextResponse> {
   // All business logic hidden
@@ -146,8 +146,8 @@ async function handleSecureExtraction(
 }
 
 async function handleSecureFormatting(
-  data: any, 
-  options: any,
+  data: unknown[], 
+  options: {style: string, includeTimestamps?: boolean, paragraphLength?: string},
   requestId: string,
   request: NextRequest
 ): Promise<NextResponse> {
@@ -202,7 +202,7 @@ function extractVideoIdInternal(url: string): string | null {
   return null;
 }
 
-async function performExtraction(videoId: string, options: any) {
+async function performExtraction(videoId: string, options: {language?: string, transcriptType?: string}) {
   // Complex provider selection and execution logic
   const provider = selectOptimalProvider();
   
@@ -223,7 +223,7 @@ function selectOptimalProvider(): string {
   return 'none';
 }
 
-async function executePrimaryExtraction(videoId: string, options: any) {
+async function executePrimaryExtraction(videoId: string, options: {language?: string, transcriptType?: string}) {
   // Import and execute Oxylabs extraction
   const { POST } = await import('../../transcript-oxylabs/route');
   

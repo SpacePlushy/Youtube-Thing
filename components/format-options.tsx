@@ -4,7 +4,7 @@ import { Sparkles, Clock } from 'lucide-react';
 
 interface FormatOptionsProps {
   transcriptLength: number;
-  onFormat: (options: any) => void;
+  onFormat: (options: {style: string, includeTimestamps: boolean, paragraphLength: string}) => void;
   isFormatting: boolean;
 }
 

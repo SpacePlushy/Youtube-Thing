@@ -4,7 +4,7 @@ import { cerebras } from '@ai-sdk/cerebras';
 import { buildPrompt } from '@/lib/ai-prompts';
 import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
-import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
+import { HTTP_CONFIG, ERROR_MESSAGES, FormatStyle, ParagraphLength } from '@/lib/constants';
 
 
 // Clean AI output by removing common commentary patterns
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Process the request
     return formatWithCerebrasStreamText(transcript, options);
     
-  } catch (error) {
+  } catch {
     return new Response(
       JSON.stringify({ error: ERROR_MESSAGES.GENERIC_PROCESSING_ERROR }),
       { 
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Format transcript text for AI processing
-function formatTranscriptForAI(transcript: any[], options: any): string {
+function formatTranscriptForAI(transcript: Array<{text: string, timestamp?: string}>, options: {includeTimestamps: boolean}): string {
   if (!options.includeTimestamps) {
     // Text only for non-timestamp mode
     return transcript
@@ -86,7 +86,7 @@ function formatTranscriptForAI(transcript: any[], options: any): string {
 }
 
 
-async function formatWithCerebrasStreamText(transcript: any[], options: any) {
+async function formatWithCerebrasStreamText(transcript: Array<{text: string, timestamp?: string}>, options: {includeTimestamps: boolean, format: string, paragraphLength?: string}) {
   const cerebrasApiKey = envConfig.cerebrasApiKey;
   
   if (!cerebrasApiKey) {
@@ -96,7 +96,11 @@ async function formatWithCerebrasStreamText(transcript: any[], options: any) {
   try {
   
   // Get prompts from secure module
-  const prompts = buildPrompt(options);
+  const prompts = buildPrompt({
+    style: options.format as FormatStyle,
+    includeTimestamps: options.includeTimestamps,
+    paragraphLength: (options.paragraphLength || 'medium') as ParagraphLength
+  });
   
   // Check if chunking is needed using LangChain approach
   const useChunking = shouldUseChunking(transcript.length);
@@ -234,12 +238,12 @@ async function formatWithCerebrasStreamText(transcript: any[], options: any) {
 }
 
 // LangChain-powered chunking with clean boundaries
-async function formatWithLangChainChunking(transcript: any[], options: any, systemPrompt: string) {
+async function formatWithLangChainChunking(transcript: Array<{text: string, timestamp?: string}>, options: {includeTimestamps: boolean, format: string, paragraphLength?: string}, systemPrompt: string) {
   const encoder = new TextEncoder();
   
   try {
     // Get optimal chunk configuration for this transcript
-    const chunkConfig = getOptimalChunkConfig(transcript.length);
+    const chunkConfig = getOptimalChunkConfig();
     
     // Split transcript using LangChain's proven algorithm
     const chunks = await splitTranscriptWithLangChain(
@@ -266,7 +270,7 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
           // Process each LangChain chunk sequentially with timestamp continuity
           console.log(`Processing ${totalChunks} chunks for transcript formatting`);
           let successfulChunks = 0;
-          let accumulatedSegments: any[] = []; // Accumulate segments from skipped chunks
+          let accumulatedSegments: Array<{text: string, timestamp?: string}> = []; // Accumulate segments from skipped chunks
           
           for (let i = 0; i < chunks.length; i++) {
             try {
@@ -342,7 +346,11 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             const chunkEndTime = cleanedChunk[cleanedChunk.length - 1]?.timestamp || '0:00';
             
             // Build prompts for this chunk with timestamp context
-            const prompts = buildPrompt(options);
+            const prompts = buildPrompt({
+              style: options.format as FormatStyle,
+              includeTimestamps: options.includeTimestamps,
+              paragraphLength: (options.paragraphLength || 'medium') as ParagraphLength
+            });
             const timeContextPrompt = options.includeTimestamps ? 
               `\n\nTIMESTAMP CONTEXT:\n- Video duration: ${firstTimestamp} to ${lastTimestamp}\n- This chunk covers: ${chunkStartTime} to ${chunkEndTime}\n- Ensure timestamps continue sequentially and stay within these bounds\n` : '';
             
@@ -373,7 +381,7 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             console.log(`[DEBUG] AI response complete - Total parts: ${streamPartCount}, Total length: ${chunkOutput.length} chars`);
             
             // Clean AI commentary
-            let finalOutput = cleanAIOutput(chunkOutput);
+            const finalOutput = cleanAIOutput(chunkOutput);
             console.log(`[DEBUG] After cleaning - Final output length: ${finalOutput.length} chars`);
             console.log(`Processed chunk ${i + 1} with AI formatting, output length: ${finalOutput.length} chars`);
             
@@ -416,7 +424,11 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             try {
               const finalContent = formatTranscriptForAI(accumulatedSegments, options);
               if (finalContent && finalContent.trim()) {
-                const prompts = buildPrompt(options);
+                const prompts = buildPrompt({
+                  style: options.format as FormatStyle,
+                  includeTimestamps: options.includeTimestamps,
+                  paragraphLength: (options.paragraphLength || 'medium') as ParagraphLength
+                });
                 const result = await streamText({
                   model: cerebras(envConfig.aiModel),
                   system: systemPrompt,

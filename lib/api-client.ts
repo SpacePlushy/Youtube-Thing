@@ -33,7 +33,7 @@ export class TranscriptAPI {
     return response.json();
   }
   
-  static async format(data: any, options: FormatOptions) {
+  static async format(data: Array<{text: string, timestamp?: string}>, options: FormatOptions) {
     const response = await fetch(this.ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

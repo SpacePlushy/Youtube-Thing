@@ -114,9 +114,9 @@ export async function extractTranscript(
     console.log('[Frontend] Response status:', response.status);
     
     const data = await response.json() as { 
-      transcript?: any[], 
+      transcript?: Array<{text: string, timestamp?: string}>, 
       error?: string,
-      metadata?: any,
+      metadata?: {duration?: number, language?: string},
       success?: boolean,
       provider?: string,
       segmentCount?: number

@@ -39,7 +39,7 @@ export class CryptoStorage {
   }
   
   // Encrypt data
-  private static async encrypt(data: any, key: CryptoKey): Promise<string> {
+  private static async encrypt(data: unknown, key: CryptoKey): Promise<string> {
     const encoder = new TextEncoder();
     const iv = crypto.getRandomValues(new Uint8Array(12));
     
@@ -62,7 +62,7 @@ export class CryptoStorage {
   }
   
   // Decrypt data
-  private static async decrypt(encryptedData: string, key: CryptoKey): Promise<any> {
+  private static async decrypt(encryptedData: string, key: CryptoKey): Promise<unknown> {
     const decoder = new TextDecoder();
     
     // Convert from base64
@@ -87,7 +87,7 @@ export class CryptoStorage {
   }
   
   // Public methods
-  static async get(sessionToken: string): Promise<any | null> {
+  static async get(sessionToken: string): Promise<unknown | null> {
     if (typeof window === 'undefined' || !sessionToken) return null;
     
     try {
@@ -95,7 +95,8 @@ export class CryptoStorage {
       if (!encrypted) return null;
       
       const key = await this.generateKey(sessionToken);
-      const data = await this.decrypt(encrypted, key);
+      const decrypted = await this.decrypt(encrypted, key);
+      const data = decrypted as {token: string, content: unknown, timestamp: number};
       
       // Verify token matches
       if (data.token !== sessionToken) return null;
@@ -107,14 +108,14 @@ export class CryptoStorage {
       }
       
       return data.content;
-    } catch (error) {
+    } catch {
       // Silent fail for security
       console.error('Storage access failed');
       return null;
     }
   }
   
-  static async set(sessionToken: string, content: any): Promise<void> {
+  static async set(sessionToken: string, content: unknown): Promise<void> {
     if (typeof window === 'undefined' || !sessionToken) return;
     
     try {
@@ -128,7 +129,7 @@ export class CryptoStorage {
       const encrypted = await this.encrypt(data, key);
       
       localStorage.setItem(this.STORAGE_KEY, encrypted);
-    } catch (error) {
+    } catch {
       // Silent fail for security
       console.error('Storage write failed');
     }

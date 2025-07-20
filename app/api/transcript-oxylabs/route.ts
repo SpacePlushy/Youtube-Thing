@@ -3,7 +3,7 @@ import { extractVideoId } from '@/lib/youtube';
 
 interface OxylabsResponse {
   results: Array<{
-    content: any;
+    content: unknown;
     created_at: string;
     updated_at: string;
     page: number;
@@ -359,7 +359,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function parseOxylabsTranscript(content: any): TranscriptSegment[] {
+function parseOxylabsTranscript(content: unknown): TranscriptSegment[] {
   try {
     console.log('[Oxylabs Parser] Raw content structure:', JSON.stringify(content).substring(0, 500));
     
@@ -386,7 +386,7 @@ function parseOxylabsTranscript(content: any): TranscriptSegment[] {
         // Extract text from snippet.runs
         let text = '';
         if (renderer.snippet && renderer.snippet.runs) {
-          text = renderer.snippet.runs.map((run: any) => run.text || '').join('');
+          text = renderer.snippet.runs.map((run: {text?: string}) => run.text || '').join('');
         }
         
         // Extract timing information

@@ -5,9 +5,9 @@ import { analytics } from '@/lib/analytics';
 
 interface TranscriptItem {
   text: string;
-  start: number;
-  duration: number;
-  timestamp: string;
+  start?: number;
+  duration?: number;
+  timestamp?: string;
 }
 
 interface TranscriptViewerProps {
@@ -15,13 +15,12 @@ interface TranscriptViewerProps {
 }
 
 export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
-  const fullText = transcript.map(item => item.text).join(' ');
   // Format with timestamps on new lines but text flowing continuously
   const fullTextWithTimestamps = transcript
     .map((item, index) => {
       // Start new line for each timestamp
       const prefix = index === 0 ? '' : '\n';
-      return `${prefix}[${item.timestamp}] ${item.text}`;
+      return `${prefix}[${item.timestamp || '0:00'}] ${item.text}`;
     })
     .join(' ')
     .replace(/\n /g, '\n'); // Remove space after newlines
@@ -31,7 +30,7 @@ export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
       await navigator.clipboard.writeText(fullTextWithTimestamps);
       analytics.trackExport('copy', 'raw');
       alert('Copied to clipboard!');
-    } catch (err) {
+    } catch {
       alert('Failed to copy');
     }
   };

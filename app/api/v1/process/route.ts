@@ -24,14 +24,14 @@ export async function POST(request: NextRequest) {
           message: 'Invalid action' 
         }, { status: 400 });
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       message: 'Service unavailable' 
     }, { status: 503 });
   }
 }
 
-async function handleExtraction(url: string, options: any) {
+async function handleExtraction(url: string, options: {language?: string, transcriptType?: string}) {
   // Validate URL server-side only
   if (!url || !isValidVideoUrl(url)) {
     return NextResponse.json({ 
@@ -83,14 +83,14 @@ async function handleExtraction(url: string, options: any) {
       },
       sessionToken,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       message: 'Service temporarily unavailable' 
     }, { status: 503 });
   }
 }
 
-async function handleFormatting(data: any, options: any, request: NextRequest) {
+async function handleFormatting(data: unknown[], options: {style?: string, includeTimestamps?: boolean, paragraphLength?: string}, request: NextRequest) {
   // For Gemini formatting - this is okay to be visible per user request
   if (!data || !options?.style) {
     return NextResponse.json({ 
@@ -122,7 +122,7 @@ async function handleFormatting(data: any, options: any, request: NextRequest) {
       status: response.status,
       headers: response.headers,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       message: 'Formatting service unavailable' 
     }, { status: 503 });
@@ -161,7 +161,7 @@ function extractVideoIdSecure(url: string): string | null {
   return null;
 }
 
-function calculateDuration(transcript: any[]): number {
+function calculateDuration(transcript: Array<{start?: number, duration?: number}>): number {
   if (!transcript || transcript.length === 0) return 0;
   const lastSegment = transcript[transcript.length - 1];
   return (lastSegment.start || 0) + (lastSegment.duration || 0);

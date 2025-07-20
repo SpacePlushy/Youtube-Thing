@@ -5,7 +5,7 @@ import { cerebras } from '@ai-sdk/cerebras';
 
 export interface TranscriptSegment {
   text: string;
-  timestamp: string;
+  timestamp?: string;
   duration?: number;
 }
 
@@ -22,24 +22,6 @@ export interface ChunkProcessingContext {
 }
 
 
-/**
- * Deduplicate by timestamp to handle any remaining overlaps
- */
-function deduplicateByTimestamp(segments: TranscriptSegment[]): TranscriptSegment[] {
-  const seenTimestamps = new Set<string>();
-  const deduplicated: TranscriptSegment[] = [];
-  
-  for (const segment of segments) {
-    if (!segment.timestamp || !seenTimestamps.has(segment.timestamp)) {
-      if (segment.timestamp) {
-        seenTimestamps.add(segment.timestamp);
-      }
-      deduplicated.push(segment);
-    }
-  }
-  
-  return deduplicated;
-}
 
 /**
  * Convert transcript segments to text format for LangChain processing
@@ -157,9 +139,7 @@ function parseTextChunkToSegments(chunk: string, includeTimestamps: boolean): Tr
  */
 export async function fixTimestampContinuity(
   formattedChunk: string,
-  context: ChunkProcessingContext,
-  cerebrasApiKey: string,
-  chunkTimeRange?: { start: string; end: string; videoStart: string; videoEnd: string }
+  context: ChunkProcessingContext
 ): Promise<string> {
   
   // If this is the first chunk, initialize window and return as-is
@@ -171,13 +151,7 @@ export async function fixTimestampContinuity(
   
   console.log(`AI timestamp continuity: processing chunk with last timestamp ${context.lastTimestamp}`);
   
-  // Build context from rolling window (last 2-3 chunks for efficiency)
-  const windowContext = context.windowBuffer.slice(-2).join('\n\n');
-  const lastLines = getLastContentForContext(windowContext) || '';
   
-  // Add time range context if provided
-  const timeRangeContext = chunkTimeRange ? 
-    `\nVIDEO TIME BOUNDARIES:\n- Full video: ${chunkTimeRange.videoStart} to ${chunkTimeRange.videoEnd}\n- Expected chunk range: ${chunkTimeRange.start} to ${chunkTimeRange.end}\n` : '';
   
   // Simplified prompt to reduce token usage and improve reliability
   const continuityPrompt = `Fix timestamp sequence to continue from ${context.lastTimestamp}.
@@ -272,11 +246,7 @@ export function getLastContentForContext(formattedContent: string): string | nul
 /**
  * Get optimal chunk configuration based on transcript length
  */
-export function getOptimalChunkConfig(transcriptLength: number): SplitterConfig {
-  // Base character counts (roughly 4 chars per word, 20 words per segment)
-  const avgCharsPerSegment = 80;
-  const totalChars = transcriptLength * avgCharsPerSegment;
-  
+export function getOptimalChunkConfig(): SplitterConfig {
   // Use consistent 4000 char chunks for better AI processing
   return { chunkSize: 4000, chunkOverlap: 200 };
 }

@@ -26,7 +26,7 @@ interface FormatEventData {
 interface ErrorEventData {
   type: 'extraction' | 'formatting' | 'api';
   error: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export const analytics = {
@@ -86,16 +86,16 @@ export const analytics = {
   },
 
   // Generic action tracking
-  trackAction: (action: string, data?: Record<string, any>) => {
+  trackAction: (action: string, data?: Record<string, unknown>) => {
     if (typeof window !== 'undefined') {
-      track(action, data);
+      track(action, data as Record<string, string | number | boolean> | undefined);
     }
   },
 
   // Track page-specific events
-  trackPageAction: (page: string, action: string, data?: Record<string, any>) => {
+  trackPageAction: (page: string, action: string, data?: Record<string, unknown>) => {
     if (typeof window !== 'undefined') {
-      track(`${page}_${action}`, data);
+      track(`${page}_${action}`, data as Record<string, string | number | boolean> | undefined);
     }
   }
 };

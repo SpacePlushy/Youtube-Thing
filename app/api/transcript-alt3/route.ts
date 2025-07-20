@@ -3,9 +3,9 @@
 // export { POST } from '../transcript-brightdata-proxy/route';
 
 // Temporary placeholder until Brightdata Proxy route is implemented
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   return NextResponse.json({ 
     error: 'Alternative transcript API 3 not yet implemented' 
   }, { status: 501 });

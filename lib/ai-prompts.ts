@@ -9,7 +9,7 @@ export interface FormatOptions {
 
 // Internal prompt builder - not exposed to client
 export function buildPrompt(options: FormatOptions): { system: string; user: string } {
-  const styleConfig = getStyleConfig(options.style, options.includeTimestamps, options.paragraphLength);
+  const styleConfig = getStyleConfig(options.style, options.includeTimestamps);
   const lengthConfig = getLengthConfig(options.paragraphLength, options.includeTimestamps);
   
   return {
@@ -19,12 +19,12 @@ export function buildPrompt(options: FormatOptions): { system: string; user: str
 }
 
 // Private configuration functions
-function getStyleConfig(style: string, includeTimestamps: boolean, paragraphLength: string): string {
+function getStyleConfig(style: string, includeTimestamps: boolean): string {
   const configs: Record<string, string> = {
-    clean: buildCleanPrompt(includeTimestamps, paragraphLength),
-    summary: buildSummaryPrompt(includeTimestamps, paragraphLength),
-    chapters: buildChaptersPrompt(includeTimestamps, paragraphLength),
-    bullets: buildBulletsPrompt(includeTimestamps, paragraphLength),
+    clean: buildCleanPrompt(includeTimestamps),
+    summary: buildSummaryPrompt(includeTimestamps),
+    chapters: buildChaptersPrompt(includeTimestamps),
+    bullets: buildBulletsPrompt(includeTimestamps),
     timestamps: buildTimestampsPrompt() // Always line-by-line for timestamps style
   };
   
@@ -69,7 +69,7 @@ PROCESSING REQUIREMENTS:
 }
 
 // Proprietary prompt builders - core business logic
-function buildCleanPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+function buildCleanPrompt(includeTimestamps: boolean): string {
   const timestampFormat = includeTimestamps 
     ? '- IMPORTANT: Place timestamps at the START of each paragraph only: [0:01] Paragraph content flows naturally here with multiple sentences forming a cohesive paragraph based on the selected length.'
     : '';
@@ -85,7 +85,7 @@ ${timestampFormat}
 CRITICAL: Output ONLY the cleaned transcript. NO explanations, commentary, or introductory text. Start immediately with the formatted content.`;
 }
 
-function buildSummaryPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+function buildSummaryPrompt(includeTimestamps: boolean): string {
   const timestampFormat = includeTimestamps 
     ? '- IMPORTANT: Place timestamps at the START of each paragraph only: [0:01] Paragraph content flows naturally here with multiple sentences forming a cohesive paragraph.'
     : '';
@@ -100,7 +100,7 @@ ${timestampFormat}
 CRITICAL: Output ONLY the summary. NO explanations, commentary, or introductory text. Start immediately with the summarized content.`;
 }
 
-function buildChaptersPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+function buildChaptersPrompt(includeTimestamps: boolean): string {
   const timestampFormat = includeTimestamps 
     ? '- IMPORTANT: Place timestamps at the START of each paragraph only: [0:01] Paragraph content flows naturally here with multiple sentences forming a cohesive paragraph.'
     : '';
@@ -115,7 +115,7 @@ ${timestampFormat}
 CRITICAL: Output ONLY the organized chapters. NO explanations, commentary, or introductory text. Start immediately with the chapter content.`;
 }
 
-function buildBulletsPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+function buildBulletsPrompt(includeTimestamps: boolean): string {
   const timestampFormat = includeTimestamps 
     ? '- IMPORTANT: Place timestamps at the START of each bullet point: [0:01] • Bullet content flows naturally here with complete thoughts.'
     : '';

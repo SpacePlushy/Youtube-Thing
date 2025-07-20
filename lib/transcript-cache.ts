@@ -1,6 +1,6 @@
 interface CachedTranscript {
-  transcript: any[];
-  metadata: any;
+  transcript: Array<{text: string, timestamp?: string}>;
+  metadata: {duration?: number, language?: string};
   cachedAt: number;
   videoId: string;
   language: string;
@@ -43,8 +43,8 @@ export class TranscriptCache {
     videoId: string, 
     language: string, 
     origin: 'auto_generated' | 'uploader_provided',
-    transcript: any[],
-    metadata: any
+    transcript: Array<{text: string, timestamp?: string}>,
+    metadata: {duration?: number, language?: string}
   ): void {
     if (typeof window === 'undefined') return;
     
