@@ -31,7 +31,7 @@ export default function Home() {
       await navigator.clipboard.writeText(text);
       setCopyNotification(`${label} copied to clipboard!`);
       setTimeout(() => setCopyNotification(null), 2000);
-    } catch (err) {
+    } catch {
       setCopyNotification('Failed to copy');
       setTimeout(() => setCopyNotification(null), 2000);
     }
@@ -179,7 +179,7 @@ export default function Home() {
       const decoder = new TextDecoder();
       let accumulatedText = '';
       let progressData = { current: 0, total: 1 };
-      let baseProgress = 0;
+      // const baseProgress = 0;
       let streamProgress = 0;
       let lastUpdate = Date.now();
       let totalBytesReceived = 0;
@@ -241,7 +241,7 @@ export default function Home() {
             // Remove progress marker from output
             const cleanedChunk = textChunk.replace(/__PROGRESS__:.*?\n/g, '');
             accumulatedText += cleanedChunk;
-          } catch (e) {
+          } catch {
             // If parsing fails, just add the chunk as-is
             accumulatedText += textChunk;
           }

@@ -107,7 +107,7 @@ export class CryptoStorage {
       }
       
       return data.content;
-    } catch (error) {
+    } catch {
       // Silent fail for security
       console.error('Storage access failed');
       return null;
@@ -128,7 +128,7 @@ export class CryptoStorage {
       const encrypted = await this.encrypt(data, key);
       
       localStorage.setItem(this.STORAGE_KEY, encrypted);
-    } catch (error) {
+    } catch {
       // Silent fail for security
       console.error('Storage write failed');
     }

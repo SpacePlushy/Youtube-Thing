@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       default:
         return handleDefaultExtraction(videoId, language, transcriptOrigin);
     }
-  } catch (error) {
+  } catch {
     // Generic error messages
     return NextResponse.json({ 
       message: 'Service temporarily unavailable' 
@@ -58,7 +58,7 @@ function selectOptimalProvider(): string {
 // Import actual handlers from separate files
 async function handleOxylabsExtraction(videoId: string, language: string, origin: string) {
   // Implementation hidden in separate module
-  const module = await import('../transcript-oxylabs/route');
+  const oxylabsModule = await import('../transcript-oxylabs/route');
   
   // Create synthetic request for internal routing
   const syntheticRequest = new NextRequest(
@@ -73,15 +73,15 @@ async function handleOxylabsExtraction(videoId: string, language: string, origin
     }
   );
   
-  return module.POST(syntheticRequest);
+  return oxylabsModule.POST(syntheticRequest);
 }
 
-async function handleFallbackExtraction(videoId: string, language: string, origin: string) {
+async function handleFallbackExtraction(_videoId: string, _language: string, _origin: string) {
   // Fallback logic
   return NextResponse.json({ message: 'Service unavailable' }, { status: 503 });
 }
 
-async function handleDefaultExtraction(videoId: string, language: string, origin: string) {
+async function handleDefaultExtraction(_videoId: string, _language: string, _origin: string) {
   // Default handler
   return NextResponse.json({ message: 'Service unavailable' }, { status: 503 });
 }

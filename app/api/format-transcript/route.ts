@@ -4,7 +4,7 @@ import { cerebras } from '@ai-sdk/cerebras';
 import { buildPrompt } from '@/lib/ai-prompts';
 import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';
-import { API_ROUTE_CONFIG, HTTP_CONFIG, ERROR_MESSAGES, AI_PROCESSING } from '@/lib/constants';
+import { HTTP_CONFIG, ERROR_MESSAGES } from '@/lib/constants';
 
 
 // Clean AI output by removing common commentary patterns
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Process the request
     return formatWithCerebrasStreamText(transcript, options);
     
-  } catch (error) {
+  } catch {
     return new Response(
       JSON.stringify({ error: ERROR_MESSAGES.GENERIC_PROCESSING_ERROR }),
       { 
@@ -373,7 +373,7 @@ async function formatWithLangChainChunking(transcript: any[], options: any, syst
             console.log(`[DEBUG] AI response complete - Total parts: ${streamPartCount}, Total length: ${chunkOutput.length} chars`);
             
             // Clean AI commentary
-            let finalOutput = cleanAIOutput(chunkOutput);
+            const finalOutput = cleanAIOutput(chunkOutput);
             console.log(`[DEBUG] After cleaning - Final output length: ${finalOutput.length} chars`);
             console.log(`Processed chunk ${i + 1} with AI formatting, output length: ${finalOutput.length} chars`);
             

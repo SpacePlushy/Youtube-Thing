@@ -15,7 +15,7 @@ interface TranscriptViewerProps {
 }
 
 export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
-  const fullText = transcript.map(item => item.text).join(' ');
+  // const fullText = transcript.map(item => item.text).join(' ');
   // Format with timestamps on new lines but text flowing continuously
   const fullTextWithTimestamps = transcript
     .map((item, index) => {
@@ -31,7 +31,7 @@ export function TranscriptViewer({ transcript }: TranscriptViewerProps) {
       await navigator.clipboard.writeText(fullTextWithTimestamps);
       analytics.trackExport('copy', 'raw');
       alert('Copied to clipboard!');
-    } catch (err) {
+    } catch {
       alert('Failed to copy');
     }
   };

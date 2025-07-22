@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
           message: 'Invalid action' 
         }, { status: 400 });
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       message: 'Service unavailable' 
     }, { status: 503 });
@@ -83,7 +83,7 @@ async function handleExtraction(url: string, options: any) {
       },
       sessionToken,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       message: 'Service temporarily unavailable' 
     }, { status: 503 });
@@ -122,7 +122,7 @@ async function handleFormatting(data: any, options: any, request: NextRequest) {
       status: response.status,
       headers: response.headers,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ 
       message: 'Formatting service unavailable' 
     }, { status: 503 });
