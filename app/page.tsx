@@ -8,19 +8,20 @@ import { SmoothProgressBar } from '@/components/smooth-progress-bar';
 import { TranscriptCache } from '@/lib/transcript-cache';
 import { analytics } from '@/lib/analytics';
 import { Loader2, Copy, Download } from 'lucide-react';
+import type { TranscriptSegment, TranscriptMetadata, FormattingProgress, TranscriptOrigin, SupportedLanguage } from '@/lib/types';
 
 
 export default function Home() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [transcript, setTranscript] = useState<any[]>([]);
-  const [transcriptMetadata, setTranscriptMetadata] = useState<any>(null);
-  const [language, setLanguage] = useState('en');
-  const [transcriptOrigin, setTranscriptOrigin] = useState<'auto_generated' | 'uploader_provided'>('auto_generated');
+  const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
+  const [transcriptMetadata, setTranscriptMetadata] = useState<TranscriptMetadata | null>(null);
+  const [language, setLanguage] = useState<SupportedLanguage>('en');
+  const [transcriptOrigin, setTranscriptOrigin] = useState<TranscriptOrigin>('auto_generated');
   const [formattedTranscript, setFormattedTranscript] = useState<string>('');
   const [isFormatting, setIsFormatting] = useState(false);
-  const [formattingProgress, setFormattingProgress] = useState<{ message: string; progress: number } | null>(null);
+  const [formattingProgress, setFormattingProgress] = useState<FormattingProgress | null>(null);
   const [usingCache, setUsingCache] = useState(false);
   const [copyNotification, setCopyNotification] = useState<string | null>(null);
 
@@ -365,7 +366,7 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-3">
                   <select
                     value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
+                    onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
                     className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-base"
                     disabled={loading}
                   >
@@ -385,7 +386,7 @@ export default function Home() {
                   
                   <select
                     value={transcriptOrigin}
-                    onChange={(e) => setTranscriptOrigin(e.target.value as 'auto_generated' | 'uploader_provided')}
+                    onChange={(e) => setTranscriptOrigin(e.target.value as TranscriptOrigin)}
                     className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-base"
                     disabled={loading}
                   >
@@ -458,7 +459,7 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-3">
                   <select
                     value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
+                    onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
                     className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-base"
                     disabled={loading}
                   >
@@ -478,7 +479,7 @@ export default function Home() {
                   
                   <select
                     value={transcriptOrigin}
-                    onChange={(e) => setTranscriptOrigin(e.target.value as 'auto_generated' | 'uploader_provided')}
+                    onChange={(e) => setTranscriptOrigin(e.target.value as TranscriptOrigin)}
                     className="px-3 py-2 bg-input text-foreground border border-border rounded focus:ring-2 focus:ring-ring focus:border-transparent text-base"
                     disabled={loading}
                   >

@@ -22,7 +22,6 @@ const nextConfig = {
             'process.env.OXYLABS_USERNAME': 'undefined',
             'process.env.OXYLABS_PASSWORD': 'undefined', 
             'process.env.CEREBRAS_API_KEY': 'undefined',
-            'process.env.GEMINI_API_KEY': 'undefined',
             'process.env.KV_URL': 'undefined',
             'process.env.KV_REST_API_TOKEN': 'undefined',
             'process.env.KV_REST_API_READ_ONLY_TOKEN': 'undefined',
