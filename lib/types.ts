@@ -4,6 +4,9 @@
 
 import { FormatStyle, ParagraphLength, TranscriptOrigin, SupportedLanguage } from './constants';
 
+// Re-export types from constants for convenience
+export type { TranscriptOrigin, SupportedLanguage } from './constants';
+
 // Transcript related types
 export interface TranscriptSegment {
   text: string;

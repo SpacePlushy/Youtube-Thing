@@ -14,7 +14,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [hasData, setHasData] = useState(false);
   const [displayData, setDisplayData] = useState<any[]>([]);
-  const [metadata, setMetadata] = useState<any>(null);
+  // const [metadata, setMetadata] = useState<any>(null);
   const [language, setLanguage] = useState('en');
   const [transcriptType, setTranscriptType] = useState<'auto' | 'manual'>('auto');
   const [formattedContent, setFormattedContent] = useState<string>('');
@@ -44,7 +44,7 @@ export default function Home() {
     setError('');
     setHasData(false);
     setDisplayData([]);
-    setMetadata(null);
+    // setMetadata(null);
     setFormattedContent('');
     setProgress(null);
     
@@ -54,7 +54,7 @@ export default function Home() {
         const cached = await CryptoStorage.get(sessionToken);
         if (cached) {
           setDisplayData(cached.data);
-          setMetadata(cached.metadata);
+          // setMetadata(cached.metadata);
           setHasData(true);
           setSessionActive(true);
           setLoading(false);
@@ -70,7 +70,7 @@ export default function Home() {
       
       if (result.success && result.data) {
         setDisplayData(result.data);
-        setMetadata(result.metadata);
+        // setMetadata(result.metadata);
         setHasData(true);
         
         // Store in encrypted storage
@@ -83,7 +83,7 @@ export default function Home() {
           });
         }
       }
-    } catch (err) {
+    } catch {
       // Generic error message
       setError('Unable to process request. Please try again.');
     } finally {
@@ -134,7 +134,7 @@ export default function Home() {
           }
         }
       }
-    } catch (err) {
+    } catch {
       setError('Formatting failed. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -148,7 +148,7 @@ export default function Home() {
     setSessionActive(false);
     setDisplayData([]);
     setHasData(false);
-    setMetadata(null);
+    // setMetadata(null);
     setFormattedContent('');
   };
   

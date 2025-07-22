@@ -87,7 +87,7 @@ export default function Home() {
         // Handle streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let completedChunks: string[] = [];
+        const completedChunks: string[] = [];
         let currentChunkText = '';
         let currentChunkIndex = -1;
         
@@ -140,7 +140,7 @@ export default function Home() {
                   } else if (data.type === 'error') {
                     throw new Error(data.message);
                   }
-                } catch (e) {
+                } catch {
                   // Silent error handling
                 }
               }

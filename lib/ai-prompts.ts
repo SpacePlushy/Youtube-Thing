@@ -69,7 +69,7 @@ PROCESSING REQUIREMENTS:
 }
 
 // Proprietary prompt builders - core business logic
-function buildCleanPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+function buildCleanPrompt(includeTimestamps: boolean, _paragraphLength: string): string {
   const timestampFormat = includeTimestamps 
     ? '- IMPORTANT: Place timestamps at the START of each paragraph only: [0:01] Paragraph content flows naturally here with multiple sentences forming a cohesive paragraph based on the selected length.'
     : '';
@@ -85,7 +85,7 @@ ${timestampFormat}
 CRITICAL: Output ONLY the cleaned transcript. NO explanations, commentary, or introductory text. Start immediately with the formatted content.`;
 }
 
-function buildSummaryPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+function buildSummaryPrompt(includeTimestamps: boolean, _paragraphLength: string): string {
   const timestampFormat = includeTimestamps 
     ? '- IMPORTANT: Place timestamps at the START of each paragraph only: [0:01] Paragraph content flows naturally here with multiple sentences forming a cohesive paragraph.'
     : '';
@@ -100,7 +100,7 @@ ${timestampFormat}
 CRITICAL: Output ONLY the summary. NO explanations, commentary, or introductory text. Start immediately with the summarized content.`;
 }
 
-function buildChaptersPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+function buildChaptersPrompt(includeTimestamps: boolean, _paragraphLength: string): string {
   const timestampFormat = includeTimestamps 
     ? '- IMPORTANT: Place timestamps at the START of each paragraph only: [0:01] Paragraph content flows naturally here with multiple sentences forming a cohesive paragraph.'
     : '';
@@ -115,7 +115,7 @@ ${timestampFormat}
 CRITICAL: Output ONLY the organized chapters. NO explanations, commentary, or introductory text. Start immediately with the chapter content.`;
 }
 
-function buildBulletsPrompt(includeTimestamps: boolean, paragraphLength: string): string {
+function buildBulletsPrompt(includeTimestamps: boolean, _paragraphLength: string): string {
   const timestampFormat = includeTimestamps 
     ? '- IMPORTANT: Place timestamps at the START of each bullet point: [0:01] • Bullet content flows naturally here with complete thoughts.'
     : '';
