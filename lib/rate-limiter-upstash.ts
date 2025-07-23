@@ -36,7 +36,7 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
 
 // Lazy initialization of Redis and rate limiters
 let redis: Redis | null = null;
-let rateLimiters: Record<string, Ratelimit> = {};
+const rateLimiters: Record<string, Ratelimit> = {};
 let rateLimitersInitialized = false;
 
 // Simple counter key for global daily usage
