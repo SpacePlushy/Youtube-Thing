@@ -1,17 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth, SignInButton, UserButton } from '@clerk/nextjs';
 import { extractVideoId, extractTranscript } from '@/lib/youtube';
 import { FormatOptions } from '@/components/format-options';
 import { SmoothProgressBar } from '@/components/smooth-progress-bar';
 import { TranscriptCache } from '@/lib/transcript-cache';
 import { analytics } from '@/lib/analytics';
-import { Loader2, Copy, Download } from 'lucide-react';
+import { GuestUsageTracker } from '@/lib/guest-usage';
+import { Loader2, Copy, Download, AlertCircle } from 'lucide-react';
 import type { TranscriptSegment, TranscriptMetadata, FormattingProgress, TranscriptOrigin, SupportedLanguage } from '@/lib/types';
 
 
 export default function Home() {
+  const { isSignedIn, isLoaded } = useAuth();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,6 +27,16 @@ export default function Home() {
   const [formattingProgress, setFormattingProgress] = useState<FormattingProgress | null>(null);
   const [usingCache, setUsingCache] = useState(false);
   const [copyNotification, setCopyNotification] = useState<string | null>(null);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [guestUsageExceeded, setGuestUsageExceeded] = useState(false);
+  
+  // Check guest usage on component mount
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      const hasUsed = GuestUsageTracker.hasUsedFreeExtraction();
+      setGuestUsageExceeded(hasUsed);
+    }
+  }, [isLoaded, isSignedIn]);
 
   // Helper function to copy with notification
   const copyToClipboard = async (text: string, label: string) => {
@@ -73,6 +86,13 @@ export default function Home() {
       return;
     }
     
+    // Check if user is signed in or has free usage available
+    if (!isSignedIn && guestUsageExceeded) {
+      setShowAuthPrompt(true);
+      setError('Please sign in to continue extracting transcripts');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     setTranscript([]);
@@ -117,6 +137,12 @@ export default function Home() {
         
         setTranscript(result.transcript || []);
         setTranscriptMetadata(result.metadata || null);
+        
+        // Mark guest usage if not signed in
+        if (!isSignedIn && result.transcript && result.transcript.length > 0) {
+          GuestUsageTracker.markUsed(videoId);
+          setGuestUsageExceeded(true);
+        }
         
         // Track successful extraction
         analytics.trackExtraction({
@@ -323,14 +349,71 @@ export default function Home() {
       </AnimatePresence>
       
       <div className="w-full mx-auto px-4 py-4 lg:py-8 flex-1 flex flex-col max-w-[1600px] min-h-0">
-        <div className="text-center mb-4 lg:mb-6">
-          <h1 className="text-2xl lg:text-4xl font-bold text-foreground">
-            YouTube Thing
-          </h1>
-          <p className="text-sm lg:text-base text-muted-foreground mt-2 max-w-2xl mx-auto">
-            Extract and format transcripts from any YouTube video. Get clean, readable text with AI-powered formatting and grammar corrections.
-          </p>
+        {/* Header with authentication */}
+        <div className="flex justify-between items-center mb-4 lg:mb-6">
+          <div className="flex-1 text-center">
+            <h1 className="text-2xl lg:text-4xl font-bold text-foreground">
+              YouTube Thing
+            </h1>
+            <p className="text-sm lg:text-base text-muted-foreground mt-2 max-w-2xl mx-auto">
+              Extract and format transcripts from any YouTube video. Get clean, readable text with AI-powered formatting and grammar corrections.
+            </p>
+          </div>
+          <div className="absolute top-4 right-4">
+            {isLoaded && (
+              isSignedIn ? (
+                <UserButton afterSignOutUrl="/" />
+              ) : (
+                <SignInButton mode="modal">
+                  <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                    Sign In
+                  </button>
+                </SignInButton>
+              )
+            )}
+          </div>
         </div>
+        
+        {/* Authentication prompt for guests who exceeded free usage */}
+        {showAuthPrompt && !isSignedIn && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4 max-w-2xl mx-auto"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground mb-1">
+                  You&apos;ve used your free transcript extraction!
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Sign up for a free account to continue extracting YouTube transcripts with unlimited access.
+                </p>
+                <div className="flex gap-3">
+                  <SignInButton mode="modal" redirectUrl="/">
+                    <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
+                      Sign In
+                    </button>
+                  </SignInButton>
+                  <SignInButton mode="modal" redirectUrl="/" forceRedirectUrl="/sign-up">
+                    <button className="bg-background border border-border text-foreground px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium">
+                      Create Account
+                    </button>
+                  </SignInButton>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAuthPrompt(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </motion.div>
+        )}
         
         {/* Main content - animated layout based on transcript */}
         <div className="flex-1 relative">
@@ -405,6 +488,19 @@ export default function Home() {
                   <span>{loading ? 'Extracting...' : 'Extract Transcript'}</span>
                 </button>
               </form>
+              
+              {/* Guest usage indicator */}
+              {isLoaded && !isSignedIn && (
+                <div className="text-center mt-3">
+                  <p className="text-xs text-muted-foreground">
+                    {guestUsageExceeded ? (
+                      <span className="text-yellow-500">Free usage limit reached • <SignInButton mode="modal"><button className="underline hover:text-foreground">Sign in</button></SignInButton> for unlimited access</span>
+                    ) : (
+                      'You have 1 free transcript extraction'
+                    )}
+                  </p>
+                </div>
+              )}
               
               {error && (
                 <div className="p-3 bg-red-950/20 border border-red-900/30 text-red-400 rounded text-sm mt-4">
@@ -498,6 +594,19 @@ export default function Home() {
                   <span>{loading ? 'Extracting...' : 'Extract Transcript'}</span>
                 </button>
               </form>
+              
+              {/* Guest usage indicator */}
+              {isLoaded && !isSignedIn && (
+                <div className="text-center mt-3">
+                  <p className="text-xs text-muted-foreground">
+                    {guestUsageExceeded ? (
+                      <span className="text-yellow-500">Free usage limit reached • <SignInButton mode="modal"><button className="underline hover:text-foreground">Sign in</button></SignInButton> for unlimited access</span>
+                    ) : (
+                      'You have 1 free transcript extraction'
+                    )}
+                  </p>
+                </div>
+              )}
               
               {error && (
                 <div className="p-3 bg-red-950/20 border border-red-900/30 text-red-400 rounded text-sm mb-4">

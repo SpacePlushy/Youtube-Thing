@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { NextFetchEvent } from 'next/server';
 import { checkRateLimit, getClientIdentifier, createRateLimitHeaders } from './lib/rate-limiter-upstash';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export async function middleware(request: NextRequest, context: NextFetchEvent) {
+// Define public routes (accessible without authentication)
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/transcript(.*)', // Allow guest access to transcript endpoints
+  '/api/format-transcript', // Allow guest access to formatting
+]);
+
+// Define protected feature routes that require guest usage check
+const isProtectedFeature = createRouteMatcher([
+  '/api/transcript(.*)',
+  '/api/format-transcript',
+]);
+
+export default clerkMiddleware(async (auth, request: NextRequest, context: NextFetchEvent) => {
+  const { userId } = await auth();
   
   // Content Security Policy - production-ready for Next.js
-  // In production, Next.js requires 'unsafe-eval' for certain optimizations
-  // and 'unsafe-inline' for hydration scripts
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   const cspHeader = `
@@ -15,7 +30,7 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
-    connect-src 'self' https://*.youtube.com https://*.googleapis.com https://*.vercel.app wss://*.vercel.app https://generativelanguage.googleapis.com;
+    connect-src 'self' https://*.youtube.com https://*.googleapis.com https://*.vercel.app wss://*.vercel.app https://generativelanguage.googleapis.com https://*.clerk.accounts.dev https://*.clerk.dev;
     media-src 'self';
     object-src 'none';
     base-uri 'self';
@@ -45,11 +60,45 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
     requestHeaders.set(key, value);
   });
 
-  // Check if this is an API route
   const pathname = request.nextUrl.pathname;
+
+  // Check if accessing protected feature without auth
+  if (isProtectedFeature(request) && !userId) {
+    // Check guest usage limit
+    const guestId = request.cookies.get('guest_id')?.value;
+    const guestUsageHeader = request.headers.get('x-guest-usage');
+    
+    // If guest has used their free attempt (checked on client side)
+    if (guestUsageHeader === 'exceeded') {
+      const url = new URL('/sign-up', request.url);
+      url.searchParams.set('redirect_url', pathname);
+      url.searchParams.set('message', 'free_limit_reached');
+      return NextResponse.redirect(url);
+    }
+    
+    // Set guest cookie if new
+    if (!guestId) {
+      const response = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+      
+      response.cookies.set('guest_id', crypto.randomUUID(), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 30 // 30 days
+      });
+      
+      return response;
+    }
+  }
+
+  // Check if this is an API route for rate limiting
   if (pathname.startsWith('/api/')) {
     // Get client identifier and check rate limit
-    const clientId = getClientIdentifier(request);
+    const clientId = userId || getClientIdentifier(request);
     const rateLimitResult = await checkRateLimit(clientId, pathname);
     
     // If rate limit exceeded, return 429 response
@@ -90,6 +139,11 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
     });
   }
   
+  // Protect non-public routes
+  if (!isPublicRoute(request) && !userId) {
+    await auth.protect();
+  }
+  
   // Create response with security headers
   const response = NextResponse.next({
     request: {
@@ -114,7 +168,7 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
   response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 
   return response;
-}
+});
 
 export const config = {
   matcher: [
