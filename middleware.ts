@@ -69,15 +69,21 @@ export default clerkMiddleware(async (auth, request: NextRequest, context: NextF
   if (isProtectedFeature(request) && !userId) {
     // Get client identifier for guest tracking
     const clientId = getClientIdentifier(request);
+    console.log(`[Middleware] Guest accessing protected feature: ${pathname}`);
+    console.log(`[Middleware] Client identifier: ${clientId}`);
     
     // Check if guest has already used their free extraction
     const hasUsedFree = await hasGuestUsedFreeExtraction(clientId);
+    console.log(`[Middleware] Guest has used free extraction: ${hasUsedFree}`);
     
     if (hasUsedFree) {
       // Guest has already used their free extraction
+      console.log(`[Middleware] Blocking guest access - free limit reached`);
+      
       // For API routes, return JSON error; for pages, redirect
       if (pathname.startsWith('/api/')) {
-        return NextResponse.json(
+        console.log(`[Middleware] Returning 403 JSON error for API route`);
+        const errorResponse = NextResponse.json(
           {
             error: 'Free usage limit reached',
             message: 'Please sign in to continue extracting transcripts',
@@ -88,14 +94,18 @@ export default clerkMiddleware(async (auth, request: NextRequest, context: NextF
             headers: securityHeaders,
           }
         );
+        console.log(`[Middleware] Error response status: ${errorResponse.status}`);
+        return errorResponse;
       } else {
         const url = new URL('/sign-up', request.url);
         url.searchParams.set('redirect_url', pathname);
         url.searchParams.set('message', 'free_limit_reached');
+        console.log(`[Middleware] Redirecting to sign-up page`);
         return NextResponse.redirect(url);
       }
     }
     
+    console.log(`[Middleware] Guest allowed - hasn't used free extraction yet`);
     // Guest hasn't used their free extraction yet - allow the request
     // The actual usage will be tracked in the API route after successful extraction
   }

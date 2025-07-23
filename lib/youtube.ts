@@ -112,8 +112,13 @@ export async function extractTranscript(
     });
     
     console.log('[Frontend] Response status:', response.status);
+    console.log('[Frontend] Response headers:', Object.fromEntries(response.headers.entries()));
     
-    const data = await response.json() as { 
+    // Get raw response text first to debug
+    const responseText = await response.text();
+    console.log('[Frontend] Raw response text:', responseText);
+    
+    let data: { 
       transcript?: any[], 
       error?: string,
       message?: string,
@@ -123,7 +128,16 @@ export async function extractTranscript(
       provider?: string,
       segmentCount?: number
     };
-    console.log('[Frontend] Response data:', data);
+    
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[Frontend] Failed to parse response as JSON:', parseError);
+      console.error('[Frontend] Response text was:', responseText);
+      throw new Error('Invalid response format from server');
+    }
+    
+    console.log('[Frontend] Parsed response data:', data);
     
     if (!response.ok) {
       console.error('[Frontend] API error:', data.error);

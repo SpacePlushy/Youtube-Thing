@@ -8,6 +8,13 @@ import { Redis } from '@upstash/redis';
 // Create Redis instance from environment variables
 const redis = Redis.fromEnv();
 
+// Test connection on initialization
+redis.ping().then(() => {
+  console.log('[Guest Usage] Successfully connected to Upstash Redis');
+}).catch((error) => {
+  console.error('[Guest Usage] Failed to connect to Upstash Redis:', error);
+});
+
 // Key prefix for guest usage tracking
 const GUEST_USAGE_PREFIX = 'guest:usage';
 const GUEST_USAGE_TTL = 30 * 24 * 60 * 60; // 30 days in seconds

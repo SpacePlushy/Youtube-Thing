@@ -23,10 +23,16 @@ interface TranscriptSegment {
   timestamp: string;
 }
 
+// Import guest usage check function
+import { hasGuestUsedFreeExtraction } from '@/lib/guest-usage-upstash';
+
 // MOCK MODE - Set to true to use mock data instead of Oxylabs API
 const MOCK_MODE = true;
 
 export async function POST(request: NextRequest) {
+  console.log('[Oxylabs API] Received POST request');
+  console.log('[Oxylabs API] Headers:', Object.fromEntries(request.headers.entries()));
+  
   try {
     const { videoId: videoIdOrUrl, language = 'en', transcriptOrigin = 'auto_generated' } = await request.json() as { 
       videoId: string;
@@ -34,7 +40,10 @@ export async function POST(request: NextRequest) {
       transcriptOrigin?: 'auto_generated' | 'uploader_provided';
     };
     
+    console.log('[Oxylabs API] Request body:', { videoIdOrUrl, language, transcriptOrigin });
+    
     if (!videoIdOrUrl) {
+      console.log('[Oxylabs API] Missing video ID or URL');
       return NextResponse.json({ error: 'Video ID or URL is required' }, { status: 400 });
     }
 
@@ -402,10 +411,26 @@ export async function POST(request: NextRequest) {
     
     // Track guest usage if user is not authenticated
     const { userId } = await auth();
+    console.log('[Oxylabs API] User ID:', userId || 'Guest');
+    
     if (!userId) {
       const clientId = getClientIdentifier(request);
-      await markGuestUsageUsed(clientId, videoId);
-      console.log('[Oxylabs] Marked guest usage for:', clientId);
+      console.log('[Oxylabs API] Guest user detected, client ID:', clientId);
+      
+      // Double-check if guest has already used their free extraction
+      const hasUsedBefore = await hasGuestUsedFreeExtraction(clientId);
+      console.log('[Oxylabs API] Guest has used free extraction before:', hasUsedBefore);
+      
+      if (!hasUsedBefore) {
+        await markGuestUsageUsed(clientId, videoId);
+        console.log('[Oxylabs API] Marked guest usage for:', clientId);
+        
+        // Verify it was marked correctly
+        const hasUsedAfter = await hasGuestUsedFreeExtraction(clientId);
+        console.log('[Oxylabs API] Guest usage after marking:', hasUsedAfter);
+      } else {
+        console.log('[Oxylabs API] WARNING: Guest already used free extraction but middleware allowed request');
+      }
     }
 
     return NextResponse.json({ 
