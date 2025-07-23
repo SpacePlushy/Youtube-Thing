@@ -26,15 +26,17 @@ export default clerkMiddleware(async (auth, request: NextRequest, context: NextF
   
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""} https://*.clerk.accounts.dev https://*.clerk.dev https://vercel.live;
+    script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""} https://*.clerk.accounts.dev https://*.clerk.dev https://vercel.live blob:;
+    worker-src 'self' blob:;
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
-    connect-src 'self' https://*.youtube.com https://*.googleapis.com https://*.vercel.app wss://*.vercel.app https://generativelanguage.googleapis.com https://*.clerk.accounts.dev https://*.clerk.dev;
+    connect-src 'self' https://*.youtube.com https://*.googleapis.com https://*.vercel.app wss://*.vercel.app https://generativelanguage.googleapis.com https://*.clerk.accounts.dev https://*.clerk.dev https://clerk-telemetry.com;
     media-src 'self';
     object-src 'none';
     base-uri 'self';
     form-action 'self';
+    frame-src 'self' https://vercel.live;
     frame-ancestors 'none';
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
