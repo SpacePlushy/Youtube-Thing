@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth, SignInButton, UserButton } from '@clerk/nextjs';
@@ -391,16 +393,17 @@ export default function Home() {
                   Sign up for a free account to continue extracting YouTube transcripts with unlimited access.
                 </p>
                 <div className="flex gap-3">
-                  <SignInButton mode="modal" redirectUrl="/">
+                  <SignInButton mode="modal">
                     <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
                       Sign In
                     </button>
                   </SignInButton>
-                  <SignInButton mode="modal" redirectUrl="/" forceRedirectUrl="/sign-up">
-                    <button className="bg-background border border-border text-foreground px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium">
-                      Create Account
-                    </button>
-                  </SignInButton>
+                  <button 
+                    onClick={() => window.location.href = '/sign-up'}
+                    className="bg-background border border-border text-foreground px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+                  >
+                    Create Account
+                  </button>
                 </div>
               </div>
               <button

@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { SignUp } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
 
@@ -38,7 +40,7 @@ export default function SignUpPage() {
               footerActionLink: "text-primary hover:text-primary/80"
             }
           }}
-          redirectUrl={redirectUrl}
+          afterSignUpUrl={redirectUrl}
           signInUrl="/sign-in"
         />
       </div>

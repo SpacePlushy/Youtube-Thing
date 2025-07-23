@@ -1,5 +1,7 @@
 import { SignIn } from '@clerk/nextjs';
 
+export const dynamic = 'force-dynamic';
+
 export default function SignInPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -23,7 +25,7 @@ export default function SignInPage() {
               footerActionLink: "text-primary hover:text-primary/80"
             }
           }}
-          redirectUrl="/"
+          afterSignInUrl="/"
           signUpUrl="/sign-up"
         />
       </div>
