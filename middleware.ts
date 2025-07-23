@@ -11,6 +11,8 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/api/transcript(.*)', // Allow guest access to transcript endpoints
   '/api/format-transcript', // Allow guest access to formatting
+  '/api/guest-status', // Allow checking guest status
+  '/api/debug-guest-status', // Debug endpoint
 ]);
 
 // Define protected feature routes that require guest usage check

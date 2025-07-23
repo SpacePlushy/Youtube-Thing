@@ -45,19 +45,44 @@ export default function Home() {
     if (isLoaded && !isSignedIn) {
       try {
         const response = await fetch('/api/guest-status');
+        
+        // Handle 404 (endpoint not deployed yet) or other errors
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.warn('[Guest Status] Endpoint not found - using fallback behavior');
+            // If we have an auth prompt showing, assume they've used their free extraction
+            if (showAuthPrompt) {
+              setGuestHasUsedFree(true);
+            }
+            return;
+          }
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
         setGuestHasUsedFree(data.hasUsedFreeExtraction || false);
         console.log('[Guest Status] Checked:', data.hasUsedFreeExtraction);
       } catch (error) {
         console.error('Failed to check guest status:', error);
+        // If we can't check status but auth prompt is showing, assume they've used it
+        if (showAuthPrompt) {
+          setGuestHasUsedFree(true);
+        }
       }
     }
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, showAuthPrompt]);
 
   // Check guest usage status on mount and when triggers change
   useEffect(() => {
     checkGuestStatus();
   }, [isLoaded, isSignedIn, guestStatusCheckTrigger, checkGuestStatus]);
+  
+  // When auth prompt shows, immediately update the indicator
+  useEffect(() => {
+    if (showAuthPrompt && !isSignedIn) {
+      setGuestHasUsedFree(true);
+    }
+  }, [showAuthPrompt, isSignedIn]);
 
   // Also check immediately on mount (in case auth is already loaded)
   useEffect(() => {
@@ -214,12 +239,14 @@ export default function Home() {
         await checkGuestStatus();
       }
 
-      // Debug guest status on error
-      if (!isSignedIn) {
+      // Debug guest status on error (only in development)
+      if (!isSignedIn && process.env.NODE_ENV === 'development') {
         try {
           const debugResponse = await fetch('/api/debug-guest-status');
-          const debugData = await debugResponse.json();
-          console.log('[Debug] Guest status on error:', debugData);
+          if (debugResponse.ok) {
+            const debugData = await debugResponse.json();
+            console.log('[Debug] Guest status on error:', debugData);
+          }
         } catch (debugErr) {
           console.error('[Debug] Failed to get guest status:', debugErr);
         }
