@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, SignInButton, UserButton } from "@clerk/nextjs";
 import { extractVideoId, extractTranscript } from "@/lib/youtube";
@@ -22,6 +22,7 @@ import type {
 export default function Home() {
   const { isSignedIn, isLoaded } = useAuth();
   const [guestHasUsedFree, setGuestHasUsedFree] = useState(false);
+  const [guestStatusCheckTrigger, setGuestStatusCheckTrigger] = useState(0);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,22 +40,32 @@ export default function Home() {
   const [copyNotification, setCopyNotification] = useState<string | null>(null);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
-  // Check guest usage status on mount and after extractions
-  useEffect(() => {
-    const checkGuestStatus = async () => {
-      if (isLoaded && !isSignedIn) {
-        try {
-          const response = await fetch('/api/guest-status');
-          const data = await response.json();
-          setGuestHasUsedFree(data.hasUsedFreeExtraction || false);
-        } catch (error) {
-          console.error('Failed to check guest status:', error);
-        }
+  // Function to check guest usage status
+  const checkGuestStatus = useCallback(async () => {
+    if (isLoaded && !isSignedIn) {
+      try {
+        const response = await fetch('/api/guest-status');
+        const data = await response.json();
+        setGuestHasUsedFree(data.hasUsedFreeExtraction || false);
+        console.log('[Guest Status] Checked:', data.hasUsedFreeExtraction);
+      } catch (error) {
+        console.error('Failed to check guest status:', error);
       }
-    };
+    }
+  }, [isLoaded, isSignedIn]);
 
+  // Check guest usage status on mount and when triggers change
+  useEffect(() => {
     checkGuestStatus();
-  }, [isLoaded, isSignedIn, transcript]); // Re-check after transcript changes
+  }, [isLoaded, isSignedIn, guestStatusCheckTrigger, checkGuestStatus]);
+
+  // Also check immediately on mount (in case auth is already loaded)
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      checkGuestStatus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
 
   // Debug Clerk initialization
   useEffect(() => {
@@ -149,6 +160,11 @@ export default function Home() {
           duration: Date.now() - startTime,
         });
         analytics.trackCacheAction("hit");
+        
+        // Even with cache, guest status might have changed
+        if (!isSignedIn) {
+          setGuestStatusCheckTrigger(prev => prev + 1);
+        }
       } else {
         const result = await extractTranscript(videoId, "primary", {
           language,
@@ -170,6 +186,11 @@ export default function Home() {
         setTranscriptMetadata(result.metadata || null);
 
         // Guest usage is now tracked server-side in the API route
+        // Update guest status after successful extraction
+        if (!isSignedIn) {
+          // Trigger a re-check of guest status
+          setGuestStatusCheckTrigger(prev => prev + 1);
+        }
 
         // Track successful extraction
         analytics.trackExtraction({
@@ -189,6 +210,8 @@ export default function Home() {
       // Check if this is an auth error
       if (errorMessage.includes('sign in') || errorMessage.includes('Free usage limit')) {
         setShowAuthPrompt(true);
+        // Update guest status immediately
+        await checkGuestStatus();
       }
 
       // Debug guest status on error
