@@ -420,14 +420,23 @@ export async function POST(request: NextRequest) {
       // Double-check if guest has already used their free extraction
       const hasUsedBefore = await hasGuestUsedFreeExtraction(clientId);
       console.log('[Oxylabs API] Guest has used free extraction before:', hasUsedBefore);
+      console.log('[Oxylabs API] Upstash env vars available:', {
+        hasUrl: !!process.env.UPSTASH_REDIS_REST_URL,
+        hasToken: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+      });
       
       if (!hasUsedBefore) {
+        console.log('[Oxylabs API] Attempting to mark guest usage...');
         await markGuestUsageUsed(clientId, videoId);
         console.log('[Oxylabs API] Marked guest usage for:', clientId);
         
         // Verify it was marked correctly
         const hasUsedAfter = await hasGuestUsedFreeExtraction(clientId);
         console.log('[Oxylabs API] Guest usage after marking:', hasUsedAfter);
+        
+        if (!hasUsedAfter) {
+          console.error('[Oxylabs API] ERROR: Failed to mark guest usage - Redis may not be working');
+        }
       } else {
         console.log('[Oxylabs API] WARNING: Guest already used free extraction but middleware allowed request');
       }

@@ -73,6 +73,10 @@ export default clerkMiddleware(async (auth, request: NextRequest, context: NextF
     const clientId = getClientIdentifier(request);
     console.log(`[Middleware] Guest accessing protected feature: ${pathname}`);
     console.log(`[Middleware] Client identifier: ${clientId}`);
+    console.log(`[Middleware] Upstash env vars available:`, {
+      hasUrl: !!process.env.UPSTASH_REDIS_REST_URL,
+      hasToken: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
     
     // Check if guest has already used their free extraction
     const hasUsedFree = await hasGuestUsedFreeExtraction(clientId);
@@ -93,7 +97,9 @@ export default clerkMiddleware(async (auth, request: NextRequest, context: NextF
           },
           { 
             status: 403,
-            headers: securityHeaders,
+            headers: Object.fromEntries(
+              Object.entries(securityHeaders).map(([key, value]) => [key, value])
+            ),
           }
         );
         console.log(`[Middleware] Error response status: ${errorResponse.status}`);
