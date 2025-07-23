@@ -75,10 +75,25 @@ export default clerkMiddleware(async (auth, request: NextRequest, context: NextF
     
     if (hasUsedFree) {
       // Guest has already used their free extraction
-      const url = new URL('/sign-up', request.url);
-      url.searchParams.set('redirect_url', pathname);
-      url.searchParams.set('message', 'free_limit_reached');
-      return NextResponse.redirect(url);
+      // For API routes, return JSON error; for pages, redirect
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          {
+            error: 'Free usage limit reached',
+            message: 'Please sign in to continue extracting transcripts',
+            requiresAuth: true,
+          },
+          { 
+            status: 403,
+            headers: securityHeaders,
+          }
+        );
+      } else {
+        const url = new URL('/sign-up', request.url);
+        url.searchParams.set('redirect_url', pathname);
+        url.searchParams.set('message', 'free_limit_reached');
+        return NextResponse.redirect(url);
+      }
     }
     
     // Guest hasn't used their free extraction yet - allow the request

@@ -116,6 +116,8 @@ export async function extractTranscript(
     const data = await response.json() as { 
       transcript?: any[], 
       error?: string,
+      message?: string,
+      requiresAuth?: boolean,
       metadata?: any,
       success?: boolean,
       provider?: string,
@@ -125,6 +127,10 @@ export async function extractTranscript(
     
     if (!response.ok) {
       console.error('[Frontend] API error:', data.error);
+      // Check if this is an auth error
+      if (response.status === 403 && data.requiresAuth) {
+        throw new Error(data.message || 'Please sign in to continue');
+      }
       throw new Error(data.error || 'Failed to fetch transcript');
     }
     

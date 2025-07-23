@@ -49,8 +49,16 @@ export async function getGuestUsage(identifier: string): Promise<GuestUsageData 
  * Check if guest has used their free extraction
  */
 export async function hasGuestUsedFreeExtraction(identifier: string): Promise<boolean> {
-  const usage = await getGuestUsage(identifier);
-  return usage?.hasUsedFreeExtraction || false;
+  try {
+    const usage = await getGuestUsage(identifier);
+    const hasUsed = usage?.hasUsedFreeExtraction || false;
+    console.log(`[Guest Usage] Checking usage for ${identifier}: ${hasUsed}`);
+    return hasUsed;
+  } catch (error) {
+    console.error('[Guest Usage] Error checking usage:', error);
+    // On error, allow access to avoid blocking users
+    return false;
+  }
 }
 
 /**
