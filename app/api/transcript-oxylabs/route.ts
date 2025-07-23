@@ -20,6 +20,9 @@ interface TranscriptSegment {
   timestamp: string;
 }
 
+// MOCK MODE - Set to true to use mock data instead of Oxylabs API
+const MOCK_MODE = true;
+
 export async function POST(request: NextRequest) {
   try {
     const { videoId: videoIdOrUrl, language = 'en', transcriptOrigin = 'auto_generated' } = await request.json() as { 
@@ -70,6 +73,46 @@ export async function POST(request: NextRequest) {
 
     // Create basic auth header
     const credentials = Buffer.from(`${username}:${password}`).toString('base64');
+    
+    // MOCK MODE - Return mock data for testing
+    if (MOCK_MODE) {
+      console.log('[Oxylabs] MOCK MODE ENABLED - Returning mock transcript data');
+      
+      const mockTranscript = [
+        { text: "Welcome to this amazing video about authentication testing!", start: 0, duration: 3, timestamp: "0:00" },
+        { text: "Today we're going to explore how to implement user authentication.", start: 3, duration: 4, timestamp: "0:03" },
+        { text: "First, let's understand why authentication is important for web applications.", start: 7, duration: 5, timestamp: "0:07" },
+        { text: "Authentication helps us identify users and provide personalized experiences.", start: 12, duration: 4, timestamp: "0:12" },
+        { text: "It also helps protect sensitive data and features.", start: 16, duration: 3, timestamp: "0:16" },
+        { text: "In this demo, we'll use Clerk for authentication.", start: 19, duration: 3, timestamp: "0:19" },
+        { text: "Clerk provides a complete authentication solution with minimal setup.", start: 22, duration: 4, timestamp: "0:22" },
+        { text: "Let's see how the free trial feature works.", start: 26, duration: 3, timestamp: "0:26" },
+        { text: "Users can try one transcript extraction without signing up.", start: 29, duration: 4, timestamp: "0:29" },
+        { text: "After that, they need to create an account for unlimited access.", start: 33, duration: 4, timestamp: "0:33" },
+        { text: "This is a great way to let users experience your product.", start: 37, duration: 4, timestamp: "0:37" },
+        { text: "Thank you for watching this authentication demo!", start: 41, duration: 3, timestamp: "0:41" }
+      ];
+      
+      const mockMetadata = {
+        videoId: videoId,
+        title: "Authentication Demo Video (Mock)",
+        duration: 44,
+        author: "YouTube Thing Test",
+        language: language,
+        transcriptType: transcriptOrigin,
+        availableLanguages: ['en', 'es', 'fr', 'de'],
+        viewCount: "1,234",
+        uploadDate: new Date().toISOString().split('T')[0],
+        isMockData: true
+      };
+      
+      console.log('[Oxylabs] Returning mock transcript with', mockTranscript.length, 'segments');
+      
+      return NextResponse.json({
+        transcript: mockTranscript,
+        metadata: mockMetadata
+      });
+    }
 
     // Prepare request payload
     const requestPayload = {
