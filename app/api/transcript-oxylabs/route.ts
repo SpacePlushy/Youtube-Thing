@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractVideoId } from '@/lib/youtube';
+import { auth } from '@clerk/nextjs/server';
+import { getClientIdentifier } from '@/lib/rate-limiter-upstash';
+import { markGuestUsageUsed } from '@/lib/guest-usage-upstash';
 
 interface OxylabsResponse {
   results: Array<{
@@ -107,6 +110,14 @@ export async function POST(request: NextRequest) {
       };
       
       console.log('[Oxylabs] Returning mock transcript with', mockTranscript.length, 'segments');
+      
+      // Track guest usage for mock data too
+      const { userId } = await auth();
+      if (!userId) {
+        const clientId = getClientIdentifier(request);
+        await markGuestUsageUsed(clientId, videoId);
+        console.log('[Oxylabs] Marked guest usage (mock) for:', clientId);
+      }
       
       return NextResponse.json({
         transcript: mockTranscript,
@@ -286,6 +297,15 @@ export async function POST(request: NextRequest) {
               
               if (transcript && transcript.length > 0) {
                 console.log('[Oxylabs] Fallback successful with', transcript.length, 'segments');
+                
+                // Track guest usage
+                const { userId } = await auth();
+                if (!userId) {
+                  const clientId = getClientIdentifier(request);
+                  await markGuestUsageUsed(clientId, videoId);
+                  console.log('[Oxylabs] Marked guest usage (fallback) for:', clientId);
+                }
+                
                 return NextResponse.json({ 
                   transcript,
                   success: true,
@@ -379,6 +399,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Oxylabs] Successfully parsed', transcript.length, 'transcript segments');
+    
+    // Track guest usage if user is not authenticated
+    const { userId } = await auth();
+    if (!userId) {
+      const clientId = getClientIdentifier(request);
+      await markGuestUsageUsed(clientId, videoId);
+      console.log('[Oxylabs] Marked guest usage for:', clientId);
+    }
 
     return NextResponse.json({ 
       transcript,

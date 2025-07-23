@@ -10,7 +10,6 @@ import { FormatOptions } from '@/components/format-options';
 import { SmoothProgressBar } from '@/components/smooth-progress-bar';
 import { TranscriptCache } from '@/lib/transcript-cache';
 import { analytics } from '@/lib/analytics';
-import { GuestUsageTracker } from '@/lib/guest-usage';
 import { Loader2, Copy, Download, AlertCircle } from 'lucide-react';
 import type { TranscriptSegment, TranscriptMetadata, FormattingProgress, TranscriptOrigin, SupportedLanguage } from '@/lib/types';
 
@@ -30,21 +29,14 @@ export default function Home() {
   const [usingCache, setUsingCache] = useState(false);
   const [copyNotification, setCopyNotification] = useState<string | null>(null);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-  const [guestUsageExceeded, setGuestUsageExceeded] = useState(false);
   
-  // Check guest usage on component mount
+  // Debug Clerk initialization
   useEffect(() => {
-    // Debug Clerk initialization
     console.log('Clerk Debug:', {
       isLoaded,
       isSignedIn,
       publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.substring(0, 20) + '...',
     });
-    
-    if (isLoaded && !isSignedIn) {
-      const hasUsed = GuestUsageTracker.hasUsedFreeExtraction();
-      setGuestUsageExceeded(hasUsed);
-    }
   }, [isLoaded, isSignedIn]);
 
   // Helper function to copy with notification
@@ -95,12 +87,8 @@ export default function Home() {
       return;
     }
     
-    // Check if user is signed in or has free usage available
-    if (!isSignedIn && guestUsageExceeded) {
-      setShowAuthPrompt(true);
-      setError('Please sign in to continue extracting transcripts');
-      return;
-    }
+    // Authentication check is now handled server-side in middleware
+    // If guest has exceeded usage, middleware will redirect to sign-up
     
     setLoading(true);
     setError('');
@@ -147,11 +135,7 @@ export default function Home() {
         setTranscript(result.transcript || []);
         setTranscriptMetadata(result.metadata || null);
         
-        // Mark guest usage if not signed in
-        if (!isSignedIn && result.transcript && result.transcript.length > 0) {
-          GuestUsageTracker.markUsed(videoId);
-          setGuestUsageExceeded(true);
-        }
+        // Guest usage is now tracked server-side in the API route
         
         // Track successful extraction
         analytics.trackExtraction({
@@ -503,11 +487,7 @@ export default function Home() {
               {isLoaded && !isSignedIn && (
                 <div className="text-center mt-3">
                   <p className="text-xs text-muted-foreground">
-                    {guestUsageExceeded ? (
-                      <span className="text-yellow-500">Free usage limit reached • <SignInButton mode="modal"><button className="underline hover:text-foreground">Sign in</button></SignInButton> for unlimited access</span>
-                    ) : (
-                      'You have 1 free transcript extraction'
-                    )}
+                    You have 1 free transcript extraction • <SignInButton mode="modal"><button className="underline hover:text-foreground">Sign in</button></SignInButton> for unlimited
                   </p>
                 </div>
               )}
@@ -609,11 +589,7 @@ export default function Home() {
               {isLoaded && !isSignedIn && (
                 <div className="text-center mt-3">
                   <p className="text-xs text-muted-foreground">
-                    {guestUsageExceeded ? (
-                      <span className="text-yellow-500">Free usage limit reached • <SignInButton mode="modal"><button className="underline hover:text-foreground">Sign in</button></SignInButton> for unlimited access</span>
-                    ) : (
-                      'You have 1 free transcript extraction'
-                    )}
+                    You have 1 free transcript extraction • <SignInButton mode="modal"><button className="underline hover:text-foreground">Sign in</button></SignInButton> for unlimited
                   </p>
                 </div>
               )}

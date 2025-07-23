@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { NextFetchEvent } from 'next/server';
 import { checkRateLimit, getClientIdentifier, createRateLimitHeaders } from './lib/rate-limiter-upstash';
+import { hasGuestUsedFreeExtraction } from './lib/guest-usage-upstash';
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 // Define public routes (accessible without authentication)
@@ -66,35 +67,22 @@ export default clerkMiddleware(async (auth, request: NextRequest, context: NextF
 
   // Check if accessing protected feature without auth
   if (isProtectedFeature(request) && !userId) {
-    // Check guest usage limit
-    const guestId = request.cookies.get('guest_id')?.value;
-    const guestUsageHeader = request.headers.get('x-guest-usage');
+    // Get client identifier for guest tracking
+    const clientId = getClientIdentifier(request);
     
-    // If guest has used their free attempt (checked on client side)
-    if (guestUsageHeader === 'exceeded') {
+    // Check if guest has already used their free extraction
+    const hasUsedFree = await hasGuestUsedFreeExtraction(clientId);
+    
+    if (hasUsedFree) {
+      // Guest has already used their free extraction
       const url = new URL('/sign-up', request.url);
       url.searchParams.set('redirect_url', pathname);
       url.searchParams.set('message', 'free_limit_reached');
       return NextResponse.redirect(url);
     }
     
-    // Set guest cookie if new
-    if (!guestId) {
-      const response = NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
-      
-      response.cookies.set('guest_id', crypto.randomUUID(), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 30 // 30 days
-      });
-      
-      return response;
-    }
+    // Guest hasn't used their free extraction yet - allow the request
+    // The actual usage will be tracked in the API route after successful extraction
   }
 
   // Check if this is an API route for rate limiting
