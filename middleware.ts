@@ -26,7 +26,7 @@ export default clerkMiddleware(async (auth, request: NextRequest, context: NextF
   
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""};
+    script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""} https://*.clerk.accounts.dev https://*.clerk.dev https://vercel.live;
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
