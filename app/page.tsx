@@ -21,6 +21,7 @@ import type {
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useAuth();
+  const [guestHasUsedFree, setGuestHasUsedFree] = useState(false);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +38,23 @@ export default function Home() {
   const [usingCache, setUsingCache] = useState(false);
   const [copyNotification, setCopyNotification] = useState<string | null>(null);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+
+  // Check guest usage status on mount and after extractions
+  useEffect(() => {
+    const checkGuestStatus = async () => {
+      if (isLoaded && !isSignedIn) {
+        try {
+          const response = await fetch('/api/guest-status');
+          const data = await response.json();
+          setGuestHasUsedFree(data.hasUsedFreeExtraction || false);
+        } catch (error) {
+          console.error('Failed to check guest status:', error);
+        }
+      }
+    };
+
+    checkGuestStatus();
+  }, [isLoaded, isSignedIn, transcript]); // Re-check after transcript changes
 
   // Debug Clerk initialization
   useEffect(() => {
@@ -555,13 +573,27 @@ export default function Home() {
                   {isLoaded && !isSignedIn && (
                     <div className="text-center mt-3">
                       <p className="text-xs text-muted-foreground">
-                        You have 1 free transcript extraction •{" "}
-                        <SignInButton mode="modal">
-                          <button className="underline hover:text-foreground">
-                            Sign in
-                          </button>
-                        </SignInButton>{" "}
-                        for unlimited
+                        {guestHasUsedFree ? (
+                          <>
+                            Free extraction used •{" "}
+                            <SignInButton mode="modal">
+                              <button className="underline hover:text-foreground">
+                                Sign in
+                              </button>
+                            </SignInButton>{" "}
+                            for unlimited access
+                          </>
+                        ) : (
+                          <>
+                            You have 1 free transcript extraction •{" "}
+                            <SignInButton mode="modal">
+                              <button className="underline hover:text-foreground">
+                                Sign in
+                              </button>
+                            </SignInButton>{" "}
+                            for unlimited
+                          </>
+                        )}
                       </p>
                     </div>
                   )}
@@ -679,13 +711,27 @@ export default function Home() {
                   {isLoaded && !isSignedIn && (
                     <div className="text-center mt-3">
                       <p className="text-xs text-muted-foreground">
-                        You have 1 free transcript extraction •{" "}
-                        <SignInButton mode="modal">
-                          <button className="underline hover:text-foreground">
-                            Sign in
-                          </button>
-                        </SignInButton>{" "}
-                        for unlimited
+                        {guestHasUsedFree ? (
+                          <>
+                            Free extraction used •{" "}
+                            <SignInButton mode="modal">
+                              <button className="underline hover:text-foreground">
+                                Sign in
+                              </button>
+                            </SignInButton>{" "}
+                            for unlimited access
+                          </>
+                        ) : (
+                          <>
+                            You have 1 free transcript extraction •{" "}
+                            <SignInButton mode="modal">
+                              <button className="underline hover:text-foreground">
+                                Sign in
+                              </button>
+                            </SignInButton>{" "}
+                            for unlimited
+                          </>
+                        )}
                       </p>
                     </div>
                   )}
