@@ -22,7 +22,7 @@ function getRedisClient(): Redis | null {
           redis = null;
         });
       } else {
-        console.warn('[Guest Usage] Upstash Redis environment variables not found');
+        console.warn('[Guest Usage] Redis environment variables not found');
       }
     } catch (error) {
       console.error('[Guest Usage] Failed to initialize Redis client:', error);

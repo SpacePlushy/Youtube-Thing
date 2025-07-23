@@ -21,8 +21,8 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   },
   '/api/transcript-primary': {
     requests: 1,
-    window: '10 s', // 1 request every 10 seconds (proxy to oxylabs)
-    globalDailyLimit: 1000, // Same global limit (shares with oxylabs)
+    window: '10 s', // 1 request every 10 seconds
+    globalDailyLimit: 1000, // Same global limit
   },
   '/api/format-transcript': {
     requests: 1,
@@ -40,7 +40,7 @@ const rateLimiters: Record<string, Ratelimit> = {};
 let rateLimitersInitialized = false;
 
 // Simple counter key for global daily usage
-const GLOBAL_DAILY_KEY = 'oxylabs:daily:usage';
+const GLOBAL_DAILY_KEY = 'api:daily:usage';
 const GLOBAL_DAILY_LIMIT = 1000;
 
 function initializeRateLimiters() {
@@ -64,7 +64,7 @@ function initializeRateLimiters() {
       rateLimitersInitialized = true;
       console.log('[Rate Limiter] Successfully initialized');
     } else {
-      console.warn('[Rate Limiter] Upstash Redis environment variables not found');
+      console.warn('[Rate Limiter] Redis environment variables not found');
     }
   } catch (error) {
     console.error('[Rate Limiter] Failed to initialize:', error);

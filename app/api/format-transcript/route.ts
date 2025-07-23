@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
-import { cerebras } from '@ai-sdk/cerebras';
+import { createCerebras } from '@ai-sdk/cerebras';
+const cerebras = createCerebras();
 import { buildPrompt } from '@/lib/ai-prompts';
 import { splitTranscriptWithLangChain, getOptimalChunkConfig, shouldUseChunking } from '@/lib/langchain-splitter';
 import { envConfig } from '@/lib/env-config';

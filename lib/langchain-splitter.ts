@@ -158,7 +158,7 @@ function parseTextChunkToSegments(chunk: string, includeTimestamps: boolean): Tr
 export async function fixTimestampContinuity(
   formattedChunk: string,
   context: ChunkProcessingContext,
-  _cerebrasApiKey: string,
+  _aiApiKey: string,
   _chunkTimeRange?: { start: string; end: string; videoStart: string; videoEnd: string }
 ): Promise<string> {
   

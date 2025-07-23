@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
             if (fallbackData.results?.[0]?.status_code === 200) {
               // Use the fallback result
               const fallbackContent = fallbackData.results[0].content;
-              const transcript = parseOxylabsTranscript(fallbackContent);
+              const transcript = parseTranscriptData(fallbackContent);
               
               if (transcript && transcript.length > 0) {
                 console.log('[Oxylabs] Fallback successful with', transcript.length, 'segments');
@@ -366,7 +366,7 @@ export async function POST(request: NextRequest) {
             if (fallbackData.results?.[0]?.status_code === 200) {
               // Use the fallback result
               const fallbackContent = fallbackData.results[0].content;
-              const transcript = parseOxylabsTranscript(fallbackContent);
+              const transcript = parseTranscriptData(fallbackContent);
               
               if (transcript && transcript.length > 0) {
                 console.log('[Oxylabs] English fallback successful with', transcript.length, 'segments');
