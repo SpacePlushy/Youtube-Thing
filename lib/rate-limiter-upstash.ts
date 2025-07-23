@@ -34,25 +34,42 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   },
 };
 
-// Create Redis instance from environment variables
-const redis = Redis.fromEnv();
-
-// Create rate limiters for each endpoint
-const rateLimiters: Record<string, Ratelimit> = {};
+// Lazy initialization of Redis and rate limiters
+let redis: Redis | null = null;
+let rateLimiters: Record<string, Ratelimit> = {};
+let rateLimitersInitialized = false;
 
 // Simple counter key for global daily usage
 const GLOBAL_DAILY_KEY = 'oxylabs:daily:usage';
 const GLOBAL_DAILY_LIMIT = 1000;
 
-// Initialize rate limiters
-Object.entries(RATE_LIMITS).forEach(([endpoint, config]) => {
-  rateLimiters[endpoint] = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(config.requests, config.window),
-    prefix: `@upstash/ratelimit:${endpoint}`,
-    analytics: true,
-  });
-});
+function initializeRateLimiters() {
+  if (rateLimitersInitialized) return;
+  
+  try {
+    // Only initialize if environment variables are available
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      redis = Redis.fromEnv();
+      
+      // Initialize rate limiters
+      Object.entries(RATE_LIMITS).forEach(([endpoint, config]) => {
+        rateLimiters[endpoint] = new Ratelimit({
+          redis: redis!,
+          limiter: Ratelimit.slidingWindow(config.requests, config.window),
+          prefix: `@upstash/ratelimit:${endpoint}`,
+          analytics: true,
+        });
+      });
+      
+      rateLimitersInitialized = true;
+      console.log('[Rate Limiter] Successfully initialized');
+    } else {
+      console.warn('[Rate Limiter] Upstash Redis environment variables not found');
+    }
+  } catch (error) {
+    console.error('[Rate Limiter] Failed to initialize:', error);
+  }
+}
 
 export interface RateLimitResult {
   success: boolean;
@@ -66,6 +83,10 @@ export interface RateLimitResult {
 
 // Simple helper to get/increment daily usage
 async function incrementDailyUsage(): Promise<{ count: number; resetAt: number }> {
+  if (!redis) {
+    throw new Error('Redis client not initialized');
+  }
+  
   const now = Date.now();
   const todayKey = `${GLOBAL_DAILY_KEY}:${new Date().toISOString().split('T')[0]}`;
   
@@ -93,6 +114,21 @@ export async function checkRateLimit(
   identifier: string,
   endpoint: string
 ): Promise<RateLimitResult> {
+  // Initialize rate limiters if not done yet
+  initializeRateLimiters();
+  
+  // If initialization failed, allow the request
+  if (!redis || !rateLimitersInitialized) {
+    console.warn('[Rate Limiter] Not initialized, allowing request');
+    return {
+      success: true,
+      limit: 10,
+      remaining: 10,
+      reset: Date.now() + 10000,
+      pending: Promise.resolve(),
+    };
+  }
+  
   // Check if this endpoint has a global daily limit
   const config = RATE_LIMITS[endpoint] || RATE_LIMITS.default;
   
@@ -194,6 +230,10 @@ export async function getGlobalDailyUsage(): Promise<{
   resetTime: number;
 }> {
   try {
+    if (!redis) {
+      throw new Error('Redis client not initialized');
+    }
+    
     // Simply read today's counter
     const todayKey = `${GLOBAL_DAILY_KEY}:${new Date().toISOString().split('T')[0]}`;
     const used = (await redis.get(todayKey) as number) || 0;

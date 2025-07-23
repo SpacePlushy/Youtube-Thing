@@ -5,15 +5,31 @@
 
 import { Redis } from '@upstash/redis';
 
-// Create Redis instance from environment variables
-const redis = Redis.fromEnv();
+// Lazy initialization of Redis client
+let redis: Redis | null = null;
 
-// Test connection on initialization
-redis.ping().then(() => {
-  console.log('[Guest Usage] Successfully connected to Upstash Redis');
-}).catch((error) => {
-  console.error('[Guest Usage] Failed to connect to Upstash Redis:', error);
-});
+function getRedisClient(): Redis | null {
+  if (!redis) {
+    try {
+      // Only initialize if environment variables are available
+      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        redis = Redis.fromEnv();
+        // Test connection
+        redis.ping().then(() => {
+          console.log('[Guest Usage] Successfully connected to Upstash Redis');
+        }).catch((error) => {
+          console.error('[Guest Usage] Failed to connect to Upstash Redis:', error);
+          redis = null;
+        });
+      } else {
+        console.warn('[Guest Usage] Upstash Redis environment variables not found');
+      }
+    } catch (error) {
+      console.error('[Guest Usage] Failed to initialize Redis client:', error);
+    }
+  }
+  return redis;
+}
 
 // Key prefix for guest usage tracking
 const GUEST_USAGE_PREFIX = 'guest:usage';
@@ -31,8 +47,14 @@ export interface GuestUsageData {
  */
 export async function getGuestUsage(identifier: string): Promise<GuestUsageData | null> {
   try {
+    const redisClient = getRedisClient();
+    if (!redisClient) {
+      console.warn('[Guest Usage] Redis client not available');
+      return null;
+    }
+    
     const key = `${GUEST_USAGE_PREFIX}:${identifier}`;
-    const data = await redis.get<GuestUsageData>(key);
+    const data = await redisClient.get<GuestUsageData>(key);
     
     if (!data) {
       return null;
@@ -41,7 +63,10 @@ export async function getGuestUsage(identifier: string): Promise<GuestUsageData 
     // Check if data has expired (shouldn't happen with TTL, but just in case)
     const age = Date.now() - data.firstUseTimestamp;
     if (age > GUEST_USAGE_TTL * 1000) {
-      await redis.del(key);
+      const redisClient = getRedisClient();
+      if (redisClient) {
+        await redisClient.del(key);
+      }
       return null;
     }
     
@@ -73,6 +98,12 @@ export async function hasGuestUsedFreeExtraction(identifier: string): Promise<bo
  */
 export async function markGuestUsageUsed(identifier: string, videoId: string): Promise<void> {
   try {
+    const redisClient = getRedisClient();
+    if (!redisClient) {
+      console.warn('[Guest Usage] Redis client not available - cannot track usage');
+      return;
+    }
+    
     const key = `${GUEST_USAGE_PREFIX}:${identifier}`;
     const now = Date.now();
     
@@ -96,7 +127,7 @@ export async function markGuestUsageUsed(identifier: string, videoId: string): P
     }
     
     // Save to Redis with TTL
-    await redis.setex(key, GUEST_USAGE_TTL, usage);
+    await redisClient.setex(key, GUEST_USAGE_TTL, usage);
     
     console.log(`[Guest Usage] Marked usage for ${identifier}, video: ${videoId}`);
   } catch (error) {
@@ -110,8 +141,13 @@ export async function markGuestUsageUsed(identifier: string, videoId: string): P
  */
 export async function getGuestUsageResetTime(identifier: string): Promise<number | null> {
   try {
+    const redisClient = getRedisClient();
+    if (!redisClient) {
+      return null;
+    }
+    
     const key = `${GUEST_USAGE_PREFIX}:${identifier}`;
-    const ttl = await redis.ttl(key);
+    const ttl = await redisClient.ttl(key);
     
     if (ttl < 0) {
       return null; // Key doesn't exist or has no TTL
@@ -129,8 +165,14 @@ export async function getGuestUsageResetTime(identifier: string): Promise<number
  */
 export async function resetGuestUsage(identifier: string): Promise<void> {
   try {
+    const redisClient = getRedisClient();
+    if (!redisClient) {
+      console.warn('[Guest Usage] Redis client not available');
+      return;
+    }
+    
     const key = `${GUEST_USAGE_PREFIX}:${identifier}`;
-    await redis.del(key);
+    await redisClient.del(key);
     console.log(`[Guest Usage] Reset usage for ${identifier}`);
   } catch (error) {
     console.error('[Guest Usage] Error resetting usage:', error);
@@ -146,15 +188,23 @@ export async function getGuestUsageStats(): Promise<{
 }> {
   try {
     // This is a simplified version - in production you might want to track more stats
+    const redisClient = getRedisClient();
+    if (!redisClient) {
+      return {
+        totalGuests: 0,
+        activeToday: 0,
+      };
+    }
+    
     const pattern = `${GUEST_USAGE_PREFIX}:*`;
-    const keys = await redis.keys(pattern);
+    const keys = await redisClient.keys(pattern);
     
     let activeToday = 0;
     const today = new Date().setHours(0, 0, 0, 0);
     
     // Check each guest's last access
     for (const key of keys) {
-      const data = await redis.get<GuestUsageData>(key);
+      const data = await redisClient.get<GuestUsageData>(key);
       if (data && data.lastAccessTimestamp >= today) {
         activeToday++;
       }
