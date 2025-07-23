@@ -361,17 +361,17 @@ export default function Home() {
               Extract and format transcripts from any YouTube video. Get clean, readable text with AI-powered formatting and grammar corrections.
             </p>
           </div>
-          <div className="absolute top-4 right-4">
-            {isLoaded && (
-              isSignedIn ? (
-                <UserButton afterSignOutUrl="/" />
-              ) : (
-                <SignInButton mode="modal">
-                  <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
-                    Sign In
-                  </button>
-                </SignInButton>
-              )
+          <div className="fixed top-4 right-4 z-50">
+            {!isLoaded ? (
+              <div className="text-muted-foreground text-sm">Loading...</div>
+            ) : isSignedIn ? (
+              <UserButton afterSignOutUrl="/" />
+            ) : (
+              <SignInButton mode="modal">
+                <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium shadow-lg">
+                  Sign In
+                </button>
+              </SignInButton>
             )}
           </div>
         </div>
