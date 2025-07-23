@@ -34,6 +34,13 @@ export default function Home() {
   
   // Check guest usage on component mount
   useEffect(() => {
+    // Debug Clerk initialization
+    console.log('Clerk Debug:', {
+      isLoaded,
+      isSignedIn,
+      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.substring(0, 20) + '...',
+    });
+    
     if (isLoaded && !isSignedIn) {
       const hasUsed = GuestUsageTracker.hasUsedFreeExtraction();
       setGuestUsageExceeded(hasUsed);
