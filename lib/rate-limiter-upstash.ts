@@ -34,8 +34,18 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   },
 };
 
-// Create Redis instance from environment variables
-const redis = Redis.fromEnv();
+// Create Redis instance from environment variables (gracefully handle missing config)
+let redis: Redis | null = null;
+try {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = Redis.fromEnv();
+  } else {
+    console.warn('[Rate Limit] Redis configuration not found. Rate limiting disabled for development.');
+  }
+} catch (error) {
+  console.error('[Rate Limit] Failed to initialize Redis:', error);
+  redis = null;
+}
 
 // Create rate limiters for each endpoint
 const rateLimiters: Record<string, Ratelimit> = {};
@@ -44,15 +54,17 @@ const rateLimiters: Record<string, Ratelimit> = {};
 const GLOBAL_DAILY_KEY = 'oxylabs:daily:usage';
 const GLOBAL_DAILY_LIMIT = 1000;
 
-// Initialize rate limiters
-Object.entries(RATE_LIMITS).forEach(([endpoint, config]) => {
-  rateLimiters[endpoint] = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(config.requests, config.window),
-    prefix: `@upstash/ratelimit:${endpoint}`,
-    analytics: true,
+// Initialize rate limiters only if Redis is available
+if (redis) {
+  Object.entries(RATE_LIMITS).forEach(([endpoint, config]) => {
+    rateLimiters[endpoint] = new Ratelimit({
+      redis: redis as Redis,
+      limiter: Ratelimit.slidingWindow(config.requests, config.window),
+      prefix: `@upstash/ratelimit:${endpoint}`,
+      analytics: true,
+    });
   });
-});
+}
 
 export interface RateLimitResult {
   success: boolean;
@@ -66,12 +78,20 @@ export interface RateLimitResult {
 
 // Simple helper to get/increment daily usage
 async function incrementDailyUsage(): Promise<{ count: number; resetAt: number }> {
+  if (!redis) {
+    // No Redis available - return dummy data for development
+    const resetAt = new Date();
+    resetAt.setDate(resetAt.getDate() + 1);
+    resetAt.setHours(0, 0, 0, 0);
+    return { count: 0, resetAt: resetAt.getTime() };
+  }
+
   const now = Date.now();
   const todayKey = `${GLOBAL_DAILY_KEY}:${new Date().toISOString().split('T')[0]}`;
-  
+
   // Increment and get new count
   const count = await redis.incr(todayKey);
-  
+
   // Set expiry to end of day (+ 1 hour buffer)
   if (count === 1) {
     const tomorrow = new Date();
@@ -80,12 +100,12 @@ async function incrementDailyUsage(): Promise<{ count: number; resetAt: number }
     const ttl = Math.ceil((tomorrow.getTime() - now) / 1000) + 3600; // +1 hour buffer
     await redis.expire(todayKey, ttl);
   }
-  
+
   // Calculate reset time (midnight)
   const resetAt = new Date();
   resetAt.setDate(resetAt.getDate() + 1);
   resetAt.setHours(0, 0, 0, 0);
-  
+
   return { count, resetAt: resetAt.getTime() };
 }
 
@@ -93,22 +113,34 @@ export async function checkRateLimit(
   identifier: string,
   endpoint: string
 ): Promise<RateLimitResult> {
+  // If Redis is not available, bypass rate limiting (development mode)
+  if (!redis) {
+    return {
+      success: true,
+      limit: 999999,
+      remaining: 999999,
+      reset: Date.now() + 60000,
+      pending: Promise.resolve(),
+      globalDailyRemaining: 999999,
+    };
+  }
+
   // Check if this endpoint has a global daily limit
   const config = RATE_LIMITS[endpoint] || RATE_LIMITS.default;
-  
+
   // Check global daily limit first
   if (config.globalDailyLimit) {
     const todayKey = `${GLOBAL_DAILY_KEY}:${new Date().toISOString().split('T')[0]}`;
     const currentCount = (await redis.get(todayKey) as number) || 0;
-    
+
     console.log(`[Rate Limit] Global Daily Usage: ${currentCount}/${GLOBAL_DAILY_LIMIT} (${GLOBAL_DAILY_LIMIT - currentCount} remaining)`);
-    
+
     if (currentCount >= GLOBAL_DAILY_LIMIT) {
       console.log(`[Rate Limit] Global daily limit reached: ${currentCount}/${GLOBAL_DAILY_LIMIT}`);
       const resetAt = new Date();
       resetAt.setDate(resetAt.getDate() + 1);
       resetAt.setHours(0, 0, 0, 0);
-      
+
       return {
         success: false,
         limit: GLOBAL_DAILY_LIMIT,
@@ -120,22 +152,22 @@ export async function checkRateLimit(
       };
     }
   }
-  
+
   // Check per-user rate limit
   const limiter = rateLimiters[endpoint] || rateLimiters.default;
   const result = await limiter.limit(identifier);
-  
+
   // If per-user limit passed and this endpoint counts toward global limit, increment it
   let globalDailyRemaining: number | undefined;
   let globalDailyReset: number | undefined;
-  
+
   if (result.success && config.globalDailyLimit) {
     const { count, resetAt } = await incrementDailyUsage();
     globalDailyRemaining = Math.max(0, GLOBAL_DAILY_LIMIT - count);
     globalDailyReset = resetAt;
     console.log(`[Rate Limit] Incremented global counter: ${count}/${GLOBAL_DAILY_LIMIT} used`);
   }
-  
+
   return {
     ...result,
     globalDailyRemaining,
@@ -193,16 +225,25 @@ export async function getGlobalDailyUsage(): Promise<{
   limit: number;
   resetTime: number;
 }> {
+  if (!redis) {
+    return {
+      used: 0,
+      remaining: 999999,
+      limit: 999999,
+      resetTime: Date.now() + (24 * 60 * 60 * 1000),
+    };
+  }
+
   try {
     // Simply read today's counter
     const todayKey = `${GLOBAL_DAILY_KEY}:${new Date().toISOString().split('T')[0]}`;
     const used = (await redis.get(todayKey) as number) || 0;
-    
+
     // Calculate reset time (midnight)
     const resetAt = new Date();
     resetAt.setDate(resetAt.getDate() + 1);
     resetAt.setHours(0, 0, 0, 0);
-    
+
     return {
       used,
       remaining: Math.max(0, GLOBAL_DAILY_LIMIT - used),
