@@ -6,33 +6,33 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'YouTube Thing - Extract & Format Video Transcripts with AI',
-  description: 'Extract transcripts from any YouTube video and format them with AI. Get clean, readable text with grammar corrections, timestamps, and professional formatting. Free online tool.',
-  keywords: ['YouTube transcript', 'video transcript extractor', 'AI transcript formatting', 'YouTube captions', 'video text extraction', 'transcript generator'],
-  authors: [{ name: 'YouTube Thing' }],
-  creator: 'YouTube Thing',
-  publisher: 'YouTube Thing',
+  title: 'YouTube Transcript - Extract Video Transcripts Instantly',
+  description: 'Extract transcripts from any YouTube video instantly. Support for 12+ languages, clean timestamps, and fast processing. Free online tool.',
+  keywords: ['YouTube transcript', 'video transcript extractor', 'YouTube captions', 'video text extraction', 'transcript generator', 'YouTube subtitles'],
+  authors: [{ name: 'YouTube Transcript' }],
+  creator: 'YouTube Transcript',
+  publisher: 'YouTube Transcript',
   robots: 'index, follow',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://youtubething.com',
-    title: 'YouTube Thing - Extract & Format Video Transcripts with AI',
-    description: 'Extract transcripts from any YouTube video and format them with AI. Get clean, readable text with grammar corrections, timestamps, and professional formatting. Free online tool.',
-    siteName: 'YouTube Thing',
+    title: 'YouTube Transcript - Extract Video Transcripts Instantly',
+    description: 'Extract transcripts from any YouTube video instantly. Support for 12+ languages, clean timestamps, and fast processing.',
+    siteName: 'YouTube Transcript',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'YouTube Thing - Extract & Format Video Transcripts with AI',
+        alt: 'YouTube Transcript - Extract Video Transcripts Instantly',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'YouTube Thing - Extract & Format Video Transcripts with AI',
-    description: 'Extract transcripts from any YouTube video and format them with AI. Get clean, readable text with grammar corrections, timestamps, and professional formatting.',
+    title: 'YouTube Transcript - Extract Video Transcripts Instantly',
+    description: 'Extract transcripts from any YouTube video instantly. Support for 12+ languages, clean timestamps, and fast processing.',
     images: ['/og-image.png'],
     creator: '@youtubething',
   },
@@ -40,8 +40,8 @@ export const metadata: Metadata = {
     canonical: 'https://youtubething.com',
   },
   other: {
-    'theme-color': 'hsl(0 0% 8%)',
-    'msapplication-TileColor': 'hsl(0 0% 8%)',
+    'theme-color': '#1e1b4b',
+    'msapplication-TileColor': '#1e1b4b',
   },
 }
 
@@ -61,8 +61,8 @@ export default function RootLayout({
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "YouTube Thing",
-    "description": "Extract transcripts from any YouTube video and format them with AI. Get clean, readable text with grammar corrections, timestamps, and professional formatting.",
+    "name": "YouTube Transcript",
+    "description": "Extract transcripts from any YouTube video instantly. Support for 12+ languages, clean timestamps, and fast processing.",
     "url": "https://youtubething.com",
     "applicationCategory": "UtilityApplication",
     "operatingSystem": "Web Browser",
@@ -73,15 +73,15 @@ export default function RootLayout({
     },
     "featureList": [
       "YouTube transcript extraction",
-      "AI-powered text formatting",
-      "Grammar corrections",
-      "Timestamp preservation",
-      "Multiple language support",
-      "Export functionality"
+      "12+ language support",
+      "Clean timestamps",
+      "Fast processing",
+      "Copy & download functionality",
+      "Auto-generated and uploader captions"
     ],
     "publisher": {
       "@type": "Organization",
-      "name": "YouTube Thing"
+      "name": "YouTube Transcript"
     }
   };
 

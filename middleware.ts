@@ -8,10 +8,11 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
   // In production, Next.js requires 'unsafe-eval' for certain optimizations
   // and 'unsafe-inline' for hydration scripts
   const isDevelopment = process.env.NODE_ENV === 'development';
-  
-  const cspHeader = `
+
+  // Relax CSP in development for better compatibility (especially Safari)
+  const cspHeader = isDevelopment ? '' : `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""};
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
@@ -26,8 +27,12 @@ export async function middleware(request: NextRequest, context: NextFetchEvent) 
 
   const requestHeaders = new Headers(request.headers);
 
-  // Security headers
-  const securityHeaders = {
+  // Security headers (relaxed in development)
+  const securityHeaders: Record<string, string> = isDevelopment ? {
+    // Minimal headers in development for Safari compatibility
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+  } : {
     'Content-Security-Policy': cspHeader,
     'X-Frame-Options': 'DENY',
     'X-Content-Type-Options': 'nosniff',

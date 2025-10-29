@@ -4,30 +4,119 @@
 
 @layer base {
   :root {
-    --background: 0 0% 8%;
+    /* Glassmorphism purple/blue dark theme */
+    --background: 240 60% 5%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 12%;
+    --card: 250 50% 10%;
     --card-foreground: 0 0% 98%;
-    --primary: 240 60% 60%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 15%;
+    --primary: 270 70% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 40% 15%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 98%;
-    --border: 0 0% 20%;
-    --input: 0 0% 15%;
-    --ring: 240 60% 60%;
-    --radius: 0.625rem;
+    --muted: 240 30% 20%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 260 60% 55%;
+    --accent-foreground: 0 0% 100%;
+    --border: 250 30% 25%;
+    --input: 240 40% 12%;
+    --ring: 270 70% 65%;
+    --radius: 1rem;
   }
 }
 
 @layer base {
-  body {
-    @apply bg-background text-foreground;
+  * {
+    @apply border-border;
   }
+
+  body {
+    @apply bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-black/10 backdrop-blur-sm;
+    border-radius: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-purple-500/30 hover:bg-purple-500/50;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(168, 85, 247, 0.3) rgba(0, 0, 0, 0.1);
+  }
+
+  /* Selection colors */
+  ::selection {
+    @apply bg-purple-500/30 text-white;
+  }
+
+  ::-moz-selection {
+    @apply bg-purple-500/30 text-white;
+  }
+}
+
+/* Glassmorphism utility classes */
+@layer utilities {
+  .glass {
+    @apply backdrop-blur-xl bg-white/10 border border-white/20;
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-2xl bg-white/10 border border-white/20;
+  }
+
+  .glass-subtle {
+    @apply backdrop-blur-lg bg-white/5 border border-white/10;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-purple {
+    @apply bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent;
+  }
+
+  /* Smooth animations */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  .animate-glow {
+    animation: glow 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from {
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
+    }
+    to {
+      box-shadow: 0 0 40px rgba(168, 85, 247, 0.4);
+    }
   }
 }
