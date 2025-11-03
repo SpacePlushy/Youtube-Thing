@@ -2,7 +2,7 @@
  * Centralized type definitions for the application
  */
 
-import { FormatStyle, ParagraphLength, TranscriptOrigin, SupportedLanguage } from './constants';
+import { TranscriptOrigin, SupportedLanguage } from './constants';
 
 // Re-export types from constants for convenience
 export type { TranscriptOrigin, SupportedLanguage } from './constants';
@@ -31,19 +31,6 @@ export interface TranscriptResponse {
   metadata?: TranscriptMetadata;
 }
 
-// Format options
-export interface FormatOptions {
-  style: FormatStyle;
-  includeTimestamps: boolean;
-  paragraphLength: ParagraphLength;
-}
-
-// API request/response types
-export interface FormatTranscriptRequest {
-  transcript: TranscriptSegment[];
-  options: FormatOptions;
-}
-
 export interface ExtractTranscriptOptions {
   language: SupportedLanguage;
   transcriptOrigin: TranscriptOrigin;
@@ -54,12 +41,6 @@ export interface CachedTranscript {
   transcript: TranscriptSegment[];
   metadata?: TranscriptMetadata;
   cachedAt: number;
-}
-
-// Progress tracking
-export interface FormattingProgress {
-  message: string;
-  progress: number;
 }
 
 // Error response

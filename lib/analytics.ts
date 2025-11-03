@@ -14,17 +14,8 @@ interface ExtractEventData {
   duration?: number;
 }
 
-interface FormatEventData {
-  style: string;
-  transcriptLength: number;
-  includeTimestamps: boolean;
-  paragraphLength: string;
-  duration?: number;
-  error?: boolean;
-}
-
 interface ErrorEventData {
-  type: 'extraction' | 'formatting' | 'api';
+  type: 'extraction' | 'api';
   error: string;
   context?: Record<string, any>;
 }
@@ -44,23 +35,8 @@ export const analytics = {
     }
   },
 
-  // Track AI formatting
-  trackFormatting: (data: FormatEventData) => {
-    if (typeof window !== 'undefined') {
-      // Convert to plain object for Vercel Analytics
-      track('transcript_formatted', {
-        style: data.style,
-        transcriptLength: data.transcriptLength,
-        includeTimestamps: data.includeTimestamps,
-        paragraphLength: data.paragraphLength,
-        ...(data.duration !== undefined && { duration: data.duration }),
-        ...(data.error !== undefined && { error: data.error })
-      });
-    }
-  },
-
   // Track export actions
-  trackExport: (method: 'copy' | 'download', type: 'raw' | 'formatted') => {
+  trackExport: (method: 'copy' | 'download', type: 'raw') => {
     if (typeof window !== 'undefined') {
       track('transcript_exported', { method, type });
     }

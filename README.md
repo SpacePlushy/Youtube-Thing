@@ -1,25 +1,22 @@
 # YouTube Thing
 
-A modern YouTube transcript extraction tool built with Next.js and Oxylabs API. Extract transcripts from any YouTube video with support for multiple languages and transcript types.
-
-<!-- Sample change to demonstrate git tree position -->
+A simple, fast YouTube transcript extraction tool built with Next.js and Oxylabs API. Extract transcripts from any YouTube video and copy them instantly.
 
 ## Features
 
 - 🌐 **Multi-language Support** - Extract transcripts in 12+ languages
 - 📝 **Transcript Types** - Choose between auto-generated or uploader-provided captions
 - 🔄 **Smart Fallback** - Automatically falls back to available transcripts
-- 🎨 **Dark Theme** - Modern dark UI with excellent readability
-- 💾 **Export Options** - Copy to clipboard or download as text file
+- 🎨 **Modern UI** - Glassmorphism design with smooth animations
+- 📋 **One-Click Copy** - Instantly copy transcripts to clipboard
+- 💾 **Easy Download** - Download transcripts as text files
 - ⚡ **Fast & Reliable** - Powered by Oxylabs enterprise API
-- 🤖 **AI Formatting** - Format transcripts with AI (clean, summarize, chapters, bullets)
-- 🚀 **Ultra-Fast Processing** - Advanced AI integration for lightning-fast formatting
-- 💰 **Free AI Tier** - Generous free tier for transcript formatting
 
 ## Tech Stack
 
 - **Frontend**: Next.js 15.3, React, TypeScript
-- **Styling**: Tailwind CSS
+- **Styling**: Tailwind CSS with Glassmorphism theme
+- **Animation**: Framer Motion
 - **API**: Oxylabs Web Scraper API
 - **Deployment**: Vercel
 
@@ -48,14 +45,10 @@ npm install
 cp .env.example .env.local
 ```
 
-4. Edit `.env.local` and add your credentials:
+4. Edit `.env.local` and add your Oxylabs credentials:
 ```env
-# Oxylabs API (required for transcript extraction)
 OXYLABS_USERNAME=your_username
 OXYLABS_PASSWORD=your_password
-
-# AI Formatting (required for AI features)
-CEREBRAS_API_KEY=your_cerebras_api_key     # Get at https://cloud.cerebras.ai/
 ```
 
 ### Development
@@ -90,14 +83,15 @@ npm start
 2. Select your preferred language
 3. Choose transcript type (auto-generated or uploader-provided)
 4. Click "Extract Transcript"
-5. Copy or download the transcript
+5. Copy to clipboard or download as text file
 
 The app will automatically fall back to available transcripts if your preferred option isn't available.
 
 ## API Routes
 
 - `/api/transcript-oxylabs` - Main transcript extraction endpoint
-- `/api/format-transcript` - AI-powered transcript formatting endpoint
+- `/api/transcript` - Alternative transcript extraction endpoints (alt1, alt2, alt3)
+- `/api/test-env` - Environment configuration test endpoint
 
 ## Environment Variables
 
@@ -105,7 +99,6 @@ The app will automatically fall back to available transcripts if your preferred 
 |----------|-------------|----------|
 | `OXYLABS_USERNAME` | Your Oxylabs username | Yes |
 | `OXYLABS_PASSWORD` | Your Oxylabs password | Yes |
-| `CEREBRAS_API_KEY` | Cerebras API key for AI formatting | For AI features |
 
 ## License
 
