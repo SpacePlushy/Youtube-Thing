@@ -7,6 +7,9 @@ import { TranscriptOrigin, SupportedLanguage } from './constants';
 // Re-export types from constants for convenience
 export type { TranscriptOrigin, SupportedLanguage } from './constants';
 
+// Re-export Clerk-related types
+export type { SubscriptionTier, FeatureFlag } from './clerk-helpers';
+
 // Transcript related types
 export interface TranscriptSegment {
   text: string;
@@ -29,6 +32,7 @@ export interface TranscriptMetadata {
 export interface TranscriptResponse {
   transcript: TranscriptSegment[];
   metadata?: TranscriptMetadata;
+  usage?: UsageStats; // Added for authenticated requests
 }
 
 export interface ExtractTranscriptOptions {
@@ -47,4 +51,58 @@ export interface CachedTranscript {
 export interface ErrorResponse {
   error: string;
   details?: string;
+}
+
+// Usage tracking types
+export interface UsageStats {
+  currentUsage: number;
+  dailyLimit: number;
+  tier: string;
+  resetTime?: string; // ISO 8601 timestamp
+  canProceed?: boolean;
+}
+
+// Transcript history types
+export interface TranscriptHistoryItem {
+  id: string;
+  videoId: string;
+  videoTitle: string;
+  channelName: string | null;
+  videoDuration: number | null;
+  createdAt: string;
+}
+
+export interface TranscriptHistoryResponse {
+  transcripts: TranscriptHistoryItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface TranscriptFullItem extends TranscriptHistoryItem {
+  transcriptText: string;
+}
+
+// Database types
+export interface UserTranscriptRow {
+  id: string;
+  user_id: string;
+  video_id: string;
+  video_title: string;
+  channel_name: string | null;
+  video_duration: number | null;
+  transcript_text: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface UserSettingsRow {
+  user_id: string;
+  default_export_format: string;
+  email_notifications: boolean;
+  created_at: Date;
+  updated_at: Date;
 }

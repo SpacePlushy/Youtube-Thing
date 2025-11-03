@@ -9,10 +9,10 @@
 
 ## Phase 2: User Accounts & History (Starter/Pro Tier Foundation)
 
-5. [ ] **Clerk Authentication Integration** — Integrate Clerk for user signup/login with email, Google, and GitHub OAuth options, protected routes, and session management. `M`
-6. [ ] **Transcript History Storage** — Build database schema and API endpoints to save extracted transcripts with metadata (URL, title, timestamp, user ID) using Vercel Postgres or Upstash Redis. `L`
-7. [ ] **History Dashboard** — Create user dashboard showing all extracted transcripts with sorting (date, title), filtering, pagination, and quick actions (view, copy, download, delete). `L`
-8. [ ] **Usage Tracking & Limits** — Implement tier-based usage limits (free: 5/day, starter: 50/day, pro: unlimited) with clear UI showing remaining quota and upgrade prompts. `M`
+5. [x] **Clerk Authentication Integration** — Integrate Clerk for user signup/login with email, Google, and GitHub OAuth options, protected routes, and session management. `M` ✅ Completed in spec 2025-11-02-subscription-clerk-auth
+6. [x] **Transcript History Storage** — Build database schema and API endpoints to save extracted transcripts with metadata (URL, title, timestamp, user ID) using Vercel Postgres or Upstash Redis. `L` ✅ Completed in spec 2025-11-02-subscription-clerk-auth
+7. [x] **History Dashboard** — Create user dashboard showing all extracted transcripts with sorting (date, title), filtering, pagination, and quick actions (view, copy, download, delete). `L` ✅ Completed in spec 2025-11-02-subscription-clerk-auth
+8. [x] **Usage Tracking & Limits** — Implement tier-based usage limits (free: 5/day, starter: 50/day, pro: unlimited) with clear UI showing remaining quota and upgrade prompts. `M` ✅ Completed in spec 2025-11-02-subscription-clerk-auth
 
 ## Phase 3: Power User Features (Pro/Enterprise Tiers)
 
@@ -77,3 +77,4 @@
 > - Phase 3-4 increase ARPU and enable Enterprise sales
 > - Each item represents end-to-end (frontend + backend) functional feature
 > - Pricing model balances accessibility (low-cost Starter) with premium value (Pro/Enterprise)
+> - **Phase 2 completed:** Items 5-8 implemented in November 2025 (subscription system with Clerk auth)

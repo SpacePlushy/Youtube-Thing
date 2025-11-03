@@ -9,10 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.34.1",
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.35.1",
     "@vercel/analytics": "^1.5.0",
     "@vercel/kv": "^3.0.0",
+    "@vercel/postgres": "^0.10.0",
     "framer-motion": "^12.23.6",
     "get-video-id": "^4.1.7",
     "lru-cache": "^11.1.0",
