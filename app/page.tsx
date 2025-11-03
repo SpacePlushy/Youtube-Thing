@@ -224,14 +224,14 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
-      {/* Animated background gradients */}
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-black via-gray-950 to-black">
+      {/* Animated glowing background orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-purple-500/20 to-transparent rounded-full blur-3xl"
+          className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-white/10 to-transparent rounded-full blur-3xl"
           animate={{
             scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
+            opacity: [0.15, 0.25, 0.15],
           }}
           transition={{
             duration: 8,
@@ -240,16 +240,29 @@ export default function Home() {
           }}
         />
         <motion.div
-          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-blue-500/20 to-transparent rounded-full blur-3xl"
+          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-gray-400/15 to-transparent rounded-full blur-3xl"
           animate={{
             scale: [1.2, 1, 1.2],
-            opacity: [0.5, 0.3, 0.5],
+            opacity: [0.2, 0.1, 0.2],
           }}
           transition={{
             duration: 8,
             repeat: Infinity,
             ease: "easeInOut",
             delay: 1
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-white/5 to-gray-300/10 rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.1, 0.2, 0.1],
+            rotate: [0, 180, 360],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "linear"
           }}
         />
       </div>
@@ -263,10 +276,10 @@ export default function Home() {
             exit={{ opacity: 0, y: -50, scale: 0.9 }}
             className="fixed top-8 left-1/2 -translate-x-1/2 z-50"
           >
-            <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl px-6 py-3 shadow-2xl">
+            <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl px-6 py-3 shadow-2xl glow">
               <div className="flex items-center gap-2 text-white">
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
-                <p className="font-medium">{copyNotification}</p>
+                <CheckCircle2 className="w-5 h-5 text-gray-300 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
+                <p className="font-medium text-glow">{copyNotification}</p>
               </div>
             </div>
           </motion.div>
@@ -281,12 +294,12 @@ export default function Home() {
           className="text-center mb-8 lg:mb-12"
         >
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Youtube className="w-10 h-10 lg:w-12 lg:h-12 text-red-500" />
-            <h1 className="text-4xl lg:text-6xl font-bold bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">
+            <Youtube className="w-10 h-10 lg:w-12 lg:h-12 text-gray-200 drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]" />
+            <h1 className="text-4xl lg:text-6xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent text-glow-strong">
               YouTube Transcript
             </h1>
           </div>
-          <p className="text-lg text-slate-300 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto">
             Extract transcripts from any YouTube video instantly
           </p>
         </motion.div>
@@ -320,7 +333,7 @@ export default function Home() {
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://youtube.com/watch?v=..."
-                      className="w-full px-4 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                      className="w-full px-4 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent focus:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all"
                       disabled={loading}
                       autoFocus
                     />
@@ -336,7 +349,7 @@ export default function Home() {
                       <select
                         value={language}
                         onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-                        className="w-full px-4 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all appearance-none cursor-pointer"
+                        className="w-full px-4 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all appearance-none cursor-pointer"
                         disabled={loading}
                       >
                         <option value="en">English</option>
@@ -362,7 +375,7 @@ export default function Home() {
                       <select
                         value={transcriptOrigin}
                         onChange={(e) => setTranscriptOrigin(e.target.value as TranscriptOrigin)}
-                        className="w-full px-4 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all appearance-none cursor-pointer"
+                        className="w-full px-4 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all appearance-none cursor-pointer"
                         disabled={loading}
                       >
                         <option value="auto_generated">Auto-generated</option>
@@ -375,7 +388,7 @@ export default function Home() {
                   <motion.button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold rounded-2xl shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    className="w-full py-4 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 glow-subtle hover:glow"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -402,7 +415,7 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-4 p-4 backdrop-blur-xl bg-red-500/10 border border-red-500/30 rounded-2xl"
                   >
-                    <div className="flex items-start gap-2 text-red-300">
+                    <div className="flex items-start gap-2 text-gray-300 drop-shadow-[0_0_8px_rgba(255,100,100,0.4)]">
                       <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                       <p className="text-sm">{error}</p>
                     </div>
@@ -416,7 +429,7 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-4 p-4 backdrop-blur-xl bg-green-500/10 border border-green-500/30 rounded-2xl"
                   >
-                    <div className="flex items-center gap-2 text-green-300">
+                    <div className="flex items-center gap-2 text-gray-200 drop-shadow-[0_0_10px_rgba(200,255,200,0.4)]">
                       <TrendingUp className="w-5 h-5" />
                       <p className="text-sm font-medium">Loaded from cache</p>
                     </div>
@@ -440,7 +453,7 @@ export default function Home() {
                     key={i}
                     className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-4 text-center"
                   >
-                    <feature.icon className="w-6 h-6 mx-auto mb-2 text-purple-400" />
+                    <feature.icon className="w-6 h-6 mx-auto mb-2 text-gray-200 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]" />
                     <p className="text-sm text-white/80">{feature.text}</p>
                   </div>
                 ))}
@@ -468,7 +481,7 @@ export default function Home() {
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="New YouTube URL..."
-                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-sm"
+                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:shadow-[0_0_20px_rgba(255,255,255,0.2)] text-sm"
                     disabled={loading}
                   />
 
@@ -476,7 +489,7 @@ export default function Home() {
                     <select
                       value={language}
                       onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-                      className="flex-1 px-3 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-purple-500/50"
+                      className="flex-1 px-3 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-white/30 focus:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                       disabled={loading}
                     >
                       <option value="en">English</option>
@@ -488,7 +501,7 @@ export default function Home() {
                     <motion.button
                       type="submit"
                       disabled={loading}
-                      className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-medium disabled:opacity-50"
+                      className="px-6 py-3 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-xl font-medium disabled:opacity-50 hover:shadow-[0_0_25px_rgba(255,255,255,0.3)] transition-all glow-subtle"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -500,7 +513,7 @@ export default function Home() {
                 {/* Transcript header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-purple-400" />
+                    <FileText className="w-5 h-5 text-gray-200 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
                     <h3 className="text-lg font-semibold text-white">Transcript</h3>
                     <span className="text-xs text-white/60 bg-white/5 px-2 py-1 rounded-lg">
                       {transcript.length} segments
@@ -552,7 +565,7 @@ export default function Home() {
                         transition={{ delay: index * 0.01 }}
                         className="flex gap-3"
                       >
-                        <span className="text-xs text-purple-400 font-mono min-w-[60px]">
+                        <span className="text-xs text-gray-300 font-mono min-w-[60px] drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]">
                           {item.timestamp}
                         </span>
                         <p className="text-sm text-white/90">{item.text}</p>
