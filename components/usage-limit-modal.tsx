@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, AlertCircle, Clock, TrendingUp } from 'lucide-react';
+import { X, AlertCircle, Clock, TrendingUp, Check } from 'lucide-react';
 import Link from 'next/link';
 
 interface UsageLimitModalProps {
@@ -32,23 +32,23 @@ export function UsageLimitModal({
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     if (hours > 0) {
-      return `${hours} hour${hours !== 1 ? 's' : ''} and ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+      return `${hours}h ${minutes}m`;
     }
-    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    return `${minutes}m`;
   };
 
   const getUpgradeRecommendation = () => {
     if (tier === 'free') {
       return {
         targetTier: 'Starter',
-        benefits: ['50 transcripts per day (10x increase)', '30-day transcript history', 'Full-text search'],
-        price: '$9/month',
+        benefits: ['50 transcripts per day', '30-day history', 'Full-text search'],
+        price: '$9/mo',
       };
     }
     return {
       targetTier: 'Pro',
-      benefits: ['Unlimited transcripts per day', 'Unlimited transcript history', 'Advanced features'],
-      price: '$29/month',
+      benefits: ['Unlimited transcripts', 'Unlimited history', 'API access'],
+      price: '$29/mo',
     };
   };
 
@@ -64,7 +64,7 @@ export function UsageLimitModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/50 z-50"
           />
 
           {/* Modal */}
@@ -73,65 +73,64 @@ export function UsageLimitModal({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative max-w-lg w-full backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl"
+              className="relative max-w-md w-full bg-white rounded-2xl p-6 shadow-xl"
             >
               {/* Close Button */}
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
+                className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-gray-400" />
               </button>
 
               {/* Icon */}
-              <div className="flex justify-center mb-6">
-                <div className="p-4 bg-red-500/20 rounded-full">
-                  <AlertCircle className="w-12 h-12 text-red-400" />
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-red-50 rounded-full">
+                  <AlertCircle className="w-8 h-8 text-red-500" />
                 </div>
               </div>
 
               {/* Title */}
-              <h2 className="text-3xl font-bold text-white text-center mb-3">Daily Limit Reached</h2>
+              <h2 className="text-xl font-bold text-gray-900 text-center mb-2">Daily Limit Reached</h2>
+
+              {/* Description */}
+              <p className="text-gray-500 text-center text-sm mb-6">
+                You have used all {dailyLimit} transcripts on your {tier} plan today.
+              </p>
 
               {/* Usage Info */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-gray-400">Usage Today</span>
-                  <span className="text-xl font-bold text-white">
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-gray-500">Usage</span>
+                  <span className="text-sm font-semibold text-gray-900">
                     {currentUsage}/{dailyLimit}
                   </span>
                 </div>
 
-                <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden mb-4">
-                  <div className="w-full h-2 rounded-full bg-gradient-to-r from-red-400 to-red-600" />
+                <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden mb-3">
+                  <div className="w-full h-1.5 rounded-full bg-red-500" />
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <Clock className="w-4 h-4 text-blue-400" />
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Clock className="w-3.5 h-3.5" />
                   <span>
-                    Your limit resets in <span className="font-semibold text-white">{getTimeUntilReset()}</span>
+                    Resets in <span className="font-medium text-gray-700">{getTimeUntilReset()}</span>
                   </span>
                 </div>
               </div>
 
-              {/* Description */}
-              <p className="text-gray-300 text-center mb-6">
-                You've used all {dailyLimit} transcripts available on your {tier} plan today. Upgrade to get more
-                transcripts and unlock additional features.
-              </p>
-
               {/* Upgrade Recommendation */}
-              <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-2xl p-6 mb-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp className="w-5 h-5 text-purple-400" />
-                  <h3 className="text-lg font-bold text-white">Upgrade to {recommendation.targetTier}</h3>
-                  <span className="ml-auto text-sm font-semibold text-purple-400">{recommendation.price}</span>
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="w-4 h-4 text-gray-600" />
+                  <h3 className="text-sm font-semibold text-gray-900">Upgrade to {recommendation.targetTier}</h3>
+                  <span className="ml-auto text-sm font-medium text-gray-500">{recommendation.price}</span>
                 </div>
 
-                <ul className="space-y-2 mb-4">
+                <ul className="space-y-1.5">
                   {recommendation.benefits.map((benefit, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
-                      <span className="text-green-400 mt-0.5">✓</span>
+                    <li key={index} className="flex items-center gap-2 text-sm text-gray-600">
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
                       {benefit}
                     </li>
                   ))}
@@ -139,25 +138,19 @@ export function UsageLimitModal({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link href="/pricing" className="flex-1">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
-                  >
-                    View Pricing Plans
-                  </motion.button>
+              <div className="flex flex-col gap-2">
+                <Link href="/pricing" className="w-full">
+                  <button className="w-full px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg transition-colors">
+                    View Pricing
+                  </button>
                 </Link>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                <button
                   onClick={onClose}
-                  className="px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-semibold rounded-xl transition-all"
+                  className="w-full px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   Maybe Later
-                </motion.button>
+                </button>
               </div>
             </motion.div>
           </div>
