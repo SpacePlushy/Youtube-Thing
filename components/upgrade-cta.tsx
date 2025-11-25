@@ -11,7 +11,7 @@ interface UpgradeCTAProps {
   redirectTo: string;
 }
 
-export function UpgradeCTA({ targetTier, benefits, ctaText, redirectTo }: UpgradeCTAProps) {
+export function UpgradeCTA({ currentTier: _currentTier, targetTier, benefits, ctaText, redirectTo }: UpgradeCTAProps) {
   return (
     <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
       <h3 className="text-sm font-semibold text-gray-900 mb-3">
