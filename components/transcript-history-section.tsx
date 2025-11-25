@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, Loader2, ChevronLeft, ChevronRight, ArrowUpDown, Search } from 'lucide-react';
+import { History, Loader2, ChevronLeft, ChevronRight, ArrowUpDown, FileText } from 'lucide-react';
 import { TranscriptCard } from './transcript-card';
 import { UpgradeCTA } from './upgrade-cta';
 import type { TranscriptHistoryResponse, TranscriptHistoryItem } from '@/lib/types';
+import Link from 'next/link';
 
 export function TranscriptHistorySection() {
   const [history, setHistory] = useState<TranscriptHistoryResponse | null>(null);
@@ -65,7 +66,6 @@ export function TranscriptHistorySection() {
         throw new Error('Failed to delete transcript');
       }
 
-      // Refresh history after deletion
       fetchHistory();
     } catch (err) {
       console.error('Error deleting transcript:', err);
@@ -75,7 +75,6 @@ export function TranscriptHistorySection() {
 
   const handleCopy = async (transcript: TranscriptHistoryItem) => {
     try {
-      // Fetch full transcript text
       const response = await fetch(`/api/transcript/history/${transcript.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch transcript text');
@@ -92,7 +91,6 @@ export function TranscriptHistorySection() {
 
   const handleDownload = async (transcript: TranscriptHistoryItem, format: 'txt' | 'pdf') => {
     try {
-      // Fetch full transcript text
       const response = await fetch(`/api/transcript/history/${transcript.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch transcript text');
@@ -101,7 +99,6 @@ export function TranscriptHistorySection() {
       const data = await response.json();
 
       if (format === 'txt') {
-        // Download as TXT
         const blob = new Blob([data.transcriptText], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -112,7 +109,6 @@ export function TranscriptHistorySection() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } else {
-        // PDF download not implemented yet
         alert('PDF export coming soon!');
       }
     } catch (err) {
@@ -134,30 +130,31 @@ export function TranscriptHistorySection() {
   // Free tier - no access
   if (hasAccess === false) {
     return (
-      <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-purple-500/20 rounded-2xl">
-            <History className="w-6 h-6 text-purple-400" />
+          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+            <History className="w-5 h-5 text-gray-600" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Transcript History</h2>
-            <p className="text-gray-400 text-sm">Save and access your past transcripts</p>
+            <h2 className="text-lg font-semibold text-gray-900">History</h2>
+            <p className="text-sm text-gray-500">Your saved transcripts</p>
           </div>
         </div>
 
-        <div className="text-center py-12">
-          <History className="w-16 h-16 text-gray-500 mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-semibold text-white mb-2">Transcript History Unavailable</h3>
-          <p className="text-gray-400 mb-8">Upgrade to Starter plan or higher to save your transcript history</p>
+        <div className="text-center py-10">
+          <History className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-base font-semibold text-gray-900 mb-2">Upgrade to access history</h3>
+          <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+            Save and search your past transcripts with a Starter plan or higher
+          </p>
 
           <UpgradeCTA
             currentTier="free"
             targetTier="starter"
             benefits={[
-              '50 transcripts per day',
               '30-day transcript history',
               'Full-text search',
-              'Priority email support',
+              '50 transcripts per day',
             ]}
             ctaText="Upgrade to Starter"
             redirectTo="/pricing"
@@ -169,9 +166,9 @@ export function TranscriptHistorySection() {
 
   if (loading) {
     return (
-      <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
         </div>
       </div>
     );
@@ -179,12 +176,12 @@ export function TranscriptHistorySection() {
 
   if (error) {
     return (
-      <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="text-center py-12">
-          <p className="text-red-400 mb-4">{error}</p>
+          <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={fetchHistory}
-            className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-xl transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
           >
             Retry
           </button>
@@ -196,45 +193,44 @@ export function TranscriptHistorySection() {
   // Empty state
   if (history && history.transcripts.length === 0) {
     return (
-      <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-purple-500/20 rounded-2xl">
-            <History className="w-6 h-6 text-purple-400" />
+          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+            <History className="w-5 h-5 text-gray-600" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Transcript History</h2>
-            <p className="text-gray-400 text-sm">Your saved transcripts</p>
+            <h2 className="text-lg font-semibold text-gray-900">History</h2>
+            <p className="text-sm text-gray-500">Your saved transcripts</p>
           </div>
         </div>
 
-        <div className="text-center py-12">
-          <History className="w-16 h-16 text-gray-500 mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-semibold text-white mb-2">No Transcripts Yet</h3>
-          <p className="text-gray-400 mb-6">Extract your first transcript to get started!</p>
-          <a
+        <div className="text-center py-10">
+          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-base font-semibold text-gray-900 mb-2">No transcripts yet</h3>
+          <p className="text-sm text-gray-500 mb-6">Extract your first transcript to get started</p>
+          <Link
             href="/"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors"
           >
-            <Search className="w-5 h-5" />
             Extract Transcript
-          </a>
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl">
+    <div className="bg-white rounded-2xl border border-gray-200 p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-purple-500/20 rounded-2xl">
-            <History className="w-6 h-6 text-purple-400" />
+          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+            <History className="w-5 h-5 text-gray-600" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Transcript History</h2>
-            <p className="text-gray-400 text-sm">
-              {history?.pagination.total || 0} saved transcript{history?.pagination.total !== 1 ? 's' : ''}
+            <h2 className="text-lg font-semibold text-gray-900">History</h2>
+            <p className="text-sm text-gray-500">
+              {history?.pagination.total || 0} transcript{history?.pagination.total !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -242,25 +238,23 @@ export function TranscriptHistorySection() {
         {/* Sort Button */}
         <button
           onClick={toggleSort}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
         >
-          <ArrowUpDown className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-300">
-            {sortBy === 'created_at' ? 'Newest First' : 'Title A-Z'}
-          </span>
+          <ArrowUpDown className="w-4 h-4" />
+          {sortBy === 'created_at' ? 'Newest' : 'A-Z'}
         </button>
       </div>
 
       {/* Transcript List */}
-      <div className="space-y-4 mb-6">
+      <div className="space-y-3 mb-6">
         <AnimatePresence mode="popLayout">
           {history?.transcripts.map((transcript, index) => (
             <motion.div
               key={transcript.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
+              transition={{ duration: 0.2, delay: index * 0.03 }}
             >
               <TranscriptCard
                 transcript={transcript}
@@ -275,26 +269,26 @@ export function TranscriptHistorySection() {
 
       {/* Pagination */}
       {history && history.pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between pt-6 border-t border-white/10">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 rounded-xl transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="text-sm">Previous</span>
+            Previous
           </button>
 
-          <span className="text-sm text-gray-400">
-            Page {currentPage} of {history.pagination.totalPages}
+          <span className="text-sm text-gray-500">
+            {currentPage} / {history.pagination.totalPages}
           </span>
 
           <button
             onClick={() => setCurrentPage((prev) => Math.min(history.pagination.totalPages, prev + 1))}
             disabled={currentPage === history.pagination.totalPages}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 rounded-xl transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
-            <span className="text-sm">Next</span>
+            Next
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>

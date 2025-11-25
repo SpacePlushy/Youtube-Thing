@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useUser } from '@clerk/nextjs';
-import { CheckCircle2, X, Sparkles, Users, Zap, Mail } from 'lucide-react';
+import { Check, X, Play, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 interface PricingTier {
@@ -14,7 +14,6 @@ interface PricingTier {
   features: { name: string; included: boolean; badge?: string }[];
   cta: string;
   popular?: boolean;
-  color: string;
 }
 
 export default function PricingPage() {
@@ -28,7 +27,7 @@ export default function PricingPage() {
       name: 'Free',
       price: '$0',
       priceAmount: 0,
-      description: 'Perfect for trying out the transcript extractor',
+      description: 'Get started with basic features',
       features: [
         { name: '5 transcripts per day', included: true },
         { name: 'No transcript history', included: false },
@@ -36,14 +35,13 @@ export default function PricingPage() {
         { name: 'Account required', included: true },
       ],
       cta: 'Start Free',
-      color: 'from-gray-400 to-gray-600',
     },
     {
       id: 'starter',
       name: 'Starter',
       price: '$9',
       priceAmount: 9,
-      description: 'Perfect for students and regular users',
+      description: 'Perfect for regular users',
       features: [
         { name: '50 transcripts per day', included: true },
         { name: '30-day transcript history', included: true },
@@ -52,44 +50,39 @@ export default function PricingPage() {
         { name: 'Export to TXT, PDF', included: true },
       ],
       cta: 'Upgrade to Starter',
-      color: 'from-blue-400 to-blue-600',
     },
     {
       id: 'pro',
       name: 'Pro',
       price: '$29',
       priceAmount: 29,
-      description: 'Perfect for professionals and power users',
+      description: 'For power users and professionals',
       features: [
         { name: 'Unlimited transcripts', included: true },
-        { name: 'Unlimited transcript history', included: true },
-        { name: 'Collections & tags', included: true, badge: 'Coming Soon' },
-        { name: 'Export to all formats', included: true, badge: 'Coming Soon' },
-        { name: 'API access (10k/month)', included: true, badge: 'Coming Soon' },
-        { name: 'Batch processing (10 videos)', included: true, badge: 'Coming Soon' },
-        { name: 'Priority processing', included: true, badge: 'Coming Soon' },
+        { name: 'Unlimited history', included: true },
+        { name: 'Collections & tags', included: true, badge: 'Soon' },
+        { name: 'All export formats', included: true, badge: 'Soon' },
+        { name: 'API access (10k/mo)', included: true, badge: 'Soon' },
+        { name: 'Batch processing', included: true, badge: 'Soon' },
       ],
       cta: 'Upgrade to Pro',
       popular: true,
-      color: 'from-purple-400 to-purple-600',
     },
     {
       id: 'enterprise',
       name: 'Enterprise',
       price: '$99',
       priceAmount: 99,
-      description: 'Perfect for teams and businesses',
+      description: 'For teams and businesses',
       features: [
         { name: 'All Pro features', included: true },
-        { name: 'Batch processing (50 videos)', included: true, badge: 'Coming Soon' },
-        { name: 'Team workspaces (10 users)', included: true, badge: 'Coming Soon' },
-        { name: 'API access (100k/month)', included: true, badge: 'Coming Soon' },
-        { name: 'Dedicated resources', included: true, badge: 'Coming Soon' },
-        { name: 'SLA guarantee', included: true, badge: 'Coming Soon' },
-        { name: 'Dedicated account manager', included: true },
+        { name: 'Batch processing (50 videos)', included: true, badge: 'Soon' },
+        { name: 'Team workspaces', included: true, badge: 'Soon' },
+        { name: 'API access (100k/mo)', included: true, badge: 'Soon' },
+        { name: 'SLA guarantee', included: true, badge: 'Soon' },
+        { name: 'Dedicated support', included: true },
       ],
       cta: 'Contact Sales',
-      color: 'from-yellow-400 to-yellow-600',
     },
   ];
 
@@ -100,14 +93,10 @@ export default function PricingPage() {
     }
 
     if (tierId === 'free') {
-      // Already on free tier, redirect to dashboard
       window.location.href = '/dashboard';
     } else if (tierId === 'enterprise') {
-      // Contact sales
       window.location.href = 'mailto:sales@example.com?subject=Enterprise Plan Inquiry';
     } else {
-      // Redirect to Clerk checkout/upgrade flow
-      // In production, this would use Clerk's checkout API
       window.location.href = `/user-profile#billing`;
     }
   };
@@ -117,79 +106,106 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-teal-900/20 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <nav className="border-b border-gray-200 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
+                <Play className="w-4 h-4 text-white fill-white" />
+              </div>
+              <span className="font-semibold text-gray-900">Transcript</span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/" className="text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 px-4 py-2 rounded-lg transition-colors">
+                Extract
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+        {/* Back link */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-8 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to extractor
+        </Link>
+
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <h1 className="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-purple-400 via-blue-400 to-teal-400 text-transparent bg-clip-text mb-4">
-            Choose Your Plan
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
+            Simple, transparent pricing
           </h1>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            Perfect for students, professionals, and teams
+          <p className="text-lg text-gray-500 max-w-xl mx-auto">
+            Choose the plan that fits your needs. Upgrade or downgrade anytime.
           </p>
         </motion.div>
 
         {/* Pricing Tiers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {tiers.map((tier, index) => (
             <motion.div
               key={tier.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={`relative backdrop-blur-2xl bg-white/10 border ${
-                tier.popular ? 'border-purple-500/50 shadow-2xl shadow-purple-500/20' : 'border-white/20'
-              } rounded-3xl p-6 sm:p-8 ${tier.popular ? 'lg:scale-105' : ''}`}
+              transition={{ delay: index * 0.1 }}
+              className={`relative bg-white rounded-2xl border ${
+                tier.popular ? 'border-gray-900 ring-1 ring-gray-900' : 'border-gray-200'
+              } p-6`}
             >
-              {/* Most Popular Badge */}
+              {/* Popular Badge */}
               {tier.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold text-sm rounded-full shadow-lg">
-                    <Sparkles className="w-4 h-4" />
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="px-3 py-1 bg-gray-900 text-white text-xs font-medium rounded-full">
                     Most Popular
-                  </div>
+                  </span>
                 </div>
               )}
 
               {/* Current Plan Badge */}
               {isCurrentTier(tier.id) && (
                 <div className="absolute -top-3 right-4">
-                  <div className="px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-400 font-semibold text-xs rounded-full">
-                    Current Plan
-                  </div>
+                  <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full border border-emerald-200">
+                    Current
+                  </span>
                 </div>
               )}
 
               {/* Tier Header */}
               <div className="mb-6">
-                <div className={`inline-flex px-4 py-2 rounded-full bg-gradient-to-r ${tier.color} text-white font-semibold text-sm mb-4`}>
-                  {tier.name}
-                </div>
-                <p className="text-gray-400 text-sm mb-4">{tier.description}</p>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-5xl font-bold text-white">{tier.price}</span>
-                  {tier.priceAmount > 0 && <span className="text-gray-400 text-xl">/month</span>}
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{tier.name}</h3>
+                <p className="text-sm text-gray-500 mb-4">{tier.description}</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-gray-900">{tier.price}</span>
+                  {tier.priceAmount > 0 && <span className="text-gray-500">/mo</span>}
                 </div>
               </div>
 
               {/* Features List */}
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-3 mb-6">
                 {tier.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
+                  <li key={idx} className="flex items-start gap-2.5">
                     {feature.included ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                     ) : (
-                      <X className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                      <X className="w-4 h-4 text-gray-300 flex-shrink-0 mt-0.5" />
                     )}
-                    <span className={`text-sm ${feature.included ? 'text-gray-300' : 'text-gray-600'}`}>
+                    <span className={`text-sm ${feature.included ? 'text-gray-700' : 'text-gray-400'}`}>
                       {feature.name}
                       {feature.badge && (
-                        <span className="ml-2 text-xs text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded-full">
+                        <span className="ml-1.5 text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
                           {feature.badge}
                         </span>
                       )}
@@ -199,137 +215,116 @@ export default function PricingPage() {
               </ul>
 
               {/* CTA Button */}
-              <motion.button
-                whileHover={{ scale: isCurrentTier(tier.id) ? 1 : 1.02 }}
-                whileTap={{ scale: isCurrentTier(tier.id) ? 1 : 0.98 }}
+              <button
                 onClick={() => handleCTA(tier.id)}
                 disabled={isCurrentTier(tier.id)}
-                className={`w-full py-4 rounded-xl font-semibold transition-all ${
+                className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isCurrentTier(tier.id)
-                    ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed'
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : tier.popular
-                    ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg hover:shadow-xl'
-                    : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                    ? 'bg-gray-900 hover:bg-gray-800 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                 }`}
               >
                 {isCurrentTier(tier.id) ? 'Current Plan' : tier.cta}
-              </motion.button>
-
-              {tier.id === 'starter' && !isSignedIn && (
-                <p className="text-center text-gray-400 text-xs mt-3">Start with a 7-day free trial</p>
-              )}
+              </button>
             </motion.div>
           ))}
         </div>
 
         {/* Feature Comparison Table */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 mb-12"
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
         >
-          <h2 className="text-3xl font-bold text-white mb-6 text-center">Compare All Features</h2>
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">Compare Plans</h2>
+          </div>
 
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/20">
-                  <th className="text-left py-4 px-4 text-gray-400 font-semibold">Feature</th>
-                  <th className="text-center py-4 px-4 text-gray-400 font-semibold">Free</th>
-                  <th className="text-center py-4 px-4 text-gray-400 font-semibold">Starter</th>
-                  <th className="text-center py-4 px-4 text-purple-400 font-semibold">Pro</th>
-                  <th className="text-center py-4 px-4 text-gray-400 font-semibold">Enterprise</th>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-3 px-6 text-sm font-medium text-gray-500">Feature</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Free</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Starter</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-900">Pro</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Enterprise</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
-                <tr className="border-b border-white/10">
-                  <td className="py-3 px-4 text-gray-300">Daily Transcript Limit</td>
-                  <td className="py-3 px-4 text-center text-gray-300">5</td>
-                  <td className="py-3 px-4 text-center text-gray-300">50</td>
-                  <td className="py-3 px-4 text-center text-purple-300">Unlimited</td>
-                  <td className="py-3 px-4 text-center text-gray-300">Unlimited</td>
+                <tr className="border-b border-gray-50">
+                  <td className="py-3 px-6 text-gray-700">Daily Limit</td>
+                  <td className="py-3 px-4 text-center text-gray-600">5</td>
+                  <td className="py-3 px-4 text-center text-gray-600">50</td>
+                  <td className="py-3 px-4 text-center text-gray-900 font-medium">Unlimited</td>
+                  <td className="py-3 px-4 text-center text-gray-600">Unlimited</td>
                 </tr>
-                <tr className="border-b border-white/10">
-                  <td className="py-3 px-4 text-gray-300">History Retention</td>
-                  <td className="py-3 px-4 text-center text-gray-300">None</td>
-                  <td className="py-3 px-4 text-center text-gray-300">30 days</td>
-                  <td className="py-3 px-4 text-center text-purple-300">Unlimited</td>
-                  <td className="py-3 px-4 text-center text-gray-300">Unlimited</td>
+                <tr className="border-b border-gray-50">
+                  <td className="py-3 px-6 text-gray-700">History</td>
+                  <td className="py-3 px-4 text-center text-gray-400">-</td>
+                  <td className="py-3 px-4 text-center text-gray-600">30 days</td>
+                  <td className="py-3 px-4 text-center text-gray-900 font-medium">Unlimited</td>
+                  <td className="py-3 px-4 text-center text-gray-600">Unlimited</td>
                 </tr>
-                <tr className="border-b border-white/10">
-                  <td className="py-3 px-4 text-gray-300">Search</td>
+                <tr className="border-b border-gray-50">
+                  <td className="py-3 px-6 text-gray-700">Search</td>
                   <td className="py-3 px-4 text-center">
-                    <X className="w-5 h-5 text-gray-600 mx-auto" />
+                    <X className="w-4 h-4 text-gray-300 mx-auto" />
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto" />
+                    <Check className="w-4 h-4 text-emerald-500 mx-auto" />
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto" />
+                    <Check className="w-4 h-4 text-emerald-500 mx-auto" />
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto" />
+                    <Check className="w-4 h-4 text-emerald-500 mx-auto" />
                   </td>
                 </tr>
-                <tr className="border-b border-white/10">
-                  <td className="py-3 px-4 text-gray-300">API Access</td>
+                <tr className="border-b border-gray-50">
+                  <td className="py-3 px-6 text-gray-700">API Access</td>
                   <td className="py-3 px-4 text-center">
-                    <X className="w-5 h-5 text-gray-600 mx-auto" />
+                    <X className="w-4 h-4 text-gray-300 mx-auto" />
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <X className="w-5 h-5 text-gray-600 mx-auto" />
+                    <X className="w-4 h-4 text-gray-300 mx-auto" />
                   </td>
-                  <td className="py-3 px-4 text-center text-gray-300">10k/month</td>
-                  <td className="py-3 px-4 text-center text-gray-300">100k/month</td>
+                  <td className="py-3 px-4 text-center text-gray-600">10k/mo</td>
+                  <td className="py-3 px-4 text-center text-gray-600">100k/mo</td>
                 </tr>
-                <tr className="border-b border-white/10">
-                  <td className="py-3 px-4 text-gray-300">Support</td>
-                  <td className="py-3 px-4 text-center text-gray-300">Community</td>
-                  <td className="py-3 px-4 text-center text-gray-300">Priority Email</td>
-                  <td className="py-3 px-4 text-center text-gray-300">Priority</td>
-                  <td className="py-3 px-4 text-center text-gray-300">Dedicated</td>
+                <tr>
+                  <td className="py-3 px-6 text-gray-700">Support</td>
+                  <td className="py-3 px-4 text-center text-gray-600">Community</td>
+                  <td className="py-3 px-4 text-center text-gray-600">Email</td>
+                  <td className="py-3 px-4 text-center text-gray-600">Priority</td>
+                  <td className="py-3 px-4 text-center text-gray-600">Dedicated</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </motion.div>
 
-        {/* FAQs or Additional Info */}
+        {/* Contact section */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="text-center"
+          transition={{ delay: 0.6 }}
+          className="text-center mt-12"
         >
-          <h2 className="text-3xl font-bold text-white mb-4">Need Help Choosing?</h2>
-          <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
-            Not sure which plan is right for you? Contact our sales team for personalized recommendations.
+          <p className="text-gray-500 mb-4">
+            Have questions? Need a custom plan?
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/dashboard">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-xl transition-all"
-              >
-                <Zap className="w-5 h-5" />
-                View Dashboard
-              </motion.button>
-            </Link>
-            <a href="mailto:sales@example.com">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
-              >
-                <Mail className="w-5 h-5" />
-                Contact Sales
-              </motion.button>
-            </a>
-          </div>
+          <a
+            href="mailto:sales@example.com"
+            className="text-gray-900 font-medium hover:underline"
+          >
+            Contact us
+          </a>
         </motion.div>
-      </div>
+      </main>
     </div>
   );
 }

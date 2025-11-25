@@ -41,8 +41,8 @@ export const metadata: Metadata = {
     canonical: 'https://youtubething.com',
   },
   other: {
-    'theme-color': '#1e1b4b',
-    'msapplication-TileColor': '#1e1b4b',
+    'theme-color': '#ffffff',
+    'msapplication-TileColor': '#ffffff',
   },
 }
 
@@ -90,23 +90,23 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{
         variables: {
-          colorPrimary: '#7c3aed',
-          colorBackground: '#0f172a',
-          colorText: '#f1f5f9',
-          colorTextSecondary: '#cbd5e1',
-          colorInputBackground: '#1e293b',
-          colorInputText: '#f1f5f9',
-          borderRadius: '1rem',
+          colorPrimary: '#18181b',
+          colorBackground: '#ffffff',
+          colorText: '#18181b',
+          colorTextSecondary: '#71717a',
+          colorInputBackground: '#f4f4f5',
+          colorInputText: '#18181b',
+          borderRadius: '0.75rem',
         },
         elements: {
-          formButtonPrimary: 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500',
-          card: 'backdrop-blur-2xl bg-white/10 border-white/20',
-          headerTitle: 'text-white',
-          headerSubtitle: 'text-slate-300',
-          socialButtonsBlockButton: 'backdrop-blur-xl bg-white/10 border-white/20 text-white hover:bg-white/20',
-          formFieldLabel: 'text-white/90',
-          formFieldInput: 'bg-white/5 border-white/10 text-white placeholder:text-white/40',
-          footerActionLink: 'text-purple-400 hover:text-purple-300',
+          formButtonPrimary: 'bg-gray-900 hover:bg-gray-800 text-white',
+          card: 'bg-white border border-gray-200 shadow-sm',
+          headerTitle: 'text-gray-900',
+          headerSubtitle: 'text-gray-500',
+          socialButtonsBlockButton: 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100',
+          formFieldLabel: 'text-gray-700',
+          formFieldInput: 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400',
+          footerActionLink: 'text-gray-900 hover:text-gray-600',
         },
       }}
     >
