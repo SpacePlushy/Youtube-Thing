@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Clock, Loader2, Infinity } from 'lucide-react';
+import { BarChart3, Clock, Loader2, Infinity as InfinityIcon } from 'lucide-react';
 import { UpgradeCTA } from './upgrade-cta';
 import type { UsageStats } from '@/lib/types';
 
@@ -138,7 +138,7 @@ export function UsageStatsCard() {
       <div className="mb-6">
         {isUnlimited ? (
           <div className="text-center py-6">
-            <Infinity className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <InfinityIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-xl font-semibold text-gray-900 mb-1">Unlimited</p>
             <p className="text-sm text-gray-500">No daily limits on your plan</p>
           </div>
