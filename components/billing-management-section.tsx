@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { CreditCard, ExternalLink, Loader2 } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+import Link from 'next/link';
 
 export function BillingManagementSection() {
   const { user, isLoaded } = useUser();
@@ -27,21 +27,7 @@ export function BillingManagementSection() {
     return tierNames[tier] || 'Unknown';
   };
 
-  const getTierColor = (tier: string | undefined): string => {
-    if (!tier) return 'from-gray-400 to-gray-600';
-
-    const tierColors: Record<string, string> = {
-      free: 'from-gray-400 to-gray-600',
-      starter: 'from-blue-400 to-blue-600',
-      pro: 'from-purple-400 to-purple-600',
-      enterprise: 'from-yellow-400 to-yellow-600',
-    };
-    return tierColors[tier] || 'from-gray-400 to-gray-600';
-  };
-
   const handleManageBilling = () => {
-    // Redirect to Clerk's billing portal
-    // In production, this would use Clerk's redirect helper or billing portal URL
     window.location.href = '/user-profile#billing';
   };
 
@@ -51,9 +37,9 @@ export function BillingManagementSection() {
 
   if (loading || !isLoaded) {
     return (
-      <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
         </div>
       </div>
     );
@@ -61,141 +47,105 @@ export function BillingManagementSection() {
 
   const currentTier = (user?.publicMetadata?.subscriptionTier as string) || 'free';
   const tierName = getTierDisplayName(currentTier);
-  const tierColor = getTierColor(currentTier);
 
-  // Mock renewal date (in production, this would come from Clerk subscription metadata)
   const getRenewalDate = (): string | null => {
     if (currentTier === 'free') return null;
 
     const date = new Date();
     date.setDate(date.getDate() + 30);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   const renewalDate = getRenewalDate();
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-      className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl"
-    >
+    <div className="bg-white rounded-2xl border border-gray-200 p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-purple-500/20 rounded-2xl">
-          <CreditCard className="w-6 h-6 text-purple-400" />
+        <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+          <CreditCard className="w-5 h-5 text-gray-600" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-white">Billing Management</h2>
-          <p className="text-gray-400 text-sm">Manage your subscription and billing</p>
+          <h2 className="text-lg font-semibold text-gray-900">Billing</h2>
+          <p className="text-sm text-gray-500">Manage your subscription</p>
         </div>
       </div>
 
       {/* Current Plan Display */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-6">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400 mb-1">Current Plan</p>
-            <div
-              className={`inline-flex px-4 py-2 rounded-full bg-gradient-to-r ${tierColor} text-white font-semibold text-lg shadow-lg`}
-            >
-              {tierName}
-            </div>
+            <p className="text-sm text-gray-500 mb-1">Current plan</p>
+            <span className="text-lg font-semibold text-gray-900">{tierName}</span>
           </div>
 
           {renewalDate && (
             <div className="text-right">
-              <p className="text-sm text-gray-400 mb-1">Next Billing Date</p>
-              <p className="text-white font-semibold">{renewalDate}</p>
+              <p className="text-sm text-gray-500 mb-1">Renews</p>
+              <p className="text-sm font-medium text-gray-900">{renewalDate}</p>
             </div>
           )}
         </div>
 
         {currentTier === 'free' && (
-          <p className="text-sm text-gray-400">
-            You're currently on the Free plan. Upgrade to unlock more features and increase your daily transcript limits.
-          </p>
-        )}
-
-        {currentTier !== 'free' && (
-          <p className="text-sm text-gray-400">
-            Your subscription will automatically renew on {renewalDate}. You can cancel or change your plan anytime.
+          <p className="text-sm text-gray-500 mt-3">
+            Upgrade for more transcripts and features
           </p>
         )}
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         {currentTier === 'free' ? (
           <>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <button
               onClick={handleUpgrade}
-              className="flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors"
             >
               Upgrade Plan
-              <ExternalLink className="w-4 h-4" />
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            </button>
+            <button
               onClick={handleManageBilling}
-              className="flex items-center justify-center gap-2 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-semibold rounded-xl transition-all"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
             >
-              View Details
+              Account Settings
               <ExternalLink className="w-4 h-4" />
-            </motion.button>
+            </button>
           </>
         ) : (
           <>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <button
               onClick={handleManageBilling}
-              className="flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors"
             >
               Manage Subscription
               <ExternalLink className="w-4 h-4" />
-            </motion.button>
-
+            </button>
             {currentTier !== 'enterprise' && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button
                 onClick={handleUpgrade}
-                className="flex items-center justify-center gap-2 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-semibold rounded-xl transition-all"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
-                Upgrade Plan
-                <ExternalLink className="w-4 h-4" />
-              </motion.button>
+                Change Plan
+              </button>
             )}
           </>
         )}
       </div>
 
-      {/* Additional Info */}
-      <div className="mt-6 pt-6 border-t border-white/10">
-        <p className="text-sm text-gray-400 mb-3">
-          <strong className="text-white">Need help?</strong> Contact support for billing questions or to discuss
-          Enterprise plans.
+      {/* Help */}
+      <div className="mt-6 pt-4 border-t border-gray-100">
+        <p className="text-sm text-gray-500">
+          Need help?{' '}
+          <a href="mailto:support@example.com" className="text-gray-900 hover:underline">
+            Contact support
+          </a>
+          {' '}or{' '}
+          <Link href="/pricing" className="text-gray-900 hover:underline">
+            view pricing
+          </Link>
         </p>
-        <div className="flex flex-wrap gap-3 text-sm">
-          <a href="/pricing" className="text-purple-400 hover:text-purple-300 transition-colors">
-            View Pricing
-          </a>
-          <span className="text-gray-600">•</span>
-          <a href="mailto:support@example.com" className="text-purple-400 hover:text-purple-300 transition-colors">
-            Contact Support
-          </a>
-          <span className="text-gray-600">•</span>
-          <a href="/terms" className="text-purple-400 hover:text-purple-300 transition-colors">
-            Terms of Service
-          </a>
-        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

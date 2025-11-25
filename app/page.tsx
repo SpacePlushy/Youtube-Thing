@@ -2,23 +2,22 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// import { TranscriptCache } from '@/lib/transcript-cache'; // Unused in mock implementation
 import { analytics } from '@/lib/analytics';
 import {
   Loader2,
   Copy,
   Download,
-  Youtube,
-  Zap,
-  FileText,
+  Play,
   Globe,
-  Settings,
-  CheckCircle2,
+  Clock,
+  Check,
   AlertCircle,
-  TrendingUp
+  ChevronDown,
+  ArrowLeft,
+  Sparkles
 } from 'lucide-react';
 import type { TranscriptSegment, TranscriptMetadata, TranscriptOrigin, SupportedLanguage } from '@/lib/types';
-
+import Link from 'next/link';
 
 export default function Home() {
   const [url, setUrl] = useState('');
@@ -30,8 +29,8 @@ export default function Home() {
   const [transcriptOrigin, setTranscriptOrigin] = useState<TranscriptOrigin>('auto_generated');
   const [usingCache, setUsingCache] = useState(false);
   const [copyNotification, setCopyNotification] = useState<string | null>(null);
+  const [showOptions, setShowOptions] = useState(false);
 
-  // Helper function to copy with notification
   const copyToClipboard = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -60,136 +59,34 @@ export default function Home() {
     const startTime = Date.now();
 
     try {
-      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Mock transcript data
       const mockTranscript: TranscriptSegment[] = [
-        {
-          text: "Welcome to this comprehensive tutorial on building modern web applications.",
-          duration: 3.5,
-          timestamp: "0:00"
-        },
-        {
-          text: "In this video, we're going to explore the fundamentals of React and Next.js.",
-          duration: 4.2,
-          timestamp: "0:03"
-        },
-        {
-          text: "First, let's talk about why component-based architecture has become so popular.",
-          duration: 4.8,
-          timestamp: "0:07"
-        },
-        {
-          text: "Component-based development allows us to break down complex UIs into smaller, reusable pieces.",
-          duration: 5.1,
-          timestamp: "0:12"
-        },
-        {
-          text: "This approach makes our code more maintainable and easier to test.",
-          duration: 3.9,
-          timestamp: "0:17"
-        },
-        {
-          text: "Now, let's dive into setting up our development environment.",
-          duration: 3.2,
-          timestamp: "0:21"
-        },
-        {
-          text: "You'll need Node.js installed on your machine, preferably version 18 or higher.",
-          duration: 4.5,
-          timestamp: "0:24"
-        },
-        {
-          text: "Once you have Node installed, we can use npm or yarn to create our project.",
-          duration: 4.3,
-          timestamp: "0:29"
-        },
-        {
-          text: "I personally prefer using the Next.js CLI for creating new projects.",
-          duration: 3.8,
-          timestamp: "0:33"
-        },
-        {
-          text: "It sets up everything we need with a single command: npx create-next-app.",
-          duration: 4.6,
-          timestamp: "0:37"
-        },
-        {
-          text: "The CLI will ask you several questions about your project configuration.",
-          duration: 4.1,
-          timestamp: "0:41"
-        },
-        {
-          text: "Make sure to select TypeScript if you want type safety in your application.",
-          duration: 4.2,
-          timestamp: "0:46"
-        },
-        {
-          text: "Also, I recommend enabling the App Router, which is the modern way to handle routing in Next.js.",
-          duration: 5.3,
-          timestamp: "0:50"
-        },
-        {
-          text: "For styling, you can choose between CSS modules, Tailwind CSS, or styled-components.",
-          duration: 5.1,
-          timestamp: "0:55"
-        },
-        {
-          text: "Tailwind has become incredibly popular due to its utility-first approach.",
-          duration: 4.2,
-          timestamp: "1:00"
-        },
-        {
-          text: "Alright, now that our project is set up, let's explore the folder structure.",
-          duration: 4.0,
-          timestamp: "1:04"
-        },
-        {
-          text: "The app directory is where all our routes and pages will live.",
-          duration: 3.7,
-          timestamp: "1:08"
-        },
-        {
-          text: "Each folder in the app directory represents a route segment.",
-          duration: 3.5,
-          timestamp: "1:12"
-        },
-        {
-          text: "And special files like page.tsx and layout.tsx have specific meanings in Next.js.",
-          duration: 4.8,
-          timestamp: "1:16"
-        },
-        {
-          text: "Let's create our first component and see how everything connects together.",
-          duration: 4.2,
-          timestamp: "1:20"
-        },
-        {
-          text: "Remember to keep your components small and focused on a single responsibility.",
-          duration: 4.5,
-          timestamp: "1:25"
-        },
-        {
-          text: "This makes them easier to test and reuse throughout your application.",
-          duration: 3.8,
-          timestamp: "1:29"
-        },
-        {
-          text: "Thank you for watching this introduction to modern web development!",
-          duration: 3.9,
-          timestamp: "1:33"
-        },
-        {
-          text: "In the next video, we'll dive deeper into state management and data fetching.",
-          duration: 4.5,
-          timestamp: "1:37"
-        },
-        {
-          text: "Don't forget to subscribe and hit the notification bell for more tutorials.",
-          duration: 4.1,
-          timestamp: "1:41"
-        }
+        { text: "Welcome to this comprehensive tutorial on building modern web applications.", duration: 3.5, timestamp: "0:00" },
+        { text: "In this video, we're going to explore the fundamentals of React and Next.js.", duration: 4.2, timestamp: "0:03" },
+        { text: "First, let's talk about why component-based architecture has become so popular.", duration: 4.8, timestamp: "0:07" },
+        { text: "Component-based development allows us to break down complex UIs into smaller, reusable pieces.", duration: 5.1, timestamp: "0:12" },
+        { text: "This approach makes our code more maintainable and easier to test.", duration: 3.9, timestamp: "0:17" },
+        { text: "Now, let's dive into setting up our development environment.", duration: 3.2, timestamp: "0:21" },
+        { text: "You'll need Node.js installed on your machine, preferably version 18 or higher.", duration: 4.5, timestamp: "0:24" },
+        { text: "Once you have Node installed, we can use npm or yarn to create our project.", duration: 4.3, timestamp: "0:29" },
+        { text: "I personally prefer using the Next.js CLI for creating new projects.", duration: 3.8, timestamp: "0:33" },
+        { text: "It sets up everything we need with a single command: npx create-next-app.", duration: 4.6, timestamp: "0:37" },
+        { text: "The CLI will ask you several questions about your project configuration.", duration: 4.1, timestamp: "0:41" },
+        { text: "Make sure to select TypeScript if you want type safety in your application.", duration: 4.2, timestamp: "0:46" },
+        { text: "Also, I recommend enabling the App Router, which is the modern way to handle routing in Next.js.", duration: 5.3, timestamp: "0:50" },
+        { text: "For styling, you can choose between CSS modules, Tailwind CSS, or styled-components.", duration: 5.1, timestamp: "0:55" },
+        { text: "Tailwind has become incredibly popular due to its utility-first approach.", duration: 4.2, timestamp: "1:00" },
+        { text: "Alright, now that our project is set up, let's explore the folder structure.", duration: 4.0, timestamp: "1:04" },
+        { text: "The app directory is where all our routes and pages will live.", duration: 3.7, timestamp: "1:08" },
+        { text: "Each folder in the app directory represents a route segment.", duration: 3.5, timestamp: "1:12" },
+        { text: "And special files like page.tsx and layout.tsx have specific meanings in Next.js.", duration: 4.8, timestamp: "1:16" },
+        { text: "Let's create our first component and see how everything connects together.", duration: 4.2, timestamp: "1:20" },
+        { text: "Remember to keep your components small and focused on a single responsibility.", duration: 4.5, timestamp: "1:25" },
+        { text: "This makes them easier to test and reuse throughout your application.", duration: 3.8, timestamp: "1:29" },
+        { text: "Thank you for watching this introduction to modern web development!", duration: 3.9, timestamp: "1:33" },
+        { text: "In the next video, we'll dive deeper into state management and data fetching.", duration: 4.5, timestamp: "1:37" },
+        { text: "Don't forget to subscribe and hit the notification bell for more tutorials.", duration: 4.1, timestamp: "1:41" }
       ];
 
       setTranscript(mockTranscript);
@@ -212,7 +109,6 @@ export default function Home() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to extract transcript';
       setError(errorMessage);
-
       analytics.trackError({
         type: 'extraction',
         error: errorMessage,
@@ -223,189 +119,172 @@ export default function Home() {
     }
   };
 
-  return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-black via-gray-950 to-black">
-      {/* Animated glowing background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-white/10 to-transparent rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.15, 0.25, 0.15],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div
-          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-gray-400/15 to-transparent rounded-full blur-3xl"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.2, 0.1, 0.2],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1
-          }}
-        />
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-white/5 to-gray-300/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.1, 0.2, 0.1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        />
-      </div>
+  const resetToInitial = () => {
+    setTranscript([]);
+    setTranscriptMetadata(null);
+    setUrl('');
+    setError('');
+  };
 
-      {/* Copy notification toast */}
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Toast notification */}
       <AnimatePresence>
         {copyNotification && (
           <motion.div
-            initial={{ opacity: 0, y: -50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -50, scale: 0.9 }}
-            className="fixed top-8 left-1/2 -translate-x-1/2 z-50"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50"
           >
-            <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl px-6 py-3 shadow-2xl glow">
-              <div className="flex items-center gap-2 text-white">
-                <CheckCircle2 className="w-5 h-5 text-gray-300 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
-                <p className="font-medium text-glow">{copyNotification}</p>
-              </div>
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg shadow-lg">
+              <Check className="w-4 h-4 text-emerald-400" />
+              {copyNotification}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="relative z-10 w-full max-w-5xl mx-auto px-4 py-8 lg:py-12">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8 lg:mb-12"
-        >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Youtube className="w-10 h-10 lg:w-12 lg:h-12 text-gray-200 drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]" />
-            <h1 className="text-4xl lg:text-6xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent text-glow-strong">
-              YouTube Transcript
-            </h1>
+      {/* Navigation */}
+      <nav className="border-b border-gray-200 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Play className="w-4 h-4 text-white fill-white" />
+              </div>
+              <span className="font-semibold text-gray-900">Transcript</span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                Pricing
+              </Link>
+              <Link href="/dashboard" className="text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 px-4 py-2 rounded-lg transition-colors">
+                Dashboard
+              </Link>
+            </div>
           </div>
-          <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-            Extract transcripts from any YouTube video instantly
-          </p>
-        </motion.div>
+        </div>
+      </nav>
 
-        {/* Main content */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
         <AnimatePresence mode="wait">
           {transcript.length === 0 ? (
-            /* Initial state - centered input */
             <motion.div
               key="initial"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
               className="max-w-2xl mx-auto"
             >
-              {/* Glass input card */}
-              <motion.div
-                className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl"
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.2 }}
-              >
-                <form onSubmit={handleExtract} className="space-y-6">
+              {/* Header */}
+              <div className="text-center mb-10">
+                <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+                  YouTube Transcript Extractor
+                </h1>
+                <p className="text-lg text-gray-500 max-w-lg mx-auto">
+                  Extract and download transcripts from any YouTube video in seconds
+                </p>
+              </div>
+
+              {/* Main input card */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+                <form onSubmit={handleExtract} className="space-y-5">
                   {/* URL Input */}
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-2 text-sm font-medium text-white/90">
-                      <Youtube className="w-4 h-4" />
-                      Video URL or ID
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Video URL
                     </label>
                     <input
                       type="text"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://youtube.com/watch?v=..."
-                      className="w-full px-4 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent focus:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all"
+                      className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base"
                       disabled={loading}
                       autoFocus
                     />
                   </div>
 
-                  {/* Language and Type */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-2 text-sm font-medium text-white/90">
-                        <Globe className="w-4 h-4" />
-                        Language
-                      </label>
-                      <select
-                        value={language}
-                        onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-                        className="w-full px-4 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all appearance-none cursor-pointer"
-                        disabled={loading}
-                      >
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                        <option value="de">German</option>
-                        <option value="it">Italian</option>
-                        <option value="pt">Portuguese</option>
-                        <option value="ru">Russian</option>
-                        <option value="ja">Japanese</option>
-                        <option value="ko">Korean</option>
-                        <option value="zh">Chinese</option>
-                        <option value="ar">Arabic</option>
-                        <option value="hi">Hindi</option>
-                      </select>
-                    </div>
+                  {/* Options toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setShowOptions(!showOptions)}
+                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showOptions ? 'rotate-180' : ''}`} />
+                    Advanced options
+                  </button>
 
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-2 text-sm font-medium text-white/90">
-                        <Settings className="w-4 h-4" />
-                        Type
-                      </label>
-                      <select
-                        value={transcriptOrigin}
-                        onChange={(e) => setTranscriptOrigin(e.target.value as TranscriptOrigin)}
-                        className="w-full px-4 py-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all appearance-none cursor-pointer"
-                        disabled={loading}
+                  {/* Options */}
+                  <AnimatePresence>
+                    {showOptions && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
                       >
-                        <option value="auto_generated">Auto-generated</option>
-                        <option value="uploader_provided">Uploader</option>
-                      </select>
-                    </div>
-                  </div>
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Language
+                            </label>
+                            <select
+                              value={language}
+                              onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+                              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
+                              disabled={loading}
+                            >
+                              <option value="en">English</option>
+                              <option value="es">Spanish</option>
+                              <option value="fr">French</option>
+                              <option value="de">German</option>
+                              <option value="it">Italian</option>
+                              <option value="pt">Portuguese</option>
+                              <option value="ru">Russian</option>
+                              <option value="ja">Japanese</option>
+                              <option value="ko">Korean</option>
+                              <option value="zh">Chinese</option>
+                              <option value="ar">Arabic</option>
+                              <option value="hi">Hindi</option>
+                            </select>
+                          </div>
 
-                  {/* Extract Button */}
-                  <motion.button
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Source
+                            </label>
+                            <select
+                              value={transcriptOrigin}
+                              onChange={(e) => setTranscriptOrigin(e.target.value as TranscriptOrigin)}
+                              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
+                              disabled={loading}
+                            >
+                              <option value="auto_generated">Auto-generated</option>
+                              <option value="uploader_provided">Manual captions</option>
+                            </select>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Submit button */}
+                  <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-4 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 glow-subtle hover:glow"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-base"
                   >
-                    <span className="flex items-center justify-center gap-2">
-                      {loading ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Extracting...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="w-5 h-5" />
-                          Extract Transcript
-                        </>
-                      )}
-                    </span>
-                  </motion.button>
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Extracting transcript...
+                      </span>
+                    ) : (
+                      'Extract Transcript'
+                    )}
+                  </button>
                 </form>
 
                 {/* Error message */}
@@ -413,127 +292,84 @@ export default function Home() {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-4 p-4 backdrop-blur-xl bg-red-500/10 border border-red-500/30 rounded-2xl"
+                    className="mt-4 p-4 bg-red-50 border border-red-100 rounded-xl"
                   >
-                    <div className="flex items-start gap-2 text-gray-300 drop-shadow-[0_0_8px_rgba(255,100,100,0.4)]">
+                    <div className="flex items-start gap-3 text-red-700">
                       <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                       <p className="text-sm">{error}</p>
                     </div>
                   </motion.div>
                 )}
 
-                {/* Cache notification */}
+                {/* Cache notice */}
                 {usingCache && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-4 p-4 backdrop-blur-xl bg-green-500/10 border border-green-500/30 rounded-2xl"
+                    className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-xl"
                   >
-                    <div className="flex items-center gap-2 text-gray-200 drop-shadow-[0_0_10px_rgba(200,255,200,0.4)]">
-                      <TrendingUp className="w-5 h-5" />
+                    <div className="flex items-center gap-2 text-emerald-700">
+                      <Sparkles className="w-5 h-5" />
                       <p className="text-sm font-medium">Loaded from cache</p>
                     </div>
                   </motion.div>
                 )}
-              </motion.div>
+              </div>
 
               {/* Features */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8"
-              >
+              <div className="grid grid-cols-3 gap-6 mt-10">
                 {[
-                  { icon: Globe, text: '12+ Languages' },
-                  { icon: Zap, text: 'Ultra-Fast Processing' },
-                  { icon: FileText, text: 'Clean Timestamps' },
+                  { icon: Globe, title: '12+ Languages', desc: 'Multi-language support' },
+                  { icon: Sparkles, title: 'Fast & Accurate', desc: 'Instant extraction' },
+                  { icon: Clock, title: 'Timestamps', desc: 'Time-synced text' },
                 ].map((feature, i) => (
-                  <div
-                    key={i}
-                    className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-4 text-center"
-                  >
-                    <feature.icon className="w-6 h-6 mx-auto mb-2 text-gray-200 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]" />
-                    <p className="text-sm text-white/80">{feature.text}</p>
+                  <div key={i} className="text-center">
+                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <feature.icon className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <h3 className="text-sm font-medium text-gray-900">{feature.title}</h3>
+                    <p className="text-xs text-gray-500 mt-1">{feature.desc}</p>
                   </div>
                 ))}
-              </motion.div>
+              </div>
             </motion.div>
           ) : (
-            /* Results view - single centered panel */
             <motion.div
               key="results"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               className="max-w-4xl mx-auto"
             >
-              {/* Transcript panel */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 shadow-2xl flex flex-col"
+              {/* Back button */}
+              <button
+                onClick={resetToInitial}
+                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
               >
-                {/* New extraction form (collapsed) */}
-                <form onSubmit={handleExtract} className="space-y-4 mb-6">
-                  <input
-                    type="text"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="New YouTube URL..."
-                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:shadow-[0_0_20px_rgba(255,255,255,0.2)] text-sm"
-                    disabled={loading}
-                  />
+                <ArrowLeft className="w-4 h-4" />
+                Extract another video
+              </button>
 
-                  <div className="flex gap-3">
-                    <select
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-                      className="flex-1 px-3 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-white/30 focus:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
-                      disabled={loading}
-                    >
-                      <option value="en">English</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
-                      <option value="de">German</option>
-                    </select>
-
-                    <motion.button
-                      type="submit"
-                      disabled={loading}
-                      className="px-6 py-3 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-xl font-medium disabled:opacity-50 hover:shadow-[0_0_25px_rgba(255,255,255,0.3)] transition-all glow-subtle"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Extract'}
-                    </motion.button>
+              {/* Results card */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Transcript</h2>
+                    <p className="text-sm text-gray-500">{transcript.length} segments</p>
                   </div>
-                </form>
-
-                {/* Transcript header */}
-                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-gray-200 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
-                    <h3 className="text-lg font-semibold text-white">Transcript</h3>
-                    <span className="text-xs text-white/60 bg-white/5 px-2 py-1 rounded-lg">
-                      {transcript.length} segments
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <motion.button
+                    <button
                       onClick={async () => {
                         const fullText = transcript.map(item => `[${item.timestamp}] ${item.text}`).join('\n');
                         await copyToClipboard(fullText, 'Transcript');
                         analytics.trackExport('copy', 'raw');
                       }}
-                      className="p-2 backdrop-blur-xl bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition-all"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                     >
-                      <Copy className="w-4 h-4 text-white" />
-                    </motion.button>
-                    <motion.button
+                      <Copy className="w-4 h-4" />
+                      Copy
+                    </button>
+                    <button
                       onClick={() => {
                         const fullText = transcript.map(item => `[${item.timestamp}] ${item.text}`).join('\n');
                         const blob = new Blob([fullText], { type: 'text/plain' });
@@ -545,39 +381,70 @@ export default function Home() {
                         URL.revokeObjectURL(url);
                         analytics.trackExport('download', 'raw');
                       }}
-                      className="p-2 backdrop-blur-xl bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition-all"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors"
                     >
-                      <Download className="w-4 h-4 text-white" />
-                    </motion.button>
+                      <Download className="w-4 h-4" />
+                      Download
+                    </button>
                   </div>
                 </div>
 
                 {/* Transcript content */}
-                <div className="flex-1 overflow-y-auto bg-black/20 backdrop-blur-sm rounded-2xl p-4 border border-white/10 max-h-[600px]">
-                  <div className="space-y-3">
+                <div className="max-h-[600px] overflow-y-auto">
+                  <div className="divide-y divide-gray-50">
                     {transcript.map((item, index) => (
                       <motion.div
                         key={index}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
                         transition={{ delay: index * 0.01 }}
-                        className="flex gap-3"
+                        className="px-6 py-4 hover:bg-gray-50 transition-colors group"
                       >
-                        <span className="text-xs text-gray-300 font-mono min-w-[60px] drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]">
-                          {item.timestamp}
-                        </span>
-                        <p className="text-sm text-white/90">{item.text}</p>
+                        <div className="flex gap-4">
+                          <span className="text-xs font-mono text-gray-400 pt-0.5 w-12 flex-shrink-0">
+                            {item.timestamp}
+                          </span>
+                          <p className="text-gray-700 text-sm leading-relaxed">{item.text}</p>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
                 </div>
-              </motion.div>
+              </div>
+
+              {/* Quick new extraction */}
+              <div className="mt-6 bg-white rounded-xl border border-gray-200 p-4">
+                <form onSubmit={handleExtract} className="flex gap-3">
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="Paste another YouTube URL..."
+                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+                    disabled={loading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Extract'}
+                  </button>
+                </form>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 mt-auto">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+          <p className="text-sm text-gray-400 text-center">
+            Extract transcripts from YouTube videos instantly
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
