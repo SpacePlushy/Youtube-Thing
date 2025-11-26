@@ -71,16 +71,6 @@ export function UsageStatsCard() {
     return tierNames[tier] || 'Unknown';
   };
 
-  const getTierColor = (tier: string): string => {
-    const tierColors: Record<string, string> = {
-      free: 'from-gray-400 to-gray-600',
-      starter: 'from-blue-400 to-blue-600',
-      pro: 'from-purple-400 to-purple-600',
-      enterprise: 'from-yellow-400 to-yellow-600',
-    };
-    return tierColors[tier] || 'from-gray-400 to-gray-600';
-  };
-
   const shouldShowUpgrade = (): boolean => {
     if (!usageStats) return false;
     return usageStats.tier === 'free' || usageStats.tier === 'starter';
@@ -93,9 +83,9 @@ export function UsageStatsCard() {
 
   if (loading) {
     return (
-      <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6">
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
         </div>
       </div>
     );
@@ -103,12 +93,12 @@ export function UsageStatsCard() {
 
   if (error) {
     return (
-      <div className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6">
         <div className="text-center py-8">
-          <p className="text-red-400">{error}</p>
+          <p className="text-red-600 dark:text-red-400 text-sm mb-4">{error}</p>
           <button
             onClick={fetchUsageStats}
-            className="mt-4 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-xl transition-colors"
+            className="px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
           >
             Retry
           </button>
@@ -126,70 +116,68 @@ export function UsageStatsCard() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl"
+      className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-purple-500/20 rounded-2xl">
-            <BarChart3 className="w-6 h-6 text-purple-400" />
+          <div className="w-10 h-10 flex items-center justify-center bg-indigo-100 dark:bg-indigo-950 rounded-xl">
+            <BarChart3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Usage Stats</h2>
-            <p className="text-gray-400 text-sm">Daily transcript limit</p>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Usage</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Daily transcript limit</p>
           </div>
         </div>
 
         {/* Tier Badge */}
-        <div
-          className={`px-4 py-2 rounded-full bg-gradient-to-r ${getTierColor(
-            usageStats.tier
-          )} text-white font-semibold text-sm shadow-lg`}
-        >
-          {getTierDisplayName(usageStats.tier)} Plan
+        <div className="px-3 py-1.5 bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-full">
+          {getTierDisplayName(usageStats.tier)}
         </div>
       </div>
 
       {/* Usage Display */}
       <div className="mb-6">
         {isUnlimited ? (
-          <div className="text-center py-8">
-            <TrendingUp className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-            <p className="text-3xl font-bold text-white mb-2">Unlimited Transcripts</p>
-            <p className="text-gray-400">No daily limits on your {getTierDisplayName(usageStats.tier)} plan</p>
+          <div className="text-center py-6">
+            <div className="w-12 h-12 flex items-center justify-center bg-green-100 dark:bg-green-950 rounded-2xl mx-auto mb-3">
+              <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+            </div>
+            <p className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Unlimited Transcripts</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">No daily limits on your plan</p>
           </div>
         ) : (
           <>
-            <div className="flex items-baseline justify-between mb-4">
+            <div className="flex items-baseline justify-between mb-3">
               <div>
-                <span className="text-4xl font-bold text-white">{usageStats.currentUsage}</span>
-                <span className="text-gray-400 text-2xl"> / {usageStats.dailyLimit}</span>
+                <span className="text-3xl font-semibold text-gray-900 dark:text-white">{usageStats.currentUsage}</span>
+                <span className="text-gray-400 dark:text-gray-500 text-lg"> / {usageStats.dailyLimit}</span>
               </div>
-              <span className="text-gray-400 text-lg">{Math.round(percentage)}%</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{Math.round(percentage)}%</span>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden mb-4">
+            <div className="w-full bg-gray-100 dark:bg-neutral-800 rounded-full h-2 overflow-hidden mb-3">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${percentage}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className={`h-3 rounded-full bg-gradient-to-r ${
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+                className={`h-2 rounded-full ${
                   percentage >= 90
-                    ? 'from-red-400 to-red-600'
+                    ? 'bg-red-500'
                     : percentage >= 70
-                    ? 'from-yellow-400 to-yellow-600'
-                    : 'from-purple-400 to-blue-400'
+                    ? 'bg-amber-500'
+                    : 'bg-indigo-600 dark:bg-indigo-500'
                 }`}
               />
             </div>
 
-            <p className="text-gray-400 text-sm">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {usageStats.dailyLimit - usageStats.currentUsage > 0
-                ? `${usageStats.dailyLimit - usageStats.currentUsage} transcripts remaining today`
+                ? `${usageStats.dailyLimit - usageStats.currentUsage} transcripts remaining`
                 : 'Daily limit reached'}
             </p>
           </>
@@ -197,10 +185,10 @@ export function UsageStatsCard() {
       </div>
 
       {/* Reset Time */}
-      <div className="flex items-center gap-2 mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-        <Clock className="w-5 h-5 text-blue-400" />
-        <span className="text-gray-300 text-sm">
-          Resets in <span className="font-semibold text-white">{getTimeUntilReset()}</span>
+      <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-neutral-800/50 rounded-xl mb-6">
+        <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+        <span className="text-sm text-gray-600 dark:text-gray-300">
+          Resets in <span className="font-medium text-gray-900 dark:text-white">{getTimeUntilReset()}</span>
         </span>
       </div>
 
@@ -212,17 +200,14 @@ export function UsageStatsCard() {
           benefits={
             getUpgradeTarget() === 'starter'
               ? [
-                  '50 transcripts per day (10x increase)',
+                  '50 transcripts per day',
                   '30-day transcript history',
                   'Full-text search',
-                  'Priority email support',
                 ]
               : [
-                  'Unlimited transcripts per day',
-                  'Unlimited transcript history',
-                  'Collections and tags (coming soon)',
-                  'Export to multiple formats (coming soon)',
-                  'API access (coming soon)',
+                  'Unlimited transcripts',
+                  'Unlimited history',
+                  'API access',
                 ]
           }
           ctaText={`Upgrade to ${getTierDisplayName(getUpgradeTarget())}`}

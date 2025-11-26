@@ -46,3 +46,6 @@ MCP-ASSISTANT-RULES.md
 
 # Build artifacts and scripts
 /scripts/
+
+# clerk configuration (can include secrets)
+/.clerk/

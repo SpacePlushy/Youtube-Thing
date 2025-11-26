@@ -1,7 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { CheckCircle2, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface UpgradeCTAProps {
@@ -13,58 +12,33 @@ interface UpgradeCTAProps {
 }
 
 export function UpgradeCTA({ currentTier, targetTier, benefits, ctaText, redirectTo }: UpgradeCTAProps) {
-  const getTierColor = (tier: string): string => {
-    const tierColors: Record<string, string> = {
-      starter: 'from-blue-500 to-blue-600',
-      pro: 'from-purple-500 to-blue-500',
-    };
-    return tierColors[tier] || 'from-purple-500 to-blue-500';
-  };
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="mt-6 p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-2xl"
-    >
-      <h3 className="text-xl font-bold text-white mb-3">
-        Unlock More with {targetTier === 'starter' ? 'Starter' : 'Pro'}
+    <div className="p-4 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+        Upgrade to {targetTier === 'starter' ? 'Starter' : 'Pro'}
       </h3>
 
-      <ul className="space-y-2 mb-6">
+      <ul className="space-y-2 mb-4">
         {benefits.map((benefit, index) => (
-          <motion.li
-            key={index}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            className="flex items-start gap-2"
-          >
-            <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-            <span className="text-gray-300 text-sm">{benefit}</span>
-          </motion.li>
+          <li key={index} className="flex items-start gap-2">
+            <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
+            <span className="text-gray-600 dark:text-gray-300 text-sm">{benefit}</span>
+          </li>
         ))}
       </ul>
 
       <Link href={redirectTo}>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={`w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r ${getTierColor(
-            targetTier
-          )} text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all`}
-        >
+        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors">
           {ctaText}
-          <ArrowRight className="w-5 h-5" />
-        </motion.button>
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </Link>
 
       {currentTier === 'free' && (
-        <p className="text-center text-gray-400 text-xs mt-3">
-          Start with a 7-day free trial. Cancel anytime.
+        <p className="text-center text-gray-500 dark:text-gray-400 text-xs mt-3">
+          7-day free trial. Cancel anytime.
         </p>
       )}
-    </motion.div>
+    </div>
   );
 }
