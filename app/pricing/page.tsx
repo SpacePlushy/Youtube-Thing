@@ -1,109 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useUser, SignInButton, UserButton } from '@clerk/nextjs';
-import { Check, X, Sparkles, Mail, ArrowRight, Youtube, LayoutDashboard } from 'lucide-react';
+import { useUser, SignInButton, UserButton, PricingTable } from '@clerk/nextjs';
+import { Check, X, Mail, ArrowRight, Youtube, LayoutDashboard, Info } from 'lucide-react';
 import Link from 'next/link';
 
-interface PricingTier {
-  id: string;
-  name: string;
-  price: string;
-  priceAmount: number;
-  description: string;
-  features: { name: string; included: boolean; badge?: string }[];
-  cta: string;
-  popular?: boolean;
-}
-
 export default function PricingPage() {
-  const { isSignedIn, isLoaded, user } = useUser();
-
-  const currentTier = (user?.publicMetadata?.subscriptionTier as string) || 'free';
-
-  const tiers: PricingTier[] = [
-    {
-      id: 'free',
-      name: 'Free',
-      price: '$0',
-      priceAmount: 0,
-      description: 'Try out the transcript extractor',
-      features: [
-        { name: '5 transcripts per day', included: true },
-        { name: 'No transcript history', included: false },
-        { name: 'Community support', included: true },
-        { name: 'Account required', included: true },
-      ],
-      cta: 'Get Started',
-    },
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: '$9',
-      priceAmount: 9,
-      description: 'For students and regular users',
-      features: [
-        { name: '50 transcripts per day', included: true },
-        { name: '30-day transcript history', included: true },
-        { name: 'Full-text search', included: true },
-        { name: 'Priority email support', included: true },
-        { name: 'Export to TXT, PDF', included: true },
-      ],
-      cta: 'Upgrade',
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: '$29',
-      priceAmount: 29,
-      description: 'For professionals and power users',
-      features: [
-        { name: 'Unlimited transcripts', included: true },
-        { name: 'Unlimited history', included: true },
-        { name: 'Collections & tags', included: true, badge: 'Soon' },
-        { name: 'All export formats', included: true, badge: 'Soon' },
-        { name: 'API access (10k/month)', included: true, badge: 'Soon' },
-        { name: 'Batch processing', included: true, badge: 'Soon' },
-      ],
-      cta: 'Upgrade',
-      popular: true,
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: '$99',
-      priceAmount: 99,
-      description: 'For teams and businesses',
-      features: [
-        { name: 'All Pro features', included: true },
-        { name: 'Batch processing (50)', included: true, badge: 'Soon' },
-        { name: 'Team workspaces', included: true, badge: 'Soon' },
-        { name: 'API access (100k/month)', included: true, badge: 'Soon' },
-        { name: 'SLA guarantee', included: true, badge: 'Soon' },
-        { name: 'Dedicated support', included: true },
-      ],
-      cta: 'Contact Sales',
-    },
-  ];
-
-  const handleCTA = (tierId: string) => {
-    if (!isSignedIn) {
-      window.location.href = '/sign-up';
-      return;
-    }
-
-    if (tierId === 'free') {
-      window.location.href = '/dashboard';
-    } else if (tierId === 'enterprise') {
-      window.location.href = 'mailto:sales@example.com?subject=Enterprise Plan Inquiry';
-    } else {
-      window.location.href = `/user-profile#billing`;
-    }
-  };
-
-  const isCurrentTier = (tierId: string): boolean => {
-    return tierId === currentTier;
-  };
+  const { isSignedIn, isLoaded } = useUser();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
@@ -173,89 +76,29 @@ export default function PricingPage() {
           </p>
         </motion.div>
 
-        {/* Pricing grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
-          {tiers.map((tier, index) => (
-            <motion.div
-              key={tier.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              className={`relative bg-white dark:bg-neutral-900 rounded-2xl border ${
-                tier.popular
-                  ? 'border-indigo-200 dark:border-indigo-800 ring-2 ring-indigo-100 dark:ring-indigo-900/50'
-                  : 'border-gray-200 dark:border-neutral-800'
-              } p-6`}
-            >
-              {/* Popular badge */}
-              {tier.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-full">
-                    <Sparkles className="w-3 h-3" />
-                    Popular
-                  </div>
-                </div>
-              )}
+        {/* Clerk PricingTable - This displays plans configured in Clerk Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="mb-16"
+        >
+          <div className="max-w-4xl mx-auto">
+            {/* PricingTable will show plans from Clerk Dashboard, or fallback content if none configured */}
+            <PricingTable />
 
-              {/* Current plan badge */}
-              {isCurrentTier(tier.id) && (
-                <div className="absolute -top-3 right-4">
-                  <div className="px-2.5 py-1 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
-                    Current
-                  </div>
-                </div>
-              )}
-
-              {/* Tier content */}
-              <div className="mb-5">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{tier.name}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{tier.description}</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-semibold text-gray-900 dark:text-white">{tier.price}</span>
-                  {tier.priceAmount > 0 && (
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">/month</span>
-                  )}
-                </div>
+            {/* Info notice about Clerk Billing */}
+            <div className="mt-6 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl">
+              <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-800 dark:text-blue-300">
+                <p className="font-medium mb-1">Secure payments powered by Stripe</p>
+                <p className="text-blue-600 dark:text-blue-400">
+                  Your payment information is securely processed. You can manage your subscription anytime from your dashboard.
+                </p>
               </div>
-
-              {/* Features */}
-              <ul className="space-y-2.5 mb-6">
-                {tier.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5">
-                    {feature.included ? (
-                      <Check className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                    ) : (
-                      <X className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mt-0.5" />
-                    )}
-                    <span className={`text-sm ${feature.included ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
-                      {feature.name}
-                      {feature.badge && (
-                        <span className="ml-1.5 text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded">
-                          {feature.badge}
-                        </span>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA Button */}
-              <button
-                onClick={() => handleCTA(tier.id)}
-                disabled={isCurrentTier(tier.id)}
-                className={`w-full py-2.5 rounded-lg font-medium text-sm transition-colors ${
-                  isCurrentTier(tier.id)
-                    ? 'bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                    : tier.popular
-                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                    : 'bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {isCurrentTier(tier.id) ? 'Current Plan' : tier.cta}
-              </button>
-            </motion.div>
-          ))}
-        </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Comparison table */}
         <motion.div
