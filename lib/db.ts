@@ -138,23 +138,45 @@ export async function getTranscriptHistory(
 
   try {
     const offset = (page - 1) * limit;
-    const orderClause = `${sortBy} ${order.toUpperCase()}`;
 
     // Get transcripts (without full text for performance)
-    const transcriptsResult = await sql`
-      SELECT
-        id,
-        video_id,
-        video_title,
-        channel_name,
-        video_duration,
-        created_at
-      FROM users_transcripts
-      WHERE user_id = ${userId}
-      ORDER BY ${sql.unsafe(orderClause) as any}
-      LIMIT ${limit}
-      OFFSET ${offset}
-    `;
+    // Use separate queries for each sort option since we can't use dynamic ORDER BY safely
+    let transcriptsResult;
+
+    if (sortBy === 'video_title' && order === 'asc') {
+      transcriptsResult = await sql`
+        SELECT id, video_id, video_title, channel_name, video_duration, created_at
+        FROM users_transcripts
+        WHERE user_id = ${userId}
+        ORDER BY video_title ASC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+    } else if (sortBy === 'video_title' && order === 'desc') {
+      transcriptsResult = await sql`
+        SELECT id, video_id, video_title, channel_name, video_duration, created_at
+        FROM users_transcripts
+        WHERE user_id = ${userId}
+        ORDER BY video_title DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+    } else if (sortBy === 'created_at' && order === 'asc') {
+      transcriptsResult = await sql`
+        SELECT id, video_id, video_title, channel_name, video_duration, created_at
+        FROM users_transcripts
+        WHERE user_id = ${userId}
+        ORDER BY created_at ASC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+    } else {
+      // Default: created_at DESC
+      transcriptsResult = await sql`
+        SELECT id, video_id, video_title, channel_name, video_duration, created_at
+        FROM users_transcripts
+        WHERE user_id = ${userId}
+        ORDER BY created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+    }
 
     // Get total count
     const countResult = await sql`
