@@ -116,7 +116,7 @@ export function UsageLimitModal({
 
               {/* Description */}
               <p className="text-gray-300 text-center mb-6">
-                You've used all {dailyLimit} transcripts available on your {tier} plan today. Upgrade to get more
+                You&apos;ve used all {dailyLimit} transcripts available on your {tier} plan today. Upgrade to get more
                 transcripts and unlock additional features.
               </p>
 

@@ -329,7 +329,7 @@ export default function PricingPage() {
         >
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Need help choosing?</h2>
           <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-            Not sure which plan is right for you? We're here to help.
+            Not sure which plan is right for you? We&apos;re here to help.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/dashboard">

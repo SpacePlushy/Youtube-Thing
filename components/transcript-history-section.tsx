@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import { History, Loader2, ChevronLeft, ChevronRight, ArrowUpDown, FileText } from 'lucide-react';
 import { TranscriptCard } from './transcript-card';
 import { UpgradeCTA } from './upgrade-cta';
@@ -211,12 +212,12 @@ export function TranscriptHistorySection() {
           </div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Transcripts Yet</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Extract your first transcript to get started</p>
-          <a
+          <Link
             href="/"
             className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors"
           >
             Extract Transcript
-          </a>
+          </Link>
         </div>
       </div>
     );
