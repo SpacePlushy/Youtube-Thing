@@ -133,8 +133,11 @@ function SignInContent() {
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
                 Check your email
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 mb-6">
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
                 We sent a magic link to <strong>{email}</strong>
+              </p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">
+                Don&apos;t see it? Check your spam folder.
               </p>
               <button
                 onClick={() => setEmailSent(false)}
