@@ -150,7 +150,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
-  debug: true, // Temporarily enabled to diagnose callback error
+  debug: process.env.NODE_ENV === 'development',
 };
 
 // Type augmentation for NextAuth
