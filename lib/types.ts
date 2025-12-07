@@ -7,8 +7,8 @@ import { TranscriptOrigin, SupportedLanguage } from './constants';
 // Re-export types from constants for convenience
 export type { TranscriptOrigin, SupportedLanguage } from './constants';
 
-// Re-export Clerk-related types
-export type { SubscriptionTier, FeatureFlag } from './clerk-helpers';
+// Re-export subscription-related types
+export type { SubscriptionTier, FeatureFlag } from './subscription-helpers';
 
 // Transcript related types
 export interface TranscriptSegment {

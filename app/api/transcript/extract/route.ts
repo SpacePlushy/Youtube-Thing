@@ -4,17 +4,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { YoutubeTranscript } from 'youtube-transcript';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-tracker';
-import { canAccessHistory } from '@/lib/clerk-helpers';
+import { canAccessHistory } from '@/lib/subscription-helpers';
 import { saveTranscript } from '@/lib/db';
 import type { TranscriptResponse, ErrorResponse } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const { userId } = await auth();
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
 
     if (!userId) {
       const errorResponse: ErrorResponse = {

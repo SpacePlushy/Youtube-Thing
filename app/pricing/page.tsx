@@ -1,12 +1,41 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useUser, SignInButton, UserButton, PricingTable } from '@clerk/nextjs';
-import { Check, X, Mail, ArrowRight, Youtube, LayoutDashboard, Info } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { Check, X, Mail, ArrowRight, Youtube, LayoutDashboard, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { SignInModal } from '@/components/sign-in-modal';
+import { UserMenu } from '@/components/user-menu';
 
 export default function PricingPage() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { data: session, status } = useSession();
+  const isSignedIn = !!session?.user;
+  const isLoaded = status !== 'loading';
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  const handleUpgrade = async () => {
+    if (!isSignedIn) {
+      setShowSignIn(true);
+      return;
+    }
+
+    setCheckoutLoading(true);
+    try {
+      const response = await fetch('/api/stripe/checkout', { method: 'POST' });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error('Failed to create checkout session');
+        setCheckoutLoading(false);
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      setCheckoutLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
@@ -40,20 +69,14 @@ export default function PricingPage() {
 
             {isLoaded && (
               isSignedIn ? (
-                <UserButton
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox: 'w-8 h-8'
-                    }
-                  }}
-                />
+                <UserMenu />
               ) : (
-                <SignInButton mode="modal">
-                  <button className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg transition-colors">
-                    Sign In
-                  </button>
-                </SignInButton>
+                <button
+                  onClick={() => setShowSignIn(true)}
+                  className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg transition-colors"
+                >
+                  Sign In
+                </button>
               )
             )}
           </div>
@@ -72,31 +95,131 @@ export default function PricingPage() {
             Simple, transparent pricing
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-lg max-w-xl mx-auto">
-            Choose the plan that fits your needs. Upgrade or downgrade anytime.
+            Choose the plan that fits your needs. Cancel anytime.
           </p>
         </motion.div>
 
-        {/* Clerk PricingTable - This displays plans configured in Clerk Dashboard */}
+        {/* Pricing Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="mb-16"
+          className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16"
         >
-          <div className="max-w-4xl mx-auto">
-            {/* PricingTable will show plans from Clerk Dashboard, or fallback content if none configured */}
-            <PricingTable />
-
-            {/* Info notice about Clerk Billing */}
-            <div className="mt-6 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl">
-              <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-800 dark:text-blue-300">
-                <p className="font-medium mb-1">Secure payments powered by Stripe</p>
-                <p className="text-blue-600 dark:text-blue-400">
-                  Your payment information is securely processed. You can manage your subscription anytime from your dashboard.
-                </p>
+          {/* Free Plan */}
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-8">
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Free</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-gray-900 dark:text-white">$0</span>
+                <span className="text-gray-500 dark:text-gray-400">/month</span>
               </div>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Perfect for getting started</p>
             </div>
+
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-center gap-3">
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">5 transcripts per day</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">Copy & download transcripts</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">All supported languages</span>
+              </li>
+              <li className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
+                <X className="w-5 h-5 flex-shrink-0" />
+                <span>Transcript history</span>
+              </li>
+              <li className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
+                <X className="w-5 h-5 flex-shrink-0" />
+                <span>Priority support</span>
+              </li>
+            </ul>
+
+            {isSignedIn ? (
+              session?.user?.subscriptionTier === 'free' ? (
+                <div className="w-full py-3 text-center text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-neutral-800 rounded-lg font-medium">
+                  Current Plan
+                </div>
+              ) : (
+                <div className="w-full py-3 text-center text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-neutral-800 rounded-lg font-medium">
+                  Included
+                </div>
+              )
+            ) : (
+              <button
+                onClick={() => setShowSignIn(true)}
+                className="w-full py-3 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
+              >
+                Get Started
+              </button>
+            )}
+          </div>
+
+          {/* Pro Plan */}
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border-2 border-indigo-600 dark:border-indigo-500 p-8 relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+                Most Popular
+              </span>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Pro</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-gray-900 dark:text-white">$10</span>
+                <span className="text-gray-500 dark:text-gray-400">/month</span>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">For power users</p>
+            </div>
+
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-center gap-3">
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Unlimited transcripts</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">Copy & download transcripts</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">All supported languages</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">Unlimited transcript history</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">Priority support</span>
+              </li>
+            </ul>
+
+            {isSignedIn && session?.user?.subscriptionTier === 'pro' ? (
+              <div className="w-full py-3 text-center text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 rounded-lg font-medium">
+                Current Plan
+              </div>
+            ) : (
+              <button
+                onClick={handleUpgrade}
+                disabled={checkoutLoading}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {checkoutLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    Upgrade to Pro
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </motion.div>
 
@@ -104,7 +227,7 @@ export default function PricingPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.5 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
           className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden mb-12"
         >
           <div className="px-6 py-5 border-b border-gray-100 dark:border-neutral-800">
@@ -117,46 +240,34 @@ export default function PricingPage() {
                 <tr className="border-b border-gray-100 dark:border-neutral-800">
                   <th className="text-left py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400">Feature</th>
                   <th className="text-center py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Free</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Starter</th>
                   <th className="text-center py-3 px-4 text-sm font-medium text-indigo-600 dark:text-indigo-400">Pro</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Enterprise</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
                 <tr className="border-b border-gray-50 dark:border-neutral-800/50">
                   <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Daily Transcripts</td>
                   <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">5</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">50</td>
                   <td className="py-3 px-4 text-center text-indigo-600 dark:text-indigo-400 font-medium">Unlimited</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">Unlimited</td>
                 </tr>
                 <tr className="border-b border-gray-50 dark:border-neutral-800/50">
-                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">History Retention</td>
-                  <td className="py-3 px-4 text-center text-gray-400 dark:text-gray-500">None</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">30 days</td>
+                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Transcript History</td>
+                  <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-gray-300 dark:text-gray-600 mx-auto" /></td>
                   <td className="py-3 px-4 text-center text-indigo-600 dark:text-indigo-400 font-medium">Unlimited</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">Unlimited</td>
                 </tr>
                 <tr className="border-b border-gray-50 dark:border-neutral-800/50">
-                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Search</td>
-                  <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-gray-300 dark:text-gray-600 mx-auto" /></td>
-                  <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" /></td>
-                  <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" /></td>
-                  <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" /></td>
+                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Languages Supported</td>
+                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">12+</td>
+                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">12+</td>
                 </tr>
                 <tr className="border-b border-gray-50 dark:border-neutral-800/50">
-                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">API Access</td>
-                  <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-gray-300 dark:text-gray-600 mx-auto" /></td>
-                  <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-gray-300 dark:text-gray-600 mx-auto" /></td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">10k/mo</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">100k/mo</td>
+                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Copy & Download</td>
+                  <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" /></td>
+                  <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" /></td>
                 </tr>
                 <tr>
                   <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Support</td>
                   <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">Community</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">Email</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">Priority</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">Dedicated</td>
+                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">Priority Email</td>
                 </tr>
               </tbody>
             </table>
@@ -167,7 +278,7 @@ export default function PricingPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.6 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
           className="text-center"
         >
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Need help choosing?</h2>
@@ -176,20 +287,26 @@ export default function PricingPage() {
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/dashboard">
-              <button className="btn-secondary flex items-center gap-2">
+              <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2">
                 Go to Dashboard
                 <ArrowRight className="w-4 h-4" />
               </button>
             </Link>
-            <a href="mailto:sales@example.com">
-              <button className="btn-primary flex items-center gap-2">
+            <a href="mailto:support@youtubething.com">
+              <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
                 <Mail className="w-4 h-4" />
-                Contact Sales
+                Contact Support
               </button>
             </a>
           </div>
         </motion.div>
       </div>
+
+      {/* Sign In Modal */}
+      <SignInModal
+        isOpen={showSignIn}
+        onClose={() => setShowSignIn(false)}
+      />
     </div>
   );
 }

@@ -4,15 +4,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { getTranscriptHistory } from '@/lib/db';
-import { canAccessHistory } from '@/lib/clerk-helpers';
+import { canAccessHistory } from '@/lib/subscription-helpers';
 import type { TranscriptHistoryResponse } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
-    const { userId } = await auth();
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
 
     if (!userId) {
       return NextResponse.json(
@@ -21,13 +23,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if user can access history (Starter+ tier)
+    // Check if user can access history (Pro tier)
     const hasAccess = await canAccessHistory(userId);
     if (!hasAccess) {
       return NextResponse.json(
         {
           error: 'Forbidden',
-          message: 'Upgrade to Starter plan or higher to access transcript history',
+          message: 'Upgrade to Pro plan to access transcript history',
         },
         { status: 403 }
       );

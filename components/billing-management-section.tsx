@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, ExternalLink, Loader2 } from 'lucide-react';
-import { useUser } from '@clerk/nextjs';
+import { useSession } from 'next-auth/react';
 
 export function BillingManagementSection() {
-  const { user, isLoaded } = useUser();
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const isLoaded = status !== 'loading';
   const [loading, setLoading] = useState(true);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     if (isLoaded) {
@@ -20,15 +23,26 @@ export function BillingManagementSection() {
 
     const tierNames: Record<string, string> = {
       free: 'Free',
-      starter: 'Starter',
       pro: 'Pro',
-      enterprise: 'Enterprise',
     };
-    return tierNames[tier] || 'Unknown';
+    return tierNames[tier] || 'Free';
   };
 
-  const handleManageBilling = () => {
-    window.location.href = '/user-profile#billing';
+  const handleManageBilling = async () => {
+    setPortalLoading(true);
+    try {
+      const response = await fetch('/api/stripe/portal', { method: 'POST' });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error('Failed to create portal session');
+        setPortalLoading(false);
+      }
+    } catch (error) {
+      console.error('Error opening billing portal:', error);
+      setPortalLoading(false);
+    }
   };
 
   const handleUpgrade = () => {
@@ -45,7 +59,7 @@ export function BillingManagementSection() {
     );
   }
 
-  const currentTier = (user?.publicMetadata?.subscriptionTier as string) || 'free';
+  const currentTier = user?.subscriptionTier || 'free';
   const tierName = getTierDisplayName(currentTier);
 
   const getRenewalDate = (): string | null => {
@@ -120,25 +134,20 @@ export function BillingManagementSection() {
             </button>
           </>
         ) : (
-          <>
-            <button
-              onClick={handleManageBilling}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              Manage Subscription
-              <ExternalLink className="w-4 h-4" />
-            </button>
-
-            {currentTier !== 'enterprise' && (
-              <button
-                onClick={handleUpgrade}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors"
-              >
-                Upgrade Plan
+          <button
+            onClick={handleManageBilling}
+            disabled={portalLoading}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+          >
+            {portalLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                Manage Subscription
                 <ExternalLink className="w-4 h-4" />
-              </button>
+              </>
             )}
-          </>
+          </button>
         )}
       </div>
 

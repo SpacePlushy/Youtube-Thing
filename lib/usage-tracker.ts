@@ -4,7 +4,7 @@
  */
 
 import { Redis } from '@upstash/redis';
-import { getUserSubscriptionTier, getDailyTranscriptLimit } from './clerk-helpers';
+import { getUserSubscriptionTier, getDailyTranscriptLimit } from './subscription-helpers';
 import type { UsageStats } from './types';
 
 // Create Redis instance (gracefully handle missing config)

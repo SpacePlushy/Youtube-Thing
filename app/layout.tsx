@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
-import { ClerkProvider } from '@clerk/nextjs'
+import { AuthProvider } from '@/components/auth-provider'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -87,41 +87,19 @@ export default function RootLayout({
   };
 
   return (
-    <ClerkProvider
-      appearance={{
-        variables: {
-          colorPrimary: '#7c3aed',
-          colorBackground: '#0f172a',
-          colorText: '#f1f5f9',
-          colorTextSecondary: '#cbd5e1',
-          colorInputBackground: '#1e293b',
-          colorInputText: '#f1f5f9',
-          borderRadius: '1rem',
-        },
-        elements: {
-          formButtonPrimary: 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500',
-          card: 'backdrop-blur-2xl bg-white/10 border-white/20',
-          headerTitle: 'text-white',
-          headerSubtitle: 'text-slate-300',
-          socialButtonsBlockButton: 'backdrop-blur-xl bg-white/10 border-white/20 text-white hover:bg-white/20',
-          formFieldLabel: 'text-white/90',
-          formFieldInput: 'bg-white/5 border-white/10 text-white placeholder:text-white/40',
-          footerActionLink: 'text-purple-400 hover:text-purple-300',
-        },
-      }}
-    >
-      <html lang="en">
-        <head>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-          />
-        </head>
-        <body className={inter.className}>
+    <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      </head>
+      <body className={inter.className}>
+        <AuthProvider>
           {children}
-          <Analytics />
-        </body>
-      </html>
-    </ClerkProvider>
+        </AuthProvider>
+        <Analytics />
+      </body>
+    </html>
   )
 }

@@ -2,15 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useUser, UserButton } from '@clerk/nextjs';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { UsageStatsCard } from '@/components/usage-stats-card';
 import { TranscriptHistorySection } from '@/components/transcript-history-section';
 import { BillingManagementSection } from '@/components/billing-management-section';
+import { UserMenu } from '@/components/user-menu';
 import { Loader2, Youtube, LayoutDashboard } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { user, isLoaded } = useUser();
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const isLoaded = status !== 'loading';
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,14 +58,7 @@ export default function DashboardPage() {
               <span className="hidden sm:inline">Dashboard</span>
             </Link>
 
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: 'w-8 h-8'
-                }
-              }}
-            />
+            <UserMenu />
           </div>
         </div>
       </nav>
@@ -76,7 +72,7 @@ export default function DashboardPage() {
           className="mb-8"
         >
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-1">
-            Welcome back, {user?.firstName || 'there'}
+            Welcome back, {user?.name?.split(' ')[0] || 'there'}
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
             Manage your transcripts and subscription

@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useUser, SignInButton, UserButton } from '@clerk/nextjs';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { analytics } from '@/lib/analytics';
+import { UserMenu } from '@/components/user-menu';
+import { SignInModal } from '@/components/sign-in-modal';
 import {
   Loader2,
   Copy,
@@ -23,7 +25,9 @@ import type { TranscriptSegment, TranscriptMetadata, TranscriptOrigin, Supported
 
 
 export default function Home() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { data: session, status } = useSession();
+  const isSignedIn = !!session;
+  const isLoaded = status !== 'loading';
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,6 +36,7 @@ export default function Home() {
   const [language, setLanguage] = useState<SupportedLanguage>('en');
   const [transcriptOrigin, setTranscriptOrigin] = useState<TranscriptOrigin>('auto_generated');
   const [copyNotification, setCopyNotification] = useState<string | null>(null);
+  const [showSignInModal, setShowSignInModal] = useState(false);
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -159,20 +164,14 @@ export default function Home() {
 
             {isLoaded && (
               isSignedIn ? (
-                <UserButton
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox: 'w-8 h-8'
-                    }
-                  }}
-                />
+                <UserMenu />
               ) : (
-                <SignInButton mode="modal">
-                  <button className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg transition-colors">
-                    Sign In
-                  </button>
-                </SignInButton>
+                <button
+                  onClick={() => setShowSignInModal(true)}
+                  className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg transition-colors"
+                >
+                  Sign In
+                </button>
               )
             )}
           </div>
@@ -451,6 +450,12 @@ export default function Home() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Sign In Modal */}
+      <SignInModal
+        isOpen={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+      />
     </div>
   );
 }
