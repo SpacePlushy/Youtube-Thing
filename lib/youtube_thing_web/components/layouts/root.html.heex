@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" class="grain">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.live_title default="Transcripty" suffix=" · Transcripty">
+      {assigns[:page_title]}
+    </.live_title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+    <script>
+      (() => {
+        const setTheme = (theme) => {
+          if (theme === "system") {
+            localStorage.removeItem("phx:theme");
+            document.documentElement.removeAttribute("data-theme");
+          } else {
+            localStorage.setItem("phx:theme", theme);
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+        };
+        if (!document.documentElement.hasAttribute("data-theme")) {
+          setTheme(localStorage.getItem("phx:theme") || "system");
+        }
+        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
+        window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
+      })();
+    </script>
+  </head>
+  <body class="min-h-screen bg-base-200 antialiased">
+    <!-- Signal bar accent -->
+    <div class="signal-bar fixed top-0 left-0 right-0 z-50"></div>
+
+    <!-- Navigation -->
+    <nav class="border-b border-base-300 bg-base-100/90 backdrop-blur-md sticky top-[2px] z-40">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        <!-- Logo -->
+        <.link href={~p"/"} class="flex items-center gap-2.5 group">
+          <div class="w-7 h-7 rounded bg-primary flex items-center justify-center transition-transform group-hover:scale-105">
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 text-primary-content" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+          <span class="font-semibold text-base-content tracking-tight text-[15px]">Transcripty</span>
+        </.link>
+
+        <!-- Right side -->
+        <div class="flex items-center gap-1">
+          <.link
+            href={~p"/pricing"}
+            class="nav-link text-[13px] text-base-content/60 hover:text-base-content px-3 py-1.5"
+          >
+            Pricing
+          </.link>
+
+          <%= if @current_scope && @current_scope.user do %>
+            <.link
+              href={~p"/dashboard"}
+              class="nav-link text-[13px] text-base-content/60 hover:text-base-content px-3 py-1.5"
+            >
+              Dashboard
+            </.link>
+
+            <.link
+              href={~p"/settings"}
+              class="nav-link text-[13px] text-base-content/60 hover:text-base-content px-3 py-1.5"
+            >
+              Settings
+            </.link>
+
+            <div class="dropdown dropdown-end ml-1">
+              <div tabindex="0" role="button" class="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors">
+                <span class="text-xs font-semibold text-primary">
+                  {String.first(@current_scope.user.email) |> String.upcase()}
+                </span>
+              </div>
+              <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-lg z-50 w-56 p-1.5 shadow-xl border border-base-300 mt-2">
+                <li class="px-3 py-2 text-xs text-base-content/50 font-mono truncate">{@current_scope.user.email}</li>
+                <div class="h-px bg-base-300 my-1"></div>
+                <li><.link href={~p"/settings"} class="text-[13px]">Preferences</.link></li>
+                <li><.link href={~p"/users/settings"} class="text-[13px]">Account</.link></li>
+                <div class="h-px bg-base-300 my-1"></div>
+                <li><.link href={~p"/users/log-out"} method="delete" class="text-[13px] text-error">Log out</.link></li>
+              </ul>
+            </div>
+          <% else %>
+            <.link
+              href={~p"/users/log-in"}
+              class="ml-2 btn btn-primary btn-sm text-[13px] h-8 min-h-0 px-4"
+            >
+              Sign in
+            </.link>
+          <% end %>
+
+          <!-- Theme toggle -->
+          <div class="ml-2 flex items-center bg-base-200 rounded-md p-0.5 border border-base-300">
+            <button
+              class="p-1 rounded cursor-pointer hover:bg-base-300 transition-colors"
+              phx-click={JS.dispatch("phx:set-theme")}
+              data-phx-theme="light"
+              title="Light mode"
+            >
+              <.icon name="hero-sun-micro" class="size-3.5 opacity-60 hover:opacity-100" />
+            </button>
+            <button
+              class="p-1 rounded cursor-pointer hover:bg-base-300 transition-colors"
+              phx-click={JS.dispatch("phx:set-theme")}
+              data-phx-theme="dark"
+              title="Dark mode"
+            >
+              <.icon name="hero-moon-micro" class="size-3.5 opacity-60 hover:opacity-100" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    {@inner_content}
+
+    <!-- Footer -->
+    <footer class="border-t border-base-300 bg-base-100/50">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-2 text-base-content/40 text-xs">
+            <div class="w-4 h-4 rounded bg-primary/20 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" class="w-2.5 h-2.5 text-primary" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </div>
+            <span class="font-mono">Transcripty</span>
+            <span>&middot;</span>
+            <span>Built with Elixir</span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-base-content/40">
+            <.link href={~p"/pricing"} class="hover:text-base-content/60 transition-colors">Pricing</.link>
+            <a href="mailto:support@transcripty.io" class="hover:text-base-content/60 transition-colors">Support</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

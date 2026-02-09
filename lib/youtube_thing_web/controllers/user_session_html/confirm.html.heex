@@ -1,0 +1,77 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="min-h-[calc(100vh-3.5rem)] flex items-center justify-center px-4 py-16">
+    <div class="w-full max-w-sm">
+      <!-- Header -->
+      <div class="text-center mb-8 stagger-in">
+        <div class="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
+          <.icon name="hero-check" class="size-5 text-primary" />
+        </div>
+        <h1 class="text-xl font-bold text-base-content tracking-tight mb-1">
+          Welcome, {String.split(@user.email, "@") |> List.first()}
+        </h1>
+        <p class="text-sm text-base-content/40 font-mono">{@user.email}</p>
+      </div>
+
+      <div class="yt-card p-5 stagger-in" style="animation-delay: 100ms">
+        <.form
+          :if={!@user.confirmed_at}
+          for={@form}
+          id="confirmation_form"
+          action={~p"/users/log-in?_action=confirmed"}
+          phx-mounted={JS.focus_first()}
+        >
+          <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
+          <button
+            name={@form[:remember_me].name}
+            value="true"
+            phx-disable-with="Confirming..."
+            class="btn btn-primary w-full text-sm font-medium h-10 min-h-0"
+          >
+            Confirm & stay logged in
+          </button>
+          <button
+            phx-disable-with="Confirming..."
+            class="w-full mt-2 py-2.5 text-center text-sm text-base-content/50 hover:text-base-content bg-base-200 hover:bg-base-300 rounded-md transition-colors"
+          >
+            Confirm for this session only
+          </button>
+        </.form>
+
+        <.form
+          :if={@user.confirmed_at}
+          for={@form}
+          id="login_form"
+          action={~p"/users/log-in"}
+          phx-mounted={JS.focus_first()}
+        >
+          <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
+          <%= if @current_scope do %>
+            <button variant="primary" phx-disable-with="Logging in..." class="btn btn-primary w-full text-sm font-medium h-10 min-h-0">
+              Log in
+            </button>
+          <% else %>
+            <button
+              name={@form[:remember_me].name}
+              value="true"
+              phx-disable-with="Logging in..."
+              class="btn btn-primary w-full text-sm font-medium h-10 min-h-0"
+            >
+              Keep me logged in
+            </button>
+            <button
+              phx-disable-with="Logging in..."
+              class="w-full mt-2 py-2.5 text-center text-sm text-base-content/50 hover:text-base-content bg-base-200 hover:bg-base-300 rounded-md transition-colors"
+            >
+              Log in for this session only
+            </button>
+          <% end %>
+        </.form>
+      </div>
+
+      <p :if={!@user.confirmed_at} class="text-xs text-base-content/30 text-center mt-6 flex items-center justify-center gap-1.5">
+        <.icon name="hero-information-circle" class="size-3" />
+        You can enable passwords in account settings
+      </p>
+    </div>
+  </div>
+</Layouts.app>
