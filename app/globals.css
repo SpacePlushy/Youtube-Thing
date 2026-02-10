@@ -4,43 +4,43 @@
 
 @layer base {
   :root {
-    /* Clean, minimal light theme */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 12%;
+    /* Obsidian — Light Mode */
+    --background: 30 14% 96%;
+    --foreground: 0 0% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 12%;
-    --primary: 234 89% 56%;
+    --card-foreground: 0 0% 9%;
+    --primary: 16 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 234 89% 56%;
+    --secondary: 30 10% 94%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 30 8% 92%;
+    --muted-foreground: 0 0% 42%;
+    --accent: 16 100% 50%;
     --accent-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
+    --border: 30 8% 86%;
     --input: 0 0% 100%;
-    --ring: 234 89% 56%;
-    --radius: 0.5rem;
+    --ring: 16 100% 50%;
+    --radius: 0.625rem;
   }
 
-  /* Dark theme - respects system preference */
   @media (prefers-color-scheme: dark) {
     :root {
-      --background: 0 0% 7%;
-      --foreground: 0 0% 95%;
-      --card: 0 0% 10%;
-      --card-foreground: 0 0% 95%;
-      --primary: 234 89% 65%;
+      /* Obsidian — Dark Mode */
+      --background: 0 0% 3%;
+      --foreground: 0 0% 93%;
+      --card: 0 0% 7%;
+      --card-foreground: 0 0% 93%;
+      --primary: 16 100% 53%;
       --primary-foreground: 0 0% 100%;
-      --secondary: 0 0% 15%;
-      --secondary-foreground: 0 0% 95%;
-      --muted: 0 0% 18%;
-      --muted-foreground: 0 0% 60%;
-      --accent: 234 89% 65%;
+      --secondary: 0 0% 11%;
+      --secondary-foreground: 0 0% 93%;
+      --muted: 0 0% 14%;
+      --muted-foreground: 0 0% 53%;
+      --accent: 16 100% 53%;
       --accent-foreground: 0 0% 100%;
-      --border: 0 0% 20%;
-      --input: 0 0% 12%;
-      --ring: 234 89% 65%;
+      --border: 0 0% 16%;
+      --input: 0 0% 9%;
+      --ring: 16 100% 53%;
     }
   }
 }
@@ -51,18 +51,17 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground antialiased font-body;
   }
 
   html {
     scroll-behavior: smooth;
   }
 
-  /* Minimal scrollbar - Light */
+  /* Obsidian scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -70,99 +69,133 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 hover:bg-gray-400 rounded-full;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
   }
 
-  /* Dark mode scrollbar */
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+  }
+
   @media (prefers-color-scheme: dark) {
     ::-webkit-scrollbar-thumb {
-      @apply bg-gray-700 hover:bg-gray-600;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
   }
 
-  /* Firefox scrollbar */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(209 213 219) transparent;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
   }
 
   @media (prefers-color-scheme: dark) {
     * {
-      scrollbar-color: rgb(55 65 81) transparent;
+      scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
     }
   }
 
-  /* Clean selection */
+  /* Selection — vermillion accent */
   ::selection {
-    @apply bg-indigo-100 text-indigo-900;
+    background: rgba(255, 68, 0, 0.15);
+    color: #cc3700;
   }
 
   @media (prefers-color-scheme: dark) {
     ::selection {
-      @apply bg-indigo-900 text-indigo-100;
+      background: rgba(255, 68, 0, 0.25);
+      color: #ff6b36;
     }
   }
 }
 
-/* Utility classes for the minimal design */
-@layer utilities {
+@layer components {
+  /* Card system */
   .card {
-    @apply bg-white dark:bg-neutral-900 rounded-xl border border-gray-100 dark:border-neutral-800;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .card {
-      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.2);
-    }
+    @apply bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200/80 dark:border-white/[0.06];
   }
 
   .card-elevated {
-    @apply bg-white dark:bg-neutral-900 rounded-xl border border-gray-100 dark:border-neutral-800;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    @apply bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200/80 dark:border-white/[0.08];
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
   }
 
   @media (prefers-color-scheme: dark) {
     .card-elevated {
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 2px 8px -2px rgba(0, 0, 0, 0.6);
     }
   }
 
-  .card-hover {
-    @apply transition-shadow duration-200;
+  /* Input field — Obsidian style */
+  .input-field {
+    @apply w-full px-4 py-3 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-lg
+           text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600
+           focus:outline-none focus:ring-2 focus:ring-vermillion-500/20 dark:focus:ring-vermillion-500/25
+           focus:border-vermillion-500 dark:focus:border-vermillion-500
+           transition-all duration-200;
+    font-family: var(--font-outfit), system-ui, sans-serif;
   }
 
-  .card-hover:hover {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  /* Button system */
+  .btn-primary {
+    @apply px-6 py-3 bg-vermillion-500 hover:bg-vermillion-600
+           text-white font-medium rounded-lg transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed
+           shadow-[0_1px_2px_rgba(255,68,0,0.15)] hover:shadow-[0_2px_8px_rgba(255,68,0,0.25)];
+    font-family: var(--font-outfit), system-ui, sans-serif;
   }
 
   @media (prefers-color-scheme: dark) {
-    .card-hover:hover {
-      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    .btn-primary {
+      @apply shadow-[0_1px_2px_rgba(255,68,0,0.2)] hover:shadow-[0_2px_12px_rgba(255,68,0,0.3)];
     }
   }
 
-  .input-field {
-    @apply w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg
-           text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500
-           focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:focus:ring-indigo-400/30
-           focus:border-indigo-500 dark:focus:border-indigo-400
-           transition-colors duration-200;
-  }
-
-  .btn-primary {
-    @apply px-6 py-3 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600
-           text-white font-medium rounded-lg transition-colors duration-200
-           disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
   .btn-secondary {
-    @apply px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700
-           text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-colors duration-200;
+    @apply px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1]
+           text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-all duration-200;
+    font-family: var(--font-outfit), system-ui, sans-serif;
   }
 
   .btn-ghost {
     @apply px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100
-           hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors duration-200;
+           hover:bg-gray-100 dark:hover:bg-white/[0.06] rounded-lg transition-all duration-200;
+    font-family: var(--font-outfit), system-ui, sans-serif;
   }
+}
+
+/* Noise texture overlay */
+.noise-overlay::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.012;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  .noise-overlay::before {
+    opacity: 0.025;
+  }
+}
+
+/* Decorative accent line */
+.accent-line {
+  position: relative;
+}
+
+.accent-line::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #ff4400, transparent);
+  border-radius: 1px;
 }

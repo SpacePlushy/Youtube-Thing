@@ -1,10 +1,28 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Bricolage_Grotesque, Outfit, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider } from '@/components/auth-provider'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-bricolage',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
+})
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
+  display: 'swap',
+  weight: ['400', '500'],
+})
 
 export const metadata: Metadata = {
   title: 'YouTube Transcript - Extract Video Transcripts Instantly',
@@ -41,8 +59,8 @@ export const metadata: Metadata = {
     canonical: 'https://youtubething.com',
   },
   other: {
-    'theme-color': '#1e1b4b',
-    'msapplication-TileColor': '#1e1b4b',
+    'theme-color': '#0a0a0a',
+    'msapplication-TileColor': '#0a0a0a',
   },
 }
 
@@ -94,7 +112,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${bricolage.variable} ${outfit.variable} ${jetbrainsMono.variable} noise-overlay`}>
         <AuthProvider>
           {children}
         </AuthProvider>
