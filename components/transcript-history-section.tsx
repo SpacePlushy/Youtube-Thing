@@ -127,26 +127,25 @@ export function TranscriptHistorySection() {
     }
   };
 
-  // Free tier - no access
   if (hasAccess === false) {
     return (
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-gray-200/80 dark:border-white/[0.06] p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-neutral-800 rounded-xl">
-            <History className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-white/[0.04] rounded-xl">
+            <History className="w-5 h-5 text-gray-500 dark:text-gray-500" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Transcript History</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Save and access past transcripts</p>
+            <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Transcript History</h2>
+            <p className="text-sm font-body text-gray-500 dark:text-gray-500">Save and access past transcripts</p>
           </div>
         </div>
 
         <div className="text-center py-10">
-          <div className="w-12 h-12 flex items-center justify-center bg-gray-100 dark:bg-neutral-800 rounded-2xl mx-auto mb-4">
-            <History className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+          <div className="w-12 h-12 flex items-center justify-center bg-gray-100 dark:bg-white/[0.04] rounded-2xl mx-auto mb-4">
+            <History className="w-6 h-6 text-gray-400 dark:text-gray-600" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">History Unavailable</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+          <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-2">History Unavailable</h3>
+          <p className="text-sm font-body text-gray-500 dark:text-gray-500 mb-6 max-w-sm mx-auto">
             Upgrade to save your transcript history and access past extractions
           </p>
 
@@ -168,9 +167,9 @@ export function TranscriptHistorySection() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-gray-200/80 dark:border-white/[0.06] p-6">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+          <Loader2 className="w-5 h-5 animate-spin text-vermillion-500" />
         </div>
       </div>
     );
@@ -178,12 +177,12 @@ export function TranscriptHistorySection() {
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-gray-200/80 dark:border-white/[0.06] p-6">
         <div className="text-center py-12">
-          <p className="text-red-600 dark:text-red-400 text-sm mb-4">{error}</p>
+          <p className="text-red-500 text-sm font-body mb-4">{error}</p>
           <button
             onClick={fetchHistory}
-            className="px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-body font-medium text-vermillion-500 hover:bg-vermillion-500/5 rounded-lg transition-colors"
           >
             Retry
           </button>
@@ -192,29 +191,28 @@ export function TranscriptHistorySection() {
     );
   }
 
-  // Empty state
   if (history && history.transcripts.length === 0) {
     return (
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-gray-200/80 dark:border-white/[0.06] p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-neutral-800 rounded-xl">
-            <History className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-white/[0.04] rounded-xl">
+            <History className="w-5 h-5 text-gray-500 dark:text-gray-500" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Transcript History</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Your saved transcripts</p>
+            <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Transcript History</h2>
+            <p className="text-sm font-body text-gray-500 dark:text-gray-500">Your saved transcripts</p>
           </div>
         </div>
 
         <div className="text-center py-10">
-          <div className="w-12 h-12 flex items-center justify-center bg-gray-100 dark:bg-neutral-800 rounded-2xl mx-auto mb-4">
-            <FileText className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+          <div className="w-12 h-12 flex items-center justify-center bg-gray-100 dark:bg-white/[0.04] rounded-2xl mx-auto mb-4">
+            <FileText className="w-6 h-6 text-gray-400 dark:text-gray-600" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Transcripts Yet</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Extract your first transcript to get started</p>
+          <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-2">No Transcripts Yet</h3>
+          <p className="text-sm font-body text-gray-500 dark:text-gray-500 mb-6">Extract your first transcript to get started</p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 btn-primary text-sm font-body"
           >
             Extract Transcript
           </Link>
@@ -224,33 +222,30 @@ export function TranscriptHistorySection() {
   }
 
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6">
-      {/* Header */}
+    <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-gray-200/80 dark:border-white/[0.06] p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 flex items-center justify-center bg-indigo-100 dark:bg-indigo-950 rounded-xl">
-            <History className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          <div className="w-10 h-10 flex items-center justify-center bg-vermillion-500/8 dark:bg-vermillion-500/10 rounded-xl">
+            <History className="w-5 h-5 text-vermillion-500" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Transcript History</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Transcript History</h2>
+            <p className="text-sm font-body text-gray-500 dark:text-gray-500">
               {history?.pagination.total || 0} transcript{history?.pagination.total !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
 
-        {/* Sort Button */}
         <button
           onClick={toggleSort}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-sm font-mono text-gray-500 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.04] rounded-lg transition-colors"
         >
-          <ArrowUpDown className="w-4 h-4" />
-          {sortBy === 'created_at' ? 'Newest' : 'A-Z'}
+          <ArrowUpDown className="w-3.5 h-3.5" />
+          {sortBy === 'created_at' ? 'Newest' : 'A–Z'}
         </button>
       </div>
 
-      {/* Transcript List */}
-      <div className="space-y-3 mb-6">
+      <div className="space-y-2 mb-6">
         <AnimatePresence mode="popLayout">
           {history?.transcripts.map((transcript, index) => (
             <motion.div
@@ -271,26 +266,25 @@ export function TranscriptHistorySection() {
         </AnimatePresence>
       </div>
 
-      {/* Pagination */}
       {history && history.pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-neutral-800">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/[0.04]">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
-            className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            className="flex items-center gap-1 px-3 py-2 text-sm font-body text-gray-500 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
             Previous
           </button>
 
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Page {currentPage} of {history.pagination.totalPages}
+          <span className="text-sm font-mono text-gray-400 dark:text-gray-600">
+            {currentPage} / {history.pagination.totalPages}
           </span>
 
           <button
             onClick={() => setCurrentPage((prev) => Math.min(history.pagination.totalPages, prev + 1))}
             disabled={currentPage === history.pagination.totalPages}
-            className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            className="flex items-center gap-1 px-3 py-2 text-sm font-body text-gray-500 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
             Next
             <ChevronRight className="w-4 h-4" />
