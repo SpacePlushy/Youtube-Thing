@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
-import { Check, X, Mail, ArrowRight, Youtube, LayoutDashboard, Loader2 } from 'lucide-react';
+import { Check, X, Mail, ArrowRight, LayoutDashboard, Loader2, Play } from 'lucide-react';
 import Link from 'next/link';
 import { SignInModal } from '@/components/sign-in-modal';
 import { UserMenu } from '@/components/user-menu';
@@ -38,275 +38,155 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#050505]">
       {/* Navigation */}
-      <nav className="border-b border-gray-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 flex items-center justify-center bg-red-100 dark:bg-red-950 rounded-lg">
-              <Youtube className="w-4 h-4 text-red-600 dark:text-red-400" />
+      <nav className="border-b border-gray-200/60 dark:border-white/[0.06] bg-[#f8f6f3]/80 dark:bg-[#050505]/80 backdrop-blur-xl sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 flex items-center justify-center bg-vermillion-500 rounded-lg">
+              <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
             </div>
-            <span className="font-semibold text-gray-900 dark:text-white hidden sm:inline">YouTube Transcript</span>
+            <span className="font-display font-semibold text-gray-900 dark:text-white hidden sm:inline tracking-tight">Transcript</span>
           </Link>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/pricing"
-              className="text-sm font-medium text-indigo-600 dark:text-indigo-400"
-            >
-              Pricing
-            </Link>
-
+          <div className="flex items-center gap-1">
+            <Link href="/pricing" className="px-3 py-1.5 text-sm font-body font-medium text-vermillion-500">Pricing</Link>
             {isLoaded && isSignedIn && (
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                <span className="hidden sm:inline">Dashboard</span>
+              <Link href="/dashboard" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-body text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.04]">
+                <LayoutDashboard className="w-3.5 h-3.5" /><span className="hidden sm:inline">Dashboard</span>
               </Link>
             )}
-
             {isLoaded && (
-              isSignedIn ? (
-                <UserMenu />
-              ) : (
-                <button
-                  onClick={() => setShowSignIn(true)}
-                  className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg transition-colors"
-                >
-                  Sign In
-                </button>
+              isSignedIn ? <UserMenu /> : (
+                <button onClick={() => setShowSignIn(true)} className="ml-1 px-4 py-1.5 text-sm font-medium font-body text-white bg-vermillion-500 hover:bg-vermillion-600 rounded-lg transition-all duration-200 shadow-[0_1px_2px_rgba(255,68,0,0.2)]">Sign In</button>
               )
             )}
           </div>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 py-12 lg:py-20">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-3">
-            Simple, transparent pricing
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-lg max-w-xl mx-auto">
-            Choose the plan that fits your needs. Cancel anytime.
-          </p>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 lg:py-24">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center mb-16">
+          <h1 className="font-display text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">Simple pricing</h1>
+          <p className="font-body text-gray-500 dark:text-gray-500 text-lg max-w-md mx-auto">Start free, upgrade when you need more.</p>
         </motion.div>
 
-        {/* Pricing Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16"
-        >
-          {/* Free Plan */}
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-8">
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Free</h3>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-gray-900 dark:text-white">$0</span>
-                <span className="text-gray-500 dark:text-gray-400">/month</span>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-20">
+          {/* Free */}
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-gray-200/80 dark:border-white/[0.06] p-8 flex flex-col">
+            <div className="mb-8">
+              <span className="text-xs font-mono font-medium text-gray-400 dark:text-gray-600 uppercase tracking-wider">Free</span>
+              <div className="flex items-baseline gap-1 mt-2">
+                <span className="font-display text-5xl font-bold text-gray-900 dark:text-white tracking-tight">$0</span>
+                <span className="font-body text-gray-400 dark:text-gray-600">/mo</span>
               </div>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">Perfect for getting started</p>
+              <p className="font-body text-sm text-gray-500 dark:text-gray-500 mt-2">Perfect for getting started</p>
             </div>
-
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-center gap-3">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                <span className="text-gray-700 dark:text-gray-300">5 transcripts per day</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                <span className="text-gray-700 dark:text-gray-300">Copy & download transcripts</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                <span className="text-gray-700 dark:text-gray-300">All supported languages</span>
-              </li>
-              <li className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
-                <X className="w-5 h-5 flex-shrink-0" />
-                <span>Transcript history</span>
-              </li>
-              <li className="flex items-center gap-3 text-gray-400 dark:text-gray-500">
-                <X className="w-5 h-5 flex-shrink-0" />
-                <span>Priority support</span>
-              </li>
+            <ul className="space-y-3 mb-8 flex-1">
+              {[{ok:true,t:'5 transcripts per day'},{ok:true,t:'Copy & download'},{ok:true,t:'12+ languages'},{ok:false,t:'Transcript history'},{ok:false,t:'Priority support'}].map((item,i)=>(
+                <li key={i} className={`flex items-center gap-3 ${item.ok?'':'opacity-40'}`}>
+                  {item.ok?<Check className="w-4 h-4 text-emerald-500 flex-shrink-0"/>:<X className="w-4 h-4 text-gray-400 dark:text-gray-600 flex-shrink-0"/>}
+                  <span className="font-body text-sm text-gray-700 dark:text-gray-300">{item.t}</span>
+                </li>
+              ))}
             </ul>
-
-            {isSignedIn ? (
-              session?.user?.subscriptionTier === 'free' ? (
-                <div className="w-full py-3 text-center text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-neutral-800 rounded-lg font-medium">
-                  Current Plan
-                </div>
-              ) : (
-                <div className="w-full py-3 text-center text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-neutral-800 rounded-lg font-medium">
-                  Included
-                </div>
-              )
-            ) : (
-              <button
-                onClick={() => setShowSignIn(true)}
-                className="w-full py-3 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
-              >
-                Get Started
-              </button>
+            {isSignedIn?(
+              <div className="w-full py-3 text-center text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-white/[0.04] rounded-lg font-body font-medium text-sm">
+                {session?.user?.subscriptionTier==='free'?'Current Plan':'Included'}
+              </div>
+            ):(
+              <button onClick={()=>setShowSignIn(true)} className="w-full btn-secondary font-body text-sm">Get Started</button>
             )}
           </div>
 
-          {/* Pro Plan */}
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl border-2 border-indigo-600 dark:border-indigo-500 p-8 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <span className="bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-medium px-3 py-1 rounded-full">
-                Most Popular
-              </span>
+          {/* Pro */}
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border-2 border-vermillion-500/30 dark:border-vermillion-500/20 p-8 relative flex flex-col">
+            <div className="absolute -top-3 left-6">
+              <span className="bg-vermillion-500 text-white text-xs font-mono font-medium px-3 py-1 rounded-full uppercase tracking-wider">Popular</span>
             </div>
-
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Pro</h3>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-gray-900 dark:text-white">$10</span>
-                <span className="text-gray-500 dark:text-gray-400">/month</span>
+            <div className="mb-8">
+              <span className="text-xs font-mono font-medium text-vermillion-500 uppercase tracking-wider">Pro</span>
+              <div className="flex items-baseline gap-1 mt-2">
+                <span className="font-display text-5xl font-bold text-gray-900 dark:text-white tracking-tight">$10</span>
+                <span className="font-body text-gray-400 dark:text-gray-600">/mo</span>
               </div>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">For power users</p>
+              <p className="font-body text-sm text-gray-500 dark:text-gray-500 mt-2">For power users</p>
             </div>
-
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-center gap-3">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                <span className="text-gray-700 dark:text-gray-300 font-medium">Unlimited transcripts</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                <span className="text-gray-700 dark:text-gray-300">Copy & download transcripts</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                <span className="text-gray-700 dark:text-gray-300">All supported languages</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                <span className="text-gray-700 dark:text-gray-300">Unlimited transcript history</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                <span className="text-gray-700 dark:text-gray-300">Priority support</span>
-              </li>
+            <ul className="space-y-3 mb-8 flex-1">
+              {[{t:'Unlimited transcripts',b:true},{t:'Copy & download',b:false},{t:'12+ languages',b:false},{t:'Unlimited history',b:true},{t:'Priority support',b:false}].map((item,i)=>(
+                <li key={i} className="flex items-center gap-3">
+                  <Check className="w-4 h-4 text-vermillion-500 flex-shrink-0"/>
+                  <span className={`font-body text-sm text-gray-700 dark:text-gray-300 ${item.b?'font-medium':''}`}>{item.t}</span>
+                </li>
+              ))}
             </ul>
-
-            {isSignedIn && session?.user?.subscriptionTier === 'pro' ? (
-              <div className="w-full py-3 text-center text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 rounded-lg font-medium">
-                Current Plan
-              </div>
-            ) : (
-              <button
-                onClick={handleUpgrade}
-                disabled={checkoutLoading}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {checkoutLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    Upgrade to Pro
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
+            {isSignedIn && session?.user?.subscriptionTier==='pro'?(
+              <div className="w-full py-3 text-center text-vermillion-500 bg-vermillion-500/8 dark:bg-vermillion-500/10 rounded-lg font-body font-medium text-sm">Current Plan</div>
+            ):(
+              <button onClick={handleUpgrade} disabled={checkoutLoading} className="w-full btn-primary flex items-center justify-center gap-2 font-body text-sm">
+                {checkoutLoading?<Loader2 className="w-4 h-4 animate-spin"/>:(<>Upgrade to Pro<ArrowRight className="w-4 h-4"/></>)}
               </button>
             )}
           </div>
         </motion.div>
 
-        {/* Comparison table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden mb-12"
-        >
-          <div className="px-6 py-5 border-b border-gray-100 dark:border-neutral-800">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Compare plans</h2>
+        {/* Comparison */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-gray-200/80 dark:border-white/[0.06] overflow-hidden mb-16">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-white/[0.04]">
+            <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Compare plans</h2>
           </div>
-
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-neutral-800">
-                  <th className="text-left py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400">Feature</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Free</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-indigo-600 dark:text-indigo-400">Pro</th>
+                <tr className="border-b border-gray-100 dark:border-white/[0.04]">
+                  <th className="text-left py-3 px-6 text-xs font-mono font-medium text-gray-400 dark:text-gray-600 uppercase tracking-wider">Feature</th>
+                  <th className="text-center py-3 px-4 text-xs font-mono font-medium text-gray-400 dark:text-gray-600 uppercase tracking-wider">Free</th>
+                  <th className="text-center py-3 px-4 text-xs font-mono font-medium text-vermillion-500 uppercase tracking-wider">Pro</th>
                 </tr>
               </thead>
-              <tbody className="text-sm">
-                <tr className="border-b border-gray-50 dark:border-neutral-800/50">
-                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Daily Transcripts</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">5</td>
-                  <td className="py-3 px-4 text-center text-indigo-600 dark:text-indigo-400 font-medium">Unlimited</td>
+              <tbody className="text-sm font-body">
+                <tr className="border-b border-gray-50 dark:border-white/[0.02]">
+                  <td className="py-3.5 px-6 text-gray-700 dark:text-gray-300">Daily Transcripts</td>
+                  <td className="py-3.5 px-4 text-center text-gray-500 dark:text-gray-500">5</td>
+                  <td className="py-3.5 px-4 text-center text-vermillion-500 font-medium">Unlimited</td>
                 </tr>
-                <tr className="border-b border-gray-50 dark:border-neutral-800/50">
-                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Transcript History</td>
-                  <td className="py-3 px-4 text-center"><X className="w-4 h-4 text-gray-300 dark:text-gray-600 mx-auto" /></td>
-                  <td className="py-3 px-4 text-center text-indigo-600 dark:text-indigo-400 font-medium">Unlimited</td>
+                <tr className="border-b border-gray-50 dark:border-white/[0.02]">
+                  <td className="py-3.5 px-6 text-gray-700 dark:text-gray-300">Transcript History</td>
+                  <td className="py-3.5 px-4 text-center"><X className="w-4 h-4 text-gray-300 dark:text-gray-700 mx-auto" /></td>
+                  <td className="py-3.5 px-4 text-center text-vermillion-500 font-medium">Unlimited</td>
                 </tr>
-                <tr className="border-b border-gray-50 dark:border-neutral-800/50">
-                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Languages Supported</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">12+</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">12+</td>
+                <tr className="border-b border-gray-50 dark:border-white/[0.02]">
+                  <td className="py-3.5 px-6 text-gray-700 dark:text-gray-300">Languages</td>
+                  <td className="py-3.5 px-4 text-center text-gray-500 dark:text-gray-500">12+</td>
+                  <td className="py-3.5 px-4 text-center text-gray-500 dark:text-gray-500">12+</td>
                 </tr>
-                <tr className="border-b border-gray-50 dark:border-neutral-800/50">
-                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Copy & Download</td>
-                  <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" /></td>
-                  <td className="py-3 px-4 text-center"><Check className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto" /></td>
+                <tr className="border-b border-gray-50 dark:border-white/[0.02]">
+                  <td className="py-3.5 px-6 text-gray-700 dark:text-gray-300">Copy & Download</td>
+                  <td className="py-3.5 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
+                  <td className="py-3.5 px-4 text-center"><Check className="w-4 h-4 text-emerald-500 mx-auto" /></td>
                 </tr>
                 <tr>
-                  <td className="py-3 px-6 text-gray-700 dark:text-gray-300">Support</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">Community</td>
-                  <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">Priority Email</td>
+                  <td className="py-3.5 px-6 text-gray-700 dark:text-gray-300">Support</td>
+                  <td className="py-3.5 px-4 text-center text-gray-500 dark:text-gray-500">Community</td>
+                  <td className="py-3.5 px-4 text-center text-gray-500 dark:text-gray-500">Priority</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </motion.div>
 
-        {/* Help section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          className="text-center"
-        >
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Need help choosing?</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-            Not sure which plan is right for you? We&apos;re here to help.
-          </p>
+        {/* Help */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="text-center">
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-2">Need help?</h2>
+          <p className="font-body text-gray-500 dark:text-gray-500 mb-6 max-w-sm mx-auto">We&apos;re here to help you choose.</p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/dashboard">
-              <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors flex items-center gap-2">
-                Go to Dashboard
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </Link>
-            <a href="mailto:support@youtubething.com">
-              <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Contact Support
-              </button>
-            </a>
+            <Link href="/dashboard"><button className="btn-secondary flex items-center gap-2 font-body text-sm">Dashboard<ArrowRight className="w-4 h-4"/></button></Link>
+            <a href="mailto:support@youtubething.com"><button className="btn-primary flex items-center gap-2 font-body text-sm"><Mail className="w-4 h-4"/>Contact</button></a>
           </div>
         </motion.div>
       </div>
 
-      {/* Sign In Modal */}
-      <SignInModal
-        isOpen={showSignIn}
-        onClose={() => setShowSignIn(false)}
-      />
+      <SignInModal isOpen={showSignIn} onClose={()=>setShowSignIn(false)}/>
     </div>
   );
 }
