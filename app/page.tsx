@@ -11,7 +11,6 @@ import {
   Loader2,
   Copy,
   Download,
-  Youtube,
   Zap,
   FileText,
   Globe,
@@ -19,7 +18,8 @@ import {
   Check,
   AlertCircle,
   ArrowLeft,
-  LayoutDashboard
+  LayoutDashboard,
+  Play,
 } from 'lucide-react';
 import type { TranscriptSegment, TranscriptMetadata, TranscriptOrigin, SupportedLanguage } from '@/lib/types';
 
@@ -133,21 +133,23 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#050505]">
       {/* Navigation */}
-      <nav className="border-b border-gray-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 flex items-center justify-center bg-red-100 dark:bg-red-950 rounded-lg">
-              <Youtube className="w-4 h-4 text-red-600 dark:text-red-400" />
+      <nav className="border-b border-gray-200/60 dark:border-white/[0.06] bg-[#f8f6f3]/80 dark:bg-[#050505]/80 backdrop-blur-xl sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 flex items-center justify-center bg-vermillion-500 rounded-lg">
+              <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
             </div>
-            <span className="font-semibold text-gray-900 dark:text-white hidden sm:inline">YouTube Transcript</span>
+            <span className="font-display font-semibold text-gray-900 dark:text-white hidden sm:inline tracking-tight">
+              Transcript
+            </span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             <Link
               href="/pricing"
-              className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="px-3 py-1.5 text-sm font-body text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
             >
               Pricing
             </Link>
@@ -155,9 +157,9 @@ export default function Home() {
             {isLoaded && isSignedIn && (
               <Link
                 href="/dashboard"
-                className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-body text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
               >
-                <LayoutDashboard className="w-4 h-4" />
+                <LayoutDashboard className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
             )}
@@ -168,7 +170,7 @@ export default function Home() {
               ) : (
                 <button
                   onClick={() => setShowSignInModal(true)}
-                  className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg transition-colors"
+                  className="ml-1 px-4 py-1.5 text-sm font-medium font-body text-white bg-vermillion-500 hover:bg-vermillion-600 rounded-lg transition-all duration-200 shadow-[0_1px_2px_rgba(255,68,0,0.2)]"
                 >
                   Sign In
                 </button>
@@ -185,9 +187,9 @@ export default function Home() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-50"
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50"
           >
-            <div className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium rounded-lg shadow-lg">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium font-body rounded-xl shadow-2xl">
               <Check className="w-4 h-4" />
               {copyNotification}
             </div>
@@ -195,7 +197,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-3xl mx-auto px-4 py-12 lg:py-20">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 lg:py-24">
         <AnimatePresence mode="wait">
           {transcript.length === 0 ? (
             <motion.div
@@ -203,27 +205,38 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              {/* Header */}
-              <div className="text-center mb-10">
-                <div className="inline-flex items-center justify-center w-14 h-14 bg-red-100 dark:bg-red-950 rounded-2xl mb-6">
-                  <Youtube className="w-7 h-7 text-red-600 dark:text-red-400" />
-                </div>
-                <h1 className="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-3">
-                  YouTube Transcript
+              {/* Hero */}
+              <div className="text-center mb-12">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  className="inline-flex items-center gap-2 px-3 py-1 bg-vermillion-500/8 dark:bg-vermillion-500/10 border border-vermillion-500/15 dark:border-vermillion-500/20 rounded-full mb-6"
+                >
+                  <div className="w-1.5 h-1.5 bg-vermillion-500 rounded-full animate-glow-pulse" />
+                  <span className="text-xs font-mono font-medium text-vermillion-600 dark:text-vermillion-400 tracking-wide uppercase">
+                    Extract in seconds
+                  </span>
+                </motion.div>
+
+                <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight leading-[1.1]">
+                  YouTube
+                  <br />
+                  <span className="text-vermillion-500">Transcript</span>
                 </h1>
-                <p className="text-gray-500 dark:text-gray-400 text-lg">
-                  Extract transcripts from any YouTube video instantly
+                <p className="font-body text-gray-500 dark:text-gray-500 text-lg max-w-md mx-auto leading-relaxed">
+                  Paste a link, get the transcript. Fast, clean, multi-language.
                 </p>
               </div>
 
-              {/* Main form card */}
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 p-6 sm:p-8 shadow-sm">
+              {/* Main form */}
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-gray-200/80 dark:border-white/[0.06] p-6 sm:p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
                 <form onSubmit={handleExtract} className="space-y-5">
                   {/* URL Input */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-xs font-mono font-medium text-gray-400 dark:text-gray-600 mb-2 uppercase tracking-wider">
                       Video URL or ID
                     </label>
                     <input
@@ -231,7 +244,7 @@ export default function Home() {
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://youtube.com/watch?v=..."
-                      className="input-field"
+                      className="input-field text-base"
                       disabled={loading}
                       autoFocus
                     />
@@ -240,14 +253,14 @@ export default function Home() {
                   {/* Options row */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-xs font-mono font-medium text-gray-400 dark:text-gray-600 mb-2 uppercase tracking-wider">
                         Language
                       </label>
                       <div className="relative">
                         <select
                           value={language}
                           onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-                          className="input-field appearance-none pr-10"
+                          className="input-field appearance-none pr-10 cursor-pointer"
                           disabled={loading}
                         >
                           <option value="en">English</option>
@@ -263,25 +276,25 @@ export default function Home() {
                           <option value="ar">Arabic</option>
                           <option value="hi">Hindi</option>
                         </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-600 pointer-events-none" />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Transcript type
+                      <label className="block text-xs font-mono font-medium text-gray-400 dark:text-gray-600 mb-2 uppercase tracking-wider">
+                        Type
                       </label>
                       <div className="relative">
                         <select
                           value={transcriptOrigin}
                           onChange={(e) => setTranscriptOrigin(e.target.value as TranscriptOrigin)}
-                          className="input-field appearance-none pr-10"
+                          className="input-field appearance-none pr-10 cursor-pointer"
                           disabled={loading}
                         >
                           <option value="auto_generated">Auto-generated</option>
                           <option value="uploader_provided">Uploader provided</option>
                         </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-600 pointer-events-none" />
                       </div>
                     </div>
                   </div>
@@ -290,17 +303,17 @@ export default function Home() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full btn-primary flex items-center justify-center gap-2"
+                    className="w-full btn-primary flex items-center justify-center gap-2 text-base"
                   >
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Extracting...
+                        <span className="font-body">Extracting...</span>
                       </>
                     ) : (
                       <>
                         <Zap className="w-4 h-4" />
-                        Extract Transcript
+                        <span className="font-body">Extract Transcript</span>
                       </>
                     )}
                   </button>
@@ -311,9 +324,9 @@ export default function Home() {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-4 p-3 bg-red-50 dark:bg-red-950/50 border border-red-100 dark:border-red-900 rounded-lg"
+                    className="mt-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-900/30 rounded-lg"
                   >
-                    <div className="flex items-start gap-2 text-red-600 dark:text-red-400 text-sm">
+                    <div className="flex items-start gap-2 text-red-600 dark:text-red-400 text-sm font-body">
                       <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       {error}
                     </div>
@@ -322,21 +335,27 @@ export default function Home() {
               </div>
 
               {/* Features */}
-              <div className="grid grid-cols-3 gap-4 mt-8">
+              <div className="grid grid-cols-3 gap-6 mt-10">
                 {[
-                  { icon: Globe, label: '12+ Languages' },
-                  { icon: Zap, label: 'Ultra-Fast' },
-                  { icon: FileText, label: 'Clean Output' },
+                  { icon: Globe, label: '12+ Languages', desc: 'Global coverage' },
+                  { icon: Zap, label: 'Ultra-Fast', desc: 'Instant results' },
+                  { icon: FileText, label: 'Clean Output', desc: 'Copy & download' },
                 ].map((feature, i) => (
-                  <div
+                  <motion.div
                     key={i}
-                    className="flex flex-col items-center gap-2 p-4 text-center"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
+                    className="flex flex-col items-center gap-3 p-4 text-center"
                   >
-                    <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-neutral-800 rounded-xl">
-                      <feature.icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl">
+                      <feature.icon className="w-4.5 h-4.5 text-gray-500 dark:text-gray-500" />
                     </div>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{feature.label}</span>
-                  </div>
+                    <div>
+                      <span className="block text-sm font-body font-medium text-gray-900 dark:text-white">{feature.label}</span>
+                      <span className="block text-xs font-body text-gray-400 dark:text-gray-600 mt-0.5">{feature.desc}</span>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
             </motion.div>
@@ -346,29 +365,29 @@ export default function Home() {
               key="results"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               {/* Back button and header */}
               <div className="flex items-center justify-between mb-6">
                 <button
                   onClick={handleReset}
-                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors group"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="text-sm font-medium">New transcript</span>
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                  <span className="text-sm font-body font-medium">New transcript</span>
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <button
                     onClick={async () => {
                       const fullText = transcript.map(item => `[${item.timestamp}] ${item.text}`).join('\n');
                       await copyToClipboard(fullText, 'Transcript');
                       analytics.trackExport('copy', 'raw');
                     }}
-                    className="btn-ghost flex items-center gap-2"
+                    className="btn-ghost flex items-center gap-2 text-sm"
                   >
-                    <Copy className="w-4 h-4" />
-                    <span className="hidden sm:inline">Copy</span>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline font-body">Copy</span>
                   </button>
                   <button
                     onClick={() => {
@@ -382,44 +401,51 @@ export default function Home() {
                       URL.revokeObjectURL(url);
                       analytics.trackExport('download', 'raw');
                     }}
-                    className="btn-ghost flex items-center gap-2"
+                    className="btn-ghost flex items-center gap-2 text-sm"
                   >
-                    <Download className="w-4 h-4" />
-                    <span className="hidden sm:inline">Download</span>
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline font-body">Download</span>
                   </button>
                 </div>
               </div>
 
-              {/* Transcript card */}
-              <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-neutral-800 shadow-sm overflow-hidden">
-                {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-100 dark:border-neutral-800 flex items-center justify-between">
+              {/* Transcript — code editor style */}
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-gray-200/80 dark:border-white/[0.06] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+                {/* Header bar */}
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-white/[0.04] flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center bg-indigo-100 dark:bg-indigo-950 rounded-lg">
-                      <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-vermillion-500/20 border border-vermillion-500/30" />
+                      <div className="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500/30" />
+                      <div className="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500/30" />
                     </div>
-                    <div>
-                      <h2 className="font-medium text-gray-900 dark:text-white">Transcript</h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{transcript.length} segments</p>
-                    </div>
+                    <span className="text-xs font-mono text-gray-400 dark:text-gray-600 ml-1">
+                      transcript.txt
+                    </span>
                   </div>
+                  <span className="text-xs font-mono text-gray-400 dark:text-gray-600">
+                    {transcript.length} segments
+                  </span>
                 </div>
 
-                {/* Transcript content */}
+                {/* Transcript content — editor style */}
                 <div className="max-h-[500px] overflow-y-auto">
-                  <div className="p-6 space-y-4">
+                  <div className="p-4">
                     {transcript.map((item, index) => (
                       <motion.div
                         key={index}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: index * 0.02 }}
-                        className="flex gap-4"
+                        className="flex gap-0 hover:bg-gray-50 dark:hover:bg-white/[0.02] -mx-2 px-2 py-1.5 rounded transition-colors group"
                       >
-                        <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-1 rounded h-fit min-w-[52px] text-center">
+                        <span className="text-xs font-mono text-gray-300 dark:text-gray-700 w-8 text-right flex-shrink-0 pt-0.5 select-none">
+                          {index + 1}
+                        </span>
+                        <span className="text-xs font-mono text-vermillion-500 dark:text-vermillion-400 px-3 pt-0.5 flex-shrink-0 min-w-[60px]">
                           {item.timestamp}
                         </span>
-                        <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{item.text}</p>
+                        <p className="text-sm font-body text-gray-700 dark:text-gray-300 leading-relaxed">{item.text}</p>
                       </motion.div>
                     ))}
                   </div>
@@ -440,7 +466,7 @@ export default function Home() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="btn-primary whitespace-nowrap"
+                    className="btn-primary whitespace-nowrap font-body"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Extract'}
                   </button>
