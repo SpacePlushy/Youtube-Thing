@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { extractVideoId, extractTranscript } from '@/lib/youtube';
+import { TranscriptCache } from '@/lib/transcript-cache';
 import { analytics } from '@/lib/analytics';
 import { UserMenu } from '@/components/user-menu';
 import { SignInModal } from '@/components/sign-in-modal';
@@ -57,6 +59,12 @@ export default function Home() {
       return;
     }
 
+    const videoId = extractVideoId(url);
+    if (!videoId) {
+      setError('Invalid input. Please enter a YouTube video URL (e.g., youtube.com/watch?v=...) or just the video ID');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setTranscript([]);
@@ -65,53 +73,45 @@ export default function Home() {
     const startTime = Date.now();
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const cached = TranscriptCache.get(videoId, language, transcriptOrigin);
 
-      const mockTranscript: TranscriptSegment[] = [
-        { text: "Welcome to this comprehensive tutorial on building modern web applications.", duration: 3.5, timestamp: "0:00" },
-        { text: "In this video, we're going to explore the fundamentals of React and Next.js.", duration: 4.2, timestamp: "0:03" },
-        { text: "First, let's talk about why component-based architecture has become so popular.", duration: 4.8, timestamp: "0:07" },
-        { text: "Component-based development allows us to break down complex UIs into smaller, reusable pieces.", duration: 5.1, timestamp: "0:12" },
-        { text: "This approach makes our code more maintainable and easier to test.", duration: 3.9, timestamp: "0:17" },
-        { text: "Now, let's dive into setting up our development environment.", duration: 3.2, timestamp: "0:21" },
-        { text: "You'll need Node.js installed on your machine, preferably version 18 or higher.", duration: 4.5, timestamp: "0:24" },
-        { text: "Once you have Node installed, we can use npm or yarn to create our project.", duration: 4.3, timestamp: "0:29" },
-        { text: "I personally prefer using the Next.js CLI for creating new projects.", duration: 3.8, timestamp: "0:33" },
-        { text: "It sets up everything we need with a single command: npx create-next-app.", duration: 4.6, timestamp: "0:37" },
-        { text: "The CLI will ask you several questions about your project configuration.", duration: 4.1, timestamp: "0:41" },
-        { text: "Make sure to select TypeScript if you want type safety in your application.", duration: 4.2, timestamp: "0:46" },
-        { text: "Also, I recommend enabling the App Router, which is the modern way to handle routing in Next.js.", duration: 5.3, timestamp: "0:50" },
-        { text: "For styling, you can choose between CSS modules, Tailwind CSS, or styled-components.", duration: 5.1, timestamp: "0:55" },
-        { text: "Tailwind has become incredibly popular due to its utility-first approach.", duration: 4.2, timestamp: "1:00" },
-        { text: "Alright, now that our project is set up, let's explore the folder structure.", duration: 4.0, timestamp: "1:04" },
-        { text: "The app directory is where all our routes and pages will live.", duration: 3.7, timestamp: "1:08" },
-        { text: "Each folder in the app directory represents a route segment.", duration: 3.5, timestamp: "1:12" },
-        { text: "And special files like page.tsx and layout.tsx have specific meanings in Next.js.", duration: 4.8, timestamp: "1:16" },
-        { text: "Let's create our first component and see how everything connects together.", duration: 4.2, timestamp: "1:20" },
-        { text: "Remember to keep your components small and focused on a single responsibility.", duration: 4.5, timestamp: "1:25" },
-        { text: "This makes them easier to test and reuse throughout your application.", duration: 3.8, timestamp: "1:29" },
-        { text: "Thank you for watching this introduction to modern web development!", duration: 3.9, timestamp: "1:33" },
-        { text: "In the next video, we'll dive deeper into state management and data fetching.", duration: 4.5, timestamp: "1:37" },
-        { text: "Don't forget to subscribe and hit the notification bell for more tutorials.", duration: 4.1, timestamp: "1:41" }
-      ];
+      if (cached) {
+        setTranscript(cached.transcript);
+        setTranscriptMetadata(cached.metadata);
 
-      setTranscript(mockTranscript);
-      setTranscriptMetadata({
-        videoId: 'mock-video-id',
-        language: language,
-        origin: transcriptOrigin,
-        actualLanguage: language,
-        actualOrigin: transcriptOrigin,
-        hadToFallback: false
-      });
+        analytics.trackExtraction({
+          videoId,
+          language,
+          transcriptType: transcriptOrigin,
+          cached: true,
+          duration: Date.now() - startTime
+        });
+        analytics.trackCacheAction('hit');
+      } else {
+        const result = await extractTranscript(videoId, 'primary', { language, transcriptOrigin });
 
-      analytics.trackExtraction({
-        videoId: 'mock-video-id',
-        language,
-        transcriptType: transcriptOrigin,
-        cached: false,
-        duration: Date.now() - startTime
-      });
+        if (result.transcript && result.transcript.length > 0) {
+          TranscriptCache.set(
+            videoId,
+            language,
+            transcriptOrigin,
+            result.transcript,
+            result.metadata
+          );
+        }
+
+        setTranscript(result.transcript || []);
+        setTranscriptMetadata(result.metadata || null);
+
+        analytics.trackExtraction({
+          videoId,
+          language,
+          transcriptType: transcriptOrigin,
+          cached: false,
+          duration: Date.now() - startTime
+        });
+        analytics.trackCacheAction('miss');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to extract transcript';
       setError(errorMessage);
@@ -119,7 +119,7 @@ export default function Home() {
       analytics.trackError({
         type: 'extraction',
         error: errorMessage,
-        context: { videoId: 'mock', language, transcriptOrigin }
+        context: { videoId, language, transcriptOrigin }
       });
     } finally {
       setLoading(false);
